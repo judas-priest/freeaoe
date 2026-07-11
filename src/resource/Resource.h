@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <SFML/Graphics/Image.hpp>
-
+#include <vector>
+#include <cstdint>
 #include <memory>
 
 namespace genie {
@@ -39,9 +39,14 @@ class Resource
 {
 
 public:
-    static sf::Image convertFrameToImage(const genie::SlpFramePtr &frame);
-    static sf::Image convertFrameToImage(const genie::SlpFramePtr &frame, const genie::PalFile &palette,
+    struct RawImage {
+        std::vector<uint8_t> pixels; // RGBA
+        int width = 0;
+        int height = 0;
+    };
+
+    static RawImage convertFrameToImage(const genie::SlpFramePtr &frame);
+    static RawImage convertFrameToImage(const genie::SlpFramePtr &frame, const genie::PalFile &palette,
                                          const int playerColor = -1);
 
 };
-

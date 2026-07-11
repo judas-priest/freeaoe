@@ -18,6 +18,7 @@
 
 #include "core/Logger.h"
 #include "core/Types.h"
+#include "render/SfmlRenderTarget.h"
 #include "resource/AssetManager.h"
 #include "resource/DataManager.h"
 #include "resource/Resource.h"
@@ -30,7 +31,6 @@
 
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
@@ -128,8 +128,11 @@ bool UiScreen::init()
         m_renderWindow->setSize(sf::Vector2u(width, height));
         m_renderWindow->setView(sf::View(sf::FloatRect(0, 0, width, height)));
 
+        m_renderTarget = std::make_shared<SfmlRenderTarget>(*m_renderWindow);
+
         DBG << backgroundFrame->getWidth() << backgroundFrame->getHeight();
-        m_background.loadFromImage(Resource::convertFrameToImage(backgroundFrame, palette));
+        Resource::RawImage raw = Resource::convertFrameToImage(backgroundFrame, palette);
+        m_background = m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data());
     }
 
 
@@ -139,13 +142,13 @@ bool UiScreen::init()
 void UiScreen::setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWindow)
 {
     m_renderWindow = renderWindow;
+    if (renderWindow) {
+        m_renderTarget = std::make_shared<SfmlRenderTarget>(*renderWindow);
+    }
 }
 
 bool UiScreen::run()
 {
-    sf::Sprite sprite;
-    sprite.setTexture(m_background);
-
     while (m_renderWindow->isOpen()) {
         // Process events
         sf::Event event;
@@ -180,7 +183,9 @@ bool UiScreen::run()
         }
 
         m_renderWindow->clear(sf::Color::Black);
-        m_renderWindow->draw(sprite);
+        if (m_renderTarget && m_background) {
+            m_renderTarget->draw(m_background, ScreenPos(0, 0));
+        }
         render();
         m_renderWindow->display();
     }

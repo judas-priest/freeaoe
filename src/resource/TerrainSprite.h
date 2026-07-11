@@ -21,9 +21,6 @@
 #include "render/IRenderTarget.h"
 #include "mechanics/MapTile.h"
 
-#if PNG_TERRAIN_TEXTURES
-#include <SFML/Graphics/Sprite.hpp>
-#endif
 
 #include <memory>
 #include <string>

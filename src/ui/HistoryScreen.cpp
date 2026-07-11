@@ -21,7 +21,6 @@
 #include <SFML/Graphics/Glyph.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -134,11 +133,15 @@ bool HistoryScreen::init(const std::string &filesDir)
         }
 
         if (hlFramenum != -1) {
-            element.hoverTexture.loadFromImage(Resource::convertFrameToImage(slpFile->getFrame(hlFramenum), palette));
+            Resource::RawImage raw = Resource::convertFrameToImage(slpFile->getFrame(hlFramenum), palette);
+            element.hoverTexture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
         }
 
         const genie::SlpFramePtr &frame = slpFile->getFrame(frameNum);
-        element.texture.loadFromImage(Resource::convertFrameToImage(frame, palette));
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(frame, palette);
+            element.texture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
         element.rect.width = frame->getWidth();
         element.rect.height = frame->getHeight();
     }
@@ -226,8 +229,14 @@ bool HistoryScreen::init(const std::string &filesDir)
         HistoryEntry entry;
         entry.title = title;
 
-        entry.illustration.loadFromImage(Resource::convertFrameToImage(slpSource->getFrame(primaryIllustrationIndex), palette));
-        entry.secondaryIllustration.loadFromImage(Resource::convertFrameToImage(slpSource->getFrame(secondaryIllustrationIndex), palette));
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(slpSource->getFrame(primaryIllustrationIndex), palette);
+            entry.illustration = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(slpSource->getFrame(secondaryIllustrationIndex), palette);
+            entry.secondaryIllustration = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
 
         std::string compareFilename = util::toLowercase(LanguageManager::getString(20410 + 1 + i));
         if (!util::trimString(compareFilename).empty()) {
@@ -325,8 +334,14 @@ bool HistoryScreen::init(const std::string &filesDir)
     } else {
         const genie::PalFile &buttonPalette = AssetManager::Inst()->getPalette(50531);
         genie::SlpFramePtr buttonBg = slpFile->getFrame(0);
-        m_uiElements[MainScreenButton].texture.loadFromImage(Resource::convertFrameToImage(buttonBg, buttonPalette));
-        m_uiElements[MainScreenButton].pressTexture.loadFromImage(Resource::convertFrameToImage(slpFile->getFrame(1), buttonPalette));
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(buttonBg, buttonPalette);
+            m_uiElements[MainScreenButton].texture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(slpFile->getFrame(1), buttonPalette);
+            m_uiElements[MainScreenButton].pressTexture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
         ScreenRect buttonRect(m_textRect.center().x - buttonBg->getWidth() / 2.f,  m_textRect.bottom(), buttonBg->getWidth(), buttonBg->getHeight());
         m_uiElements[MainScreenButton].rect = buttonRect;
 
@@ -354,31 +369,31 @@ void HistoryScreen::display()
 
 void HistoryScreen::render()
 {
-    if (m_currentEntry >= 0) {
-        sf::Sprite sprite;
-        const sf::Texture &illustration = m_historyEntries[m_currentEntry].illustration;
-        sprite.setPosition(529 - illustration.getSize().x/2.f, 73);
-        sprite.setTexture(illustration);
-        m_renderWindow->draw(sprite);
+    if (m_currentEntry >= 0 && m_renderTarget) {
+        const Drawable::Image::Ptr &illustration = m_historyEntries[m_currentEntry].illustration;
+        if (illustration) {
+            m_renderTarget->draw(illustration, ScreenPos(529 - illustration->size.width/2.f, 73));
+        }
 
-        sf::Sprite secondarySprite;
-        secondarySprite.setPosition(14, 407);
-        secondarySprite.setTexture(m_historyEntries[m_currentEntry].secondaryIllustration);
-        m_renderWindow->draw(secondarySprite);
+        const Drawable::Image::Ptr &secondaryIllustration = m_historyEntries[m_currentEntry].secondaryIllustration;
+        if (secondaryIllustration) {
+            m_renderTarget->draw(secondaryIllustration, ScreenPos(14, 407));
+        }
     }
     m_renderWindow->draw(m_titleText);
 
     for (int i=0; i<UiElementsCount; i++) {
-        sf::Sprite buttonSprite;
-        if (i == m_pressedUiElement && m_uiElements[i].pressTexture.getSize().x > 0) {
-            buttonSprite.setTexture(m_uiElements[i].pressTexture);
-        } else if (i == m_currentUiElement && m_uiElements[i].hoverTexture.getSize().x > 0) {
-            buttonSprite.setTexture(m_uiElements[i].hoverTexture);
+        Drawable::Image::Ptr img;
+        if (i == m_pressedUiElement && m_uiElements[i].pressTexture && m_uiElements[i].pressTexture->isValid()) {
+            img = m_uiElements[i].pressTexture;
+        } else if (i == m_currentUiElement && m_uiElements[i].hoverTexture && m_uiElements[i].hoverTexture->isValid()) {
+            img = m_uiElements[i].hoverTexture;
         } else {
-            buttonSprite.setTexture(m_uiElements[i].texture);
+            img = m_uiElements[i].texture;
         }
-        buttonSprite.setPosition(m_uiElements[i].rect.topLeft());
-        m_renderWindow->draw(buttonSprite);
+        if (img && m_renderTarget) {
+            m_renderTarget->draw(img, m_uiElements[i].rect.topLeft());
+        }
     }
 
     for (int i=0; i<s_numVisibleTextLines; i++) {
@@ -419,7 +434,7 @@ bool HistoryScreen::handleMouseEvent(const sf::Event &event)
         }
         m_currentUiElement = InvalidUiElement;
         for (int i=UiElementsCount-1; i>=0; i--) {
-            if (m_uiElements[i].rect.contains(ScreenPos(event.mouseMove.x, event.mouseMove.y)) && m_uiElements[i].hoverTexture.getSize().x > 0) {
+            if (m_uiElements[i].rect.contains(ScreenPos(event.mouseMove.x, event.mouseMove.y)) && m_uiElements[i].hoverTexture && m_uiElements[i].hoverTexture->isValid()) {
                 m_currentUiElement = UiElements(i);
                 return false;
             }

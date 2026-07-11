@@ -1,8 +1,7 @@
 #pragma once
 
 #include "TextButton.h"
-
-#include <SFML/Graphics/Texture.hpp>
+#include "render/IRenderTarget.h"
 
 #include <array>
 #include <memory>
@@ -34,7 +33,7 @@ struct Dialog
     void render(std::shared_ptr<sf::RenderWindow> &renderTarget);
     Choice handleEvent(const sf::Event &event);
 
-    sf::Texture background;
+    Drawable::Image::Ptr background;
     UiScreen *m_screen;
 
 private:

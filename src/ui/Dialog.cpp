@@ -1,11 +1,11 @@
 #include "Dialog.h"
 
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Window/Event.hpp>
 #include <string>
 
 #include "core/Types.h"
+#include "render/SfmlRenderTarget.h"
 
 Dialog::Dialog(UiScreen *screen) :
     m_screen(screen)
@@ -25,10 +25,10 @@ void Dialog::render(std::shared_ptr<sf::RenderWindow> &renderTarget)
     Size textureSize(295, 300); //background.getSize(); can't use the actual size, because of the shadow...
     const ScreenPos windowCenter(windowSize.width / 2, windowSize.height / 2);
     ScreenPos position(windowCenter.x - textureSize.width/2, windowCenter.y - textureSize.height/2);
-    sf::Sprite sprite;
-    sprite.setPosition(position);
-    sprite.setTexture(background);
-    renderTarget->draw(sprite);
+    if (background) {
+        SfmlRenderTarget sfmlRT(*renderTarget);
+        sfmlRT.draw(background, position);
+    }
 
     const int buttonWidth = textureSize.width - 80;
     const int buttonHeight = 30;

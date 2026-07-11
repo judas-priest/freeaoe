@@ -1,9 +1,7 @@
 #include "ActionPanel.h"
 
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include <SFML/Window/Event.hpp>
 #include <genie/dat/Research.h>
 #include <genie/dat/Unit.h>

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include <memory>
 
 #include "core/Types.h"
+#include "render/IRenderTarget.h"
 
 namespace genie {
 class SlpFile;
@@ -42,10 +41,9 @@ private:
 
     ScreenRect m_rect;
 
-    sf::Texture texture;
-    sf::Texture pressedTexture;
+    Drawable::Image::Ptr texture;
+    Drawable::Image::Ptr pressedTexture;
 
-    sf::Sprite m_sprite;
     bool m_pressed = false;
     std::shared_ptr<IRenderTarget> m_renderTarget;
     ScreenPos m_position;

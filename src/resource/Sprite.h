@@ -22,9 +22,9 @@
 #include "core/Types.h"
 
 #include "render/IRenderTarget.h"
+#include "resource/Resource.h"
 
 #include <genie/dat/Graphic.h>
-#include <SFML/Graphics/Texture.hpp>
 
 #include <math.h>
 #include <cstdint>
@@ -38,10 +38,6 @@ namespace genie {
 class GraphicAngleSound;
 class GraphicDelta;
 }  // namespace genie
-
-namespace sf {
-class Texture;
-}  // namespace sf
 
 namespace genie {
 class SlpFile;
@@ -115,8 +111,6 @@ template<> struct hash<SpriteState>
 class Sprite
 {
 public:
-    static const sf::Texture nullImage;
-
     const int m_spriteId = -1;
 
     //----------------------------------------------------------------------------
@@ -127,7 +121,7 @@ public:
     Sprite(const genie::Graphic &m_data, const int id);
     virtual ~Sprite() = default;
 
-    static sf::Image slpFrameToImage(const genie::SlpFramePtr &frame, int8_t playerColor, const ImageType imageType) noexcept;
+    static Resource::RawImage slpFrameToImage(const genie::SlpFramePtr &frame, int8_t playerColor, const ImageType imageType) noexcept;
 
     static Drawable::Image::Ptr slpFrameToImage(const IRenderTarget &renderTarget, const genie::SlpFramePtr &frame, int8_t playerColor, const ImageType imageType) noexcept;
 
@@ -141,7 +135,7 @@ public:
 //    const sf::Texture &getImage(uint32_t frame_num = 0, float angle = 0, uint8_t playerId = 0, const ImageType type = ImageType::Base);
 //    const sf::Texture &overlayImage(uint32_t frame_num, float angle, uint8_t playerId);
 
-    const sf::Texture &texture(uint32_t frameNum = 0, float angleRadians = 0, int playerColor = 0, const ImageType imageType = ImageType::Base) noexcept;
+    Drawable::Image::Ptr texture(IRenderTarget &rt, uint32_t frameNum = 0, float angleRadians = 0, int playerColor = 0, const ImageType imageType = ImageType::Base) noexcept;
 
     Size size(uint32_t frame_num, float angle) const noexcept;
     ScreenRect rect(uint32_t frame_num, float angle) const noexcept;
@@ -212,7 +206,7 @@ private:
 
     genie::SlpFilePtr slp_;
 
-    std::unordered_map<SpriteState, sf::Texture> m_cache;
+    std::unordered_map<SpriteState, Drawable::Image::Ptr> m_cache;
 
     const genie::Graphic &m_data;
     bool m_runOnce = false;

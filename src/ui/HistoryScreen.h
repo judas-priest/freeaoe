@@ -17,13 +17,13 @@
 #pragma once
 
 #include <SFML/Graphics/Text.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include <array>
 #include <string>
 #include <vector>
 
 #include "UiScreen.h"
 #include "core/Types.h"
+#include "render/IRenderTarget.h"
 
 namespace sf {
 class Event;
@@ -51,8 +51,8 @@ class HistoryScreen : public UiScreen
     };
 
     struct HistoryEntry {
-        sf::Texture illustration;
-        sf::Texture secondaryIllustration;
+        Drawable::Image::Ptr illustration;
+        Drawable::Image::Ptr secondaryIllustration;
         std::string title;
         std::string filename;
     };
@@ -87,9 +87,9 @@ class HistoryScreen : public UiScreen
     };
 
     struct UiElement {
-        sf::Texture texture;
-        sf::Texture hoverTexture;
-        sf::Texture pressTexture;
+        Drawable::Image::Ptr texture;
+        Drawable::Image::Ptr hoverTexture;
+        Drawable::Image::Ptr pressTexture;
         ScreenRect rect;
     };
 

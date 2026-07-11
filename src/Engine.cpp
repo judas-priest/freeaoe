@@ -51,9 +51,7 @@
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
 #include <SFML/System/Time.hpp>
@@ -657,12 +655,10 @@ void Engine::showMenu()
         WARN << "Failed to load menu background";
         return;
     }
-    sf::Image menuBg = Resource::convertFrameToImage(backgroundSlp->getFrame(0));
+    Resource::RawImage menuBg = Resource::convertFrameToImage(backgroundSlp->getFrame(0));
 
     m_currentDialog = std::make_unique<Dialog>(m_mainScreen.get());
-    if (!m_currentDialog->background.loadFromImage(menuBg)) {
-        WARN << "Failed to load menu background";
-    }
+    m_currentDialog->background = renderTarget_->createImage(Size(menuBg.width, menuBg.height), menuBg.pixels.data());
     DBG << "showing menu";
 
 }

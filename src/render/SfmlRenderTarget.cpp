@@ -367,6 +367,26 @@ void SfmlRenderTarget::draw(const Drawable::Image::Ptr &image, const ScreenPos &
     drawSfSprite(sprite);
 }
 
+void SfmlRenderTarget::draw(const Drawable::Image::Ptr &image, const ScreenPos &position, const Drawable::BlendMode blendMode)
+{
+    if (!image) {
+        WARN << "can't render null image";
+        return;
+    }
+
+    const std::shared_ptr<const SfmlImage> sfmlImage = std::static_pointer_cast<const SfmlImage>(image);
+    if (IS_UNLIKELY(!sfmlImage->texture)) {
+        return;
+    }
+
+    sf::Sprite sprite;
+    sprite.setTexture(*sfmlImage->texture);
+    sprite.setScale(SCALE * image->scaleX, SCALE * image->scaleY);
+    sprite.setPosition(position);
+
+    drawSfSprite(sprite, toSfBlendMode(blendMode));
+}
+
 
 std::shared_ptr<IRenderTarget> SfmlRenderTarget::createTextureTarget(const Size &size) const
 {

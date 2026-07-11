@@ -17,11 +17,11 @@
 #pragma once
 
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include <memory>
 #include <string>
 
 #include "core/Types.h"
+#include "render/IRenderTarget.h"
 
 namespace sf {
 class Event;
@@ -74,6 +74,7 @@ protected:
     std::shared_ptr<genie::UIFile> m_uiFile;
     std::shared_ptr<genie::SlpFile> m_backgroundSlp;
     std::shared_ptr<sf::RenderWindow> m_renderWindow;
-    sf::Texture m_background;
+    std::shared_ptr<IRenderTarget> m_renderTarget;
+    Drawable::Image::Ptr m_background;
 };
 

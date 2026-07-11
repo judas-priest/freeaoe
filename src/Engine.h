@@ -24,7 +24,6 @@
 #include "render/IRenderTarget.h"
 
 #include <SFML/Graphics/Text.hpp>
-#include <SFML/Graphics/Texture.hpp>
 
 #include <array>
 #include <memory>

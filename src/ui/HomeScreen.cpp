@@ -19,7 +19,6 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Window/Event.hpp>
 #include <genie/resource/SlpFile.h>
 #include <genie/resource/SlpFrame.h>
@@ -254,9 +253,18 @@ bool HomeScreen::init()
         }
         b.description = LanguageManager::getString(31000 + i);
 
-        b.texture.loadFromImage(Resource::convertFrameToImage(frame, palette));
-        b.hoverTexture.loadFromImage(Resource::convertFrameToImage(hoverFrame, palette));
-        b.selectedTexture.loadFromImage(Resource::convertFrameToImage(selectedFrame, palette));
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(frame, palette);
+            b.texture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(hoverFrame, palette);
+            b.hoverTexture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
+        {
+            Resource::RawImage raw = Resource::convertFrameToImage(selectedFrame, palette);
+            b.selectedTexture = m_renderTarget ? m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data()) : nullptr;
+        }
 
         b.offset = ScreenPos(frame->hotspot_x, frame->hotspot_y);
         b.hoverOffset = ScreenPos(hoverFrame->hotspot_x, hoverFrame->hotspot_y);
@@ -338,22 +346,23 @@ void HomeScreen::render()
         if (m_buttons[i].frame == -1) {
             continue;
         }
-        sf::Sprite sprite;
         ScreenPos pos = m_buttons[i].rect.topLeft();
+        Drawable::Image::Ptr img;
 
         if (i == m_selectedButton) {
-            sprite.setTexture(m_buttons[i].selectedTexture);
+            img = m_buttons[i].selectedTexture;
             pos -= m_buttons[i].selectedOffset;
         } else if (i == m_hoveredButton) {
-            sprite.setTexture(m_buttons[i].hoverTexture);
+            img = m_buttons[i].hoverTexture;
             pos -= m_buttons[i].hoverOffset;
         } else {
-            sprite.setTexture(m_buttons[i].texture);
+            img = m_buttons[i].texture;
             pos -= m_buttons[i].offset;
         }
 
-        sprite.setPosition(pos);
-        m_renderWindow->draw(sprite);
+        if (m_renderTarget && img) {
+            m_renderTarget->draw(img, pos);
+        }
 
     }
     for (int i=0; i<Button::TypeCount; i++) {

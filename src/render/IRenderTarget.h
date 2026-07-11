@@ -176,6 +176,7 @@ public:
     virtual Drawable::Image::Ptr loadImage(const uint8_t *data, const size_t dataSize) const = 0;
 
     virtual void draw(const Drawable::Image::Ptr &image, const ScreenPos &position) = 0;
+    virtual void draw(const Drawable::Image::Ptr &image, const ScreenPos &position, const Drawable::BlendMode blendMode) = 0;
 
     virtual std::shared_ptr<IRenderTarget> createTextureTarget(const Size &size) const = 0;
 

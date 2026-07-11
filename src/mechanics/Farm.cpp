@@ -1,6 +1,5 @@
 #include "Farm.h"
 
-#include <SFML/Graphics/Sprite.hpp>
 #include <genie/Types.h>
 #include <genie/dat/Unit.h>
 #include <genie/dat/unit/../ResourceUsage.h>

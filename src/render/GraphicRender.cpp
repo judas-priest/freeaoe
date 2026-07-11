@@ -18,10 +18,6 @@
 
 #include "GraphicRender.h"
 
-#include <SFML/Graphics/BlendMode.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/System/Vector2.hpp>
 #include <genie/dat/GraphicAttackSound.h>
 #include <genie/dat/GraphicDelta.h>
 #include <resource/AssetManager.h>
@@ -140,45 +136,41 @@ void GraphicRender::render(IRenderTarget &renderTarget, const ScreenPos screenPo
     }
 
     if (m_sprite && m_sprite->isValid()) {
-        sf::Sprite sprite;
-        sf::BlendMode blendMode;
+        Drawable::Image::Ptr image;
+        Drawable::BlendMode blendMode = Drawable::BlendMode::Alpha;
 
         switch(renderpass) {
         case RenderType::Base:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::Base));
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::Base);
             break;
         case RenderType::BuildingAlpha:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::Base));
-            blendMode = sf::BlendAdd;
-            blendMode.colorSrcFactor = sf::BlendMode::Zero;
-            blendMode.colorDstFactor = sf::BlendMode::Zero;
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::Base);
+            blendMode = Drawable::BlendMode::Add;
             break;
         case RenderType::Outline:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::Outline));
-            blendMode.alphaSrcFactor = sf::BlendMode::Zero;
-            blendMode.alphaEquation = sf::BlendMode::Add;
-            blendMode.alphaDstFactor = sf::BlendMode::DstAlpha;
-
-            blendMode.colorSrcFactor = sf::BlendMode::One;
-            blendMode.colorEquation = sf::BlendMode::Add;
-            blendMode.colorDstFactor = sf::BlendMode::Zero;
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::Outline);
+            blendMode = Drawable::BlendMode::Add;
             break;
         case RenderType::ConstructAvailable:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::Construction));
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::Construction);
             break;
         case RenderType::Shadow:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::Shadow));
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::Shadow);
             break;
         case RenderType::ConstructUnavailable:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::ConstructionUnavailable));
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::ConstructionUnavailable);
             break;
         case RenderType::InTheShadows:
-            sprite.setTexture(m_sprite->texture(m_currentFrame, m_angle, m_playerColor, ImageType::InTheShadows));
+            image = m_sprite->texture(renderTarget, m_currentFrame, m_angle, m_playerColor, ImageType::InTheShadows);
             break;
         }
 
-        sprite.setPosition(screenPos - m_sprite->getHotspot(m_currentFrame, m_angle));
-        renderTarget.draw(sprite, blendMode);
+        const ScreenPos pos = screenPos - m_sprite->getHotspot(m_currentFrame, m_angle);
+        if (blendMode == Drawable::BlendMode::Alpha) {
+            renderTarget.draw(image, pos);
+        } else {
+            renderTarget.draw(image, pos, blendMode);
+        }
     }
 
 

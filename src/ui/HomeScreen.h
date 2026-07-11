@@ -22,10 +22,11 @@
 #include "UiScreen.h"
 
 #include <SFML/Graphics/Text.hpp>
-#include <SFML/Graphics/Texture.hpp>
 
 #include <array>
 #include <string>
+
+#include "render/IRenderTarget.h"
 
 
 struct TextButton;
@@ -60,9 +61,9 @@ public:
 
         std::string description;
 
-        sf::Texture texture;
-        sf::Texture hoverTexture;
-        sf::Texture selectedTexture;
+        Drawable::Image::Ptr texture;
+        Drawable::Image::Ptr hoverTexture;
+        Drawable::Image::Ptr selectedTexture;
 
         ScreenPos offset;
         ScreenPos hoverOffset;

@@ -18,10 +18,6 @@
 
 #include "Sprite.h"
 
-#include <SFML/Config.hpp>
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/System/Vector2.hpp>
 #include <assert.h>
 #include <genie/Types.h>
 #include <genie/dat/PlayerColour.h>
@@ -40,8 +36,6 @@
 namespace genie {
 class GraphicAngleSound;
 }  // namespace genie
-
-const sf::Texture Sprite::nullImage;
 
 //------------------------------------------------------------------------------
 Sprite::Sprite(const genie::Graphic &data, const int id) :
@@ -63,16 +57,18 @@ Sprite::Sprite(const genie::Graphic &data, const int id) :
     }
 }
 
-sf::Image Sprite::slpFrameToImage(const genie::SlpFramePtr &frame, int8_t playerColor, const ImageType imageType) noexcept
+Resource::RawImage Sprite::slpFrameToImage(const genie::SlpFramePtr &frame, int8_t playerColor, const ImageType imageType) noexcept
 {
     const genie::PalFile &palette = AssetManager::Inst()->getPalette(50500);
     const genie::SlpFrameData &frameData = frame->img_data;
     const int width = frame->getWidth();
     const int height = frame->getHeight();
 
-    sf::Image img;
+    Resource::RawImage img;
     if (width < 1 || height < 1 || width >= 11585 || height >= 11585) {
-        img.create(1, 1, sf::Color::Transparent);
+        img.width = 1;
+        img.height = 1;
+        img.pixels.resize(4, 0);
         return img;
     }
 
@@ -83,36 +79,49 @@ sf::Image Sprite::slpFrameToImage(const genie::SlpFramePtr &frame, int8_t player
         img = Resource::convertFrameToImage(frame, palette, playerColor);
         break;
     case ImageType::Shadow: {
-        img.create(width, height, sf::Color::Transparent);
+        img.width = width;
+        img.height = height;
+        img.pixels.resize(byteCount, 0);
 
-        const sf::Color shadow(0, 0, 0, 128);
         for (const genie::XY pos : frameData.shadow_mask) {
-            img.setPixel(pos.x, pos.y, shadow);
+            const size_t pixelPos = (pos.y * width + pos.x) * 4;
+            img.pixels[pixelPos    ] = 0;
+            img.pixels[pixelPos + 1] = 0;
+            img.pixels[pixelPos + 2] = 0;
+            img.pixels[pixelPos + 3] = 128;
         }
 
         break;
     }
     case ImageType::Outline: {
         if (playerColor < 0) {
-            img.create(1, 1, sf::Color::Transparent);
+            img.width = 1;
+            img.height = 1;
+            img.pixels.resize(4, 0);
             return img;
         }
-        img.create(width, height, sf::Color::Transparent);
+        img.width = width;
+        img.height = height;
+        img.pixels.resize(byteCount, 0);
 
         const genie::PlayerColour pc = DataManager::Inst().getPlayerColor(playerColor);
         genie::Color outlineColor = palette[pc.UnitOutlineColor];
-        const sf::Color outline(outlineColor.r, outlineColor.g, outlineColor.b);
 
         for (const genie::XY pos : frameData.outline_pc_mask) {
-            img.setPixel(pos.x, pos.y, outline);
+            const size_t pixelPos = (pos.y * width + pos.x) * 4;
+            img.pixels[pixelPos    ] = outlineColor.r;
+            img.pixels[pixelPos + 1] = outlineColor.g;
+            img.pixels[pixelPos + 2] = outlineColor.b;
+            img.pixels[pixelPos + 3] = 255;
         }
 
         break;
     }
     case ImageType::ConstructionUnavailable: {
-        // fuck msvc
-        std::vector<Uint8> pixelsBuf(byteCount);
-        Uint8 *pixels = pixelsBuf.data();
+        img.width = width;
+        img.height = height;
+        img.pixels.resize(byteCount);
+        uint8_t *pixels = img.pixels.data();
 
         for (uint32_t row = 0; row < height; row++) {
             for (uint32_t col = 0; col < width; col++) {
@@ -136,13 +145,13 @@ sf::Image Sprite::slpFrameToImage(const genie::SlpFramePtr &frame, int8_t player
             }
         }
 
-        img.create(width, height, pixels);
         break;
     }
     case ImageType::Construction: {
-        // fuck msvc
-        std::vector<Uint8> pixelsBuf(byteCount);
-        Uint8 *pixels = pixelsBuf.data();
+        img.width = width;
+        img.height = height;
+        img.pixels.resize(byteCount);
+        uint8_t *pixels = img.pixels.data();
 
         for (uint32_t row = 0; row < height; row++) {
             for (uint32_t col = 0; col < width; col++) {
@@ -166,13 +175,13 @@ sf::Image Sprite::slpFrameToImage(const genie::SlpFramePtr &frame, int8_t player
             }
         }
 
-        img.create(width, height, pixels);
         break;
     }
     case ImageType::InTheShadows: {
-        // fuck msvc
-        std::vector<Uint8> pixelsBuf(byteCount);
-        Uint8 *pixels = pixelsBuf.data();
+        img.width = width;
+        img.height = height;
+        img.pixels.resize(byteCount);
+        uint8_t *pixels = img.pixels.data();
 
         for (uint32_t row = 0; row < height; row++) {
             for (uint32_t col = 0; col < width; col++) {
@@ -189,7 +198,6 @@ sf::Image Sprite::slpFrameToImage(const genie::SlpFramePtr &frame, int8_t player
             }
         }
 
-        img.create(width, height, pixels);
         break;
     }
     default:
@@ -207,158 +215,14 @@ Drawable::Image::Ptr Sprite::slpFrameToImage(const IRenderTarget &renderTarget, 
         return renderTarget.createImage(Size(0, 0), nullptr);
     }
 
-    const genie::PalFile &palette = AssetManager::Inst()->getPalette(50500);
-    const genie::SlpFrameData &frameData = frame->img_data;
-    const int width = frame->getWidth();
-    const int height = frame->getHeight();
-
-    if (width < 1 || height < 1 || width >= 11585 || height >= 11585) {
-        return renderTarget.createImage(Size(1, 1), nullptr);
-    }
-
-    const size_t byteCount = size_t(width) * size_t(height) * 4;
-
-    Drawable::Image::Ptr img;
-    switch(imageType) {
-    case ImageType::Base:
-        img = renderTarget.convertFrameToImage(frame, palette, playerColor);
-        break;
-    case ImageType::Shadow: {
-        std::vector<uint8_t> pixelsBuf(byteCount, 0);
-        uint8_t *pixels = pixelsBuf.data();
-
-        const sf::Color shadow(0, 0, 0, 128);
-        for (const genie::XY &pos : frameData.shadow_mask) {
-            const size_t pixelPos = (pos.y * width + pos.x) * 4;
-            pixels[pixelPos    ] = 0;
-            pixels[pixelPos + 1] = 0;
-            pixels[pixelPos + 2] = 0;
-            pixels[pixelPos + 3] = 128;
-        }
-
-        img = renderTarget.createImage(Size(width, height), pixels);
-
-        break;
-    }
-    case ImageType::Outline: {
-        if (playerColor < 0) {
-            return renderTarget.createImage(Size(1, 1), nullptr);
-        }
-
-        std::vector<uint8_t> pixelsBuf(byteCount, 0);
-        uint8_t *pixels = pixelsBuf.data();
-
-        const genie::PlayerColour pc = DataManager::Inst().getPlayerColor(playerColor);
-        genie::Color outlineColor = palette[pc.UnitOutlineColor];
-
-        for (const genie::XY &pos : frameData.outline_pc_mask) {
-            const size_t pixelPos = (pos.y * width + pos.x) * 4;
-            pixels[pixelPos    ] = outlineColor.r;
-            pixels[pixelPos + 1] = outlineColor.g;
-            pixels[pixelPos + 2] = outlineColor.b;
-            pixels[pixelPos + 3] = 255;
-        }
-
-        img = renderTarget.createImage(Size(width, height), pixels);
-
-        break;
-    }
-    case ImageType::ConstructionUnavailable: {
-        // fuck msvc
-        std::vector<Uint8> pixelsBuf(byteCount);
-        Uint8 *pixels = pixelsBuf.data();
-
-        for (uint32_t row = 0; row < height; row++) {
-            for (uint32_t col = 0; col < width; col++) {
-                const uint8_t paletteIndex = frameData.pixel_indexes[row * width + col];
-                assert(paletteIndex < palette.getColors().size());
-
-                const genie::Color &g_color = palette[paletteIndex];
-                const size_t pixelPos = (row * width + col) * 4;
-
-                if ((row + col) % 2 == 1) {
-                    pixels[pixelPos    ] = g_color.r;
-                    pixels[pixelPos + 1] = g_color.g;
-                    pixels[pixelPos + 2] = g_color.b;
-                    pixels[pixelPos + 3] = frameData.alpha_channel[row * width + col];
-                } else {
-                    pixels[pixelPos    ] = 255;
-                    pixels[pixelPos + 1] = 0;
-                    pixels[pixelPos + 2] = 0;
-                    pixels[pixelPos + 3] = frameData.alpha_channel[row * width + col]/2;
-                }
-            }
-        }
-
-        img = renderTarget.createImage(Size(width, height), pixels);
-        break;
-    }
-    case ImageType::Construction: {
-        // fuck msvc
-        std::vector<Uint8> pixelsBuf(byteCount);
-        Uint8 *pixels = pixelsBuf.data();
-
-        for (uint32_t row = 0; row < height; row++) {
-            for (uint32_t col = 0; col < width; col++) {
-                const uint8_t paletteIndex = frameData.pixel_indexes[row * width + col];
-                assert(paletteIndex < palette.getColors().size());
-
-                const genie::Color &g_color = palette[paletteIndex];
-                const size_t pixelPos = (row * width + col) * 4;
-
-                if ((row + col) % 2 == 1) {
-                    pixels[pixelPos    ] = g_color.r;
-                    pixels[pixelPos + 1] = g_color.g;
-                    pixels[pixelPos + 2] = g_color.b;
-                    pixels[pixelPos + 3] = frameData.alpha_channel[row * width + col];
-                } else {
-                    pixels[pixelPos    ] = g_color.r/2;
-                    pixels[pixelPos + 1] = g_color.g/2;
-                    pixels[pixelPos + 2] = g_color.b/2;
-                    pixels[pixelPos + 3] = frameData.alpha_channel[row * width + col]/2;
-                }
-            }
-        }
-
-        img = renderTarget.createImage(Size(width, height), pixels);
-        break;
-    }
-    case ImageType::InTheShadows: {
-        // fuck msvc
-        std::vector<Uint8> pixelsBuf(byteCount);
-        Uint8 *pixels = pixelsBuf.data();
-
-        for (uint32_t row = 0; row < height; row++) {
-            for (uint32_t col = 0; col < width; col++) {
-                const uint8_t paletteIndex = frameData.pixel_indexes[row * width + col];
-                assert(paletteIndex < palette.getColors().size());
-
-                const genie::Color &g_color = palette[paletteIndex];
-                const size_t pixelPos = (row * width + col) * 4;
-
-                pixels[pixelPos    ] = g_color.r / 2;
-                pixels[pixelPos + 1] = g_color.g / 2;
-                pixels[pixelPos + 2] = g_color.b / 2;
-                pixels[pixelPos + 3] = frameData.alpha_channel[row * width + col];
-            }
-        }
-
-        img = renderTarget.createImage(Size(width, height), pixels);
-        break;
-    }
-    default:
-        WARN << "Trying to get invalid image type" << imageType;
-        break;
-    }
-
-    return img;
-
+    Resource::RawImage raw = slpFrameToImage(frame, playerColor, imageType);
+    return renderTarget.createImage(Size(raw.width, raw.height), raw.pixels.data());
 }
 
-const sf::Texture &Sprite::texture(uint32_t frameNum, float angleRadians, int playerColor, const ImageType imageType) noexcept
+Drawable::Image::Ptr Sprite::texture(IRenderTarget &rt, uint32_t frameNum, float angleRadians, int playerColor, const ImageType imageType) noexcept
 {
     if (!slp_) {
-        return nullImage;
+        return Drawable::Image::null;
     }
 
     SpriteState state;
@@ -378,13 +242,24 @@ const sf::Texture &Sprite::texture(uint32_t frameNum, float angleRadians, int pl
         state.frame = 0;
     }
 
-    sf::Image img = slpFrameToImage(slp_->getFrame(state.frame), playerColor, imageType);
+    Resource::RawImage raw = slpFrameToImage(slp_->getFrame(state.frame), playerColor, imageType);
 
     if (state.flipped) {
-        img.flipHorizontally();
+        // Flip horizontally: swap pixels left-to-right per row
+        const int w = raw.width;
+        const int h = raw.height;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w / 2; x++) {
+                const size_t left = (y * w + x) * 4;
+                const size_t right = (y * w + (w - 1 - x)) * 4;
+                for (int c = 0; c < 4; c++) {
+                    std::swap(raw.pixels[left + c], raw.pixels[right + c]);
+                }
+            }
+        }
     }
 
-    m_cache[state].loadFromImage(img);
+    m_cache[state] = rt.createImage(Size(raw.width, raw.height), raw.pixels.data());
 
     return m_cache[state];
 
@@ -407,9 +282,9 @@ ScreenRect Sprite::rect(uint32_t frame_num, float angle) const noexcept
     const ScreenPos hotspot = getHotspot(frame_num, angle);
     ret.x = -hotspot.x;
     ret.y = -hotspot.y;
-    const sf::Vector2u frameSize = size(frame_num, angle);
-    ret.width = frameSize.x;
-    ret.height = frameSize.y;
+    const Size frameSize = size(frame_num, angle);
+    ret.width = frameSize.width;
+    ret.height = frameSize.height;
 
     return ret;
 }

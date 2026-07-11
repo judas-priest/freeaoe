@@ -6,7 +6,6 @@
 
 #include "mechanics/IState.h"
 #include "mechanics/UnitManager.h"
-#include <SFML/Graphics/Texture.hpp>
 
 #include <memory>
 #include <ostream>

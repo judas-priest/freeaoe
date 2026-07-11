@@ -14,7 +14,6 @@
 #include "actions/ActionMove.h"
 #endif
 
-#include <SFML/Graphics.hpp>
 
 void UnitsRenderer::begin(const std::shared_ptr<IRenderTarget> &renderTarget)
 {
@@ -351,7 +350,7 @@ void UnitsRenderer::display(const std::shared_ptr<IRenderTarget> &renderTarget)
     {
         // this is a bit wrong, on bright buildings it's almost not visible,
         // but haven't found a better solution other than writing a custom shader (and I'm lazy)
-        renderTarget->draw(m_outlineOverlay, sf::BlendAdd);
+        renderTarget->draw(m_outlineOverlay, Drawable::BlendMode::Add);
     }
 
 }

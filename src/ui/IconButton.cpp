@@ -48,18 +48,21 @@ bool IconButton::setType(const IconButton::Type type)
         WARN << "Failed to load normal graphic for icon button";
         return false;
     }
-    texture.loadFromImage(Resource::convertFrameToImage(frame));
+    {
+        Resource::RawImage raw = Resource::convertFrameToImage(frame);
+        texture = m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data());
+        m_rect.setSize(Size(raw.width, raw.height));
+    }
 
     frame = m_buttonsFile->getFrame(type * 2 + 1);
     if (!frame) {
         WARN << "Failed to load pressed graphic for icon button";
         return false;
     }
-    pressedTexture.loadFromImage(Resource::convertFrameToImage(frame));
-
-    m_rect.setSize(texture.getSize());
-
-    m_sprite.setTexture(texture);
+    {
+        Resource::RawImage raw = Resource::convertFrameToImage(frame);
+        pressedTexture = m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data());
+    }
 
     return true;
 }
@@ -71,7 +74,6 @@ bool IconButton::setPosition(const ScreenPos &position)
     }
 
     m_position = position;
-    m_sprite.setPosition(position);
     m_rect.x = position.x;
     m_rect.y = position.y;
     return true;
@@ -96,7 +98,10 @@ bool IconButton::onMouseReleased(const ScreenPos &mousePosition)
 
 void IconButton::render() const
 {
-    m_renderTarget->draw(m_sprite);
+    const Drawable::Image::Ptr &img = m_pressed ? pressedTexture : texture;
+    if (img && m_renderTarget) {
+        m_renderTarget->draw(img, m_position);
+    }
 }
 
 bool IconButton::setPressed(const bool isPressed)
@@ -105,11 +110,5 @@ bool IconButton::setPressed(const bool isPressed)
         return false;
     }
     m_pressed = isPressed;
-
-    if (m_pressed) {
-        m_sprite.setTexture(pressedTexture);
-    } else {
-       m_sprite.setTexture(texture);
-    }
     return true;
 }

@@ -18,8 +18,6 @@
 
 #include "Resource.h"
 
-#include <SFML/Config.hpp>
-#include <SFML/Graphics/Color.hpp>
 #include <assert.h>
 #include <genie/dat/PlayerColour.h>
 #include <genie/resource/Color.h>
@@ -34,35 +32,48 @@
 #include "DataManager.h"
 #include "core/Types.h"
 
-sf::Image Resource::convertFrameToImage(const genie::SlpFramePtr &frame)
+Resource::RawImage Resource::convertFrameToImage(const genie::SlpFramePtr &frame)
 {
     return convertFrameToImage(frame, AssetManager::Inst()->getPalette(50500));
 }
 
 //------------------------------------------------------------------------------
-sf::Image Resource::convertFrameToImage(const genie::SlpFramePtr &frame,
+Resource::RawImage Resource::convertFrameToImage(const genie::SlpFramePtr &frame,
                                          const genie::PalFile &palette, const int playerColor)
 {
     if (!frame) {
-        sf::Image img;
-        img.create(10, 10, sf::Color::Red);
+        RawImage img;
+        img.width = 10;
+        img.height = 10;
+        // Fill with red (RGBA)
+        img.pixels.resize(10 * 10 * 4);
+        for (int i = 0; i < 10 * 10; i++) {
+            img.pixels[i * 4 + 0] = 255;
+            img.pixels[i * 4 + 1] = 0;
+            img.pixels[i * 4 + 2] = 0;
+            img.pixels[i * 4 + 3] = 255;
+        }
         return img;
     }
 
     const uint32_t width = frame->getWidth();
     const uint32_t height = frame->getHeight();
     if (!width || !height) {
-        sf::Image img;
-        img.create(1, 1, sf::Color::Transparent);
+        RawImage img;
+        img.width = 1;
+        img.height = 1;
+        img.pixels.resize(4, 0); // Transparent
         return img;
     }
     const genie::SlpFrameData &frameData = frame->img_data;
     const int area = width * height;
 
 
-    // fuck msvc
-    std::vector<Uint8> pixelsBuf(area * 4);
-    Uint8 *pixels = pixelsBuf.data();
+    RawImage img;
+    img.width = width;
+    img.height = height;
+    img.pixels.resize(area * 4);
+    uint8_t *pixels = img.pixels.data();
 
     if (frame->is32bit()) {
         const std::vector<uint32_t> &bgraSrc = frameData.bgra_channels;
@@ -74,7 +85,7 @@ sf::Image Resource::convertFrameToImage(const genie::SlpFramePtr &frame,
             *pixels++ = bgra & 0xFF; // b
             *pixels++ = (bgra >> 24) & 0xFF; //a
         }
-        pixels = pixelsBuf.data();
+        pixels = img.pixels.data();
         for (const genie::XY mask : frameData.transparency_mask) {
             const size_t pixelPos = (mask.y * width + mask.x) * 4;
             pixels[pixelPos + 3] = 0;
@@ -92,7 +103,7 @@ sf::Image Resource::convertFrameToImage(const genie::SlpFramePtr &frame,
             *pixels++ = alphachannel[i];
         }
 
-        pixels = pixelsBuf.data();
+        pixels = img.pixels.data();
         if (playerColor >= 0) {
             const genie::PlayerColour &pc = DataManager::Inst().getPlayerColor(playerColor);
             for (const genie::PlayerColorXY mask : frameData.player_color_mask) {
@@ -105,9 +116,6 @@ sf::Image Resource::convertFrameToImage(const genie::SlpFramePtr &frame,
             }
         }
     }
-
-    sf::Image img;
-    img.create(width, height, pixelsBuf.data());
 
     return img;
 }

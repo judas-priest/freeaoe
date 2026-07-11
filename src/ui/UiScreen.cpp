@@ -18,7 +18,19 @@
 
 #include "core/Logger.h"
 #include "core/Types.h"
+#ifdef USE_SDL2
+#include "render/SdlRenderTarget.h"
+#else
 #include "render/SfmlRenderTarget.h"
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/View.hpp>
+#include <SFML/System/Vector2.hpp>
+#include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/VideoMode.hpp>
+#endif
 #include "resource/AssetManager.h"
 #include "resource/DataManager.h"
 #include "resource/Resource.h"
@@ -29,17 +41,9 @@
 #include <genie/resource/SlpFrame.h>
 #include <genie/resource/UIFile.h>
 
-#include <SFML/Graphics/Rect.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/View.hpp>
-#include <SFML/System/Vector2.hpp>
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#include <SFML/Window/Mouse.hpp>
-#include <SFML/Window/VideoMode.hpp>
-
 #include <vector>
 
+#ifndef USE_SDL2
 static input::Key sfKeyToInputKey(sf::Keyboard::Key key) {
     switch(key) {
     case sf::Keyboard::Left: return input::Key::Left;
@@ -117,6 +121,7 @@ static input::Event convertSfEvent(const sf::Event &sfEvent) {
     }
     return ev;
 }
+#endif // !USE_SDL2
 
 UiScreen::UiScreen(const char *uiFile) :
     m_uiFileName(uiFile)
@@ -174,6 +179,44 @@ bool UiScreen::init()
 
     m_pressOffset = m_uiFile->backgroundPosition;
 
+#ifdef USE_SDL2
+    if (!m_renderTarget) {
+        m_backgroundSlp = AssetManager::Inst()->getSlp(m_uiFile->backgroundLarge.fileId, AssetManager::ResourceType::Interface);
+        if (!m_backgroundSlp) {
+            DBG << "failed to load slp file for UI screen by ID, trying name";
+
+            std::string backgroundName;
+            if (m_uiFile->backgroundLarge.filename != "none") {
+                backgroundName = m_uiFile->backgroundLarge.filename;
+            } else {
+                backgroundName = m_uiFile->backgroundSmall.filename;
+            }
+            m_backgroundSlp = AssetManager::Inst()->getSlp(backgroundName + ".slp", AssetManager::ResourceType::Interface);
+        }
+        if (!m_backgroundSlp) {
+            WARN << "failed to load slp file for UI screen";
+            return false;
+        }
+
+        genie::SlpFramePtr backgroundFrame = m_backgroundSlp->getFrame(0);
+        if (!backgroundFrame) {
+            WARN << "Failed to get frame";
+            return false;
+        }
+
+        const int width = backgroundFrame->getWidth();
+        const int height = backgroundFrame->getHeight();
+
+        m_backgroundSize = Size(width, height);
+
+        auto sdlWindow = std::make_unique<SdlWindow>(Size(width, height), "freeaoe");
+        m_renderTarget = std::make_shared<SdlRenderTarget>(Size(width, height), sdlWindow->sdlRenderer);
+
+        DBG << backgroundFrame->getWidth() << backgroundFrame->getHeight();
+        Resource::RawImage raw = Resource::convertFrameToImage(backgroundFrame, palette);
+        m_background = m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data());
+    }
+#else
     if (!m_renderWindow) {
         m_backgroundSlp = AssetManager::Inst()->getSlp(m_uiFile->backgroundLarge.fileId, AssetManager::ResourceType::Interface);
         if (!m_backgroundSlp) {
@@ -214,11 +257,13 @@ bool UiScreen::init()
         Resource::RawImage raw = Resource::convertFrameToImage(backgroundFrame, palette);
         m_background = m_renderTarget->createImage(Size(raw.width, raw.height), raw.pixels.data());
     }
+#endif
 
 
     return true;
 }
 
+#ifndef USE_SDL2
 void UiScreen::setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWindow)
 {
     m_renderWindow = renderWindow;
@@ -226,9 +271,19 @@ void UiScreen::setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWi
         m_renderTarget = std::make_shared<SfmlRenderTarget>(*renderWindow);
     }
 }
+#endif
 
 bool UiScreen::run()
 {
+#ifdef USE_SDL2
+    // SDL2 run loop — UiScreen doesn't own its own window in SDL mode,
+    // so this is a simplified polling loop. The SdlWindow used during init()
+    // may have been temporary; for now, provide a stub that works with
+    // the render target already set up.
+    // TODO: full SDL2 UiScreen loop with SdlWindow ownership
+    WARN << "UiScreen::run() not fully implemented for SDL2 backend";
+    return true;
+#else
     while (m_renderWindow->isOpen()) {
         // Process events
         sf::Event sfEvent;
@@ -273,4 +328,5 @@ bool UiScreen::run()
     }
 
     return true;
+#endif
 }

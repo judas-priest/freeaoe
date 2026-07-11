@@ -28,7 +28,21 @@
 #include "mechanics/UnitManager.h"
 
 #include "render/Camera.h"
+#ifdef USE_SDL2
+#include "render/SdlRenderTarget.h"
+#include <SDL2/SDL.h>
+#else
 #include "render/SfmlRenderTarget.h"
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/System/Vector2.hpp>
+#include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/VideoMode.hpp>
+#include <SFML/Window/WindowStyle.hpp>
+#endif
 #include "render/MapRenderer.h"
 #include "render/UnitsRenderer.h"
 
@@ -49,17 +63,7 @@
 #include <genie/resource/SlpFile.h>
 #include <genie/resource/UIFile.h>
 
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/System/Vector2.hpp>
-
 #include <thread>
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#include <SFML/Window/Mouse.hpp>
-#include <SFML/Window/VideoMode.hpp>
-#include <SFML/Window/WindowStyle.hpp>
 
 #include <algorithm>
 #include <utility>
@@ -69,6 +73,7 @@
 #define MOUSE_MOVE_EDGE_SIZE 10
 #define CAMERA_SPEED 1.
 
+#ifndef USE_SDL2
 static input::Key sfKeyToInput(sf::Keyboard::Key key) {
     switch(key) {
     case sf::Keyboard::Left: return input::Key::Left;
@@ -155,6 +160,7 @@ static input::Event sfEventToInput(const sf::Event &sfEvent) {
     }
     return ev;
 }
+#endif // !USE_SDL2
 
 //------------------------------------------------------------------------------
 void Engine::start()
@@ -166,7 +172,11 @@ void Engine::start()
     // Start the game loop
     size_t fpsSamples = 0;
     double totalFps = 0;
+#ifdef USE_SDL2
+    while (m_sdlWindow->isOpen()) {
+#else
     while (renderWindow_->isOpen()) {
+#endif
         if (state != state_manager_.getActiveState()) {
             state = state_manager_.getActiveState();
             m_minimap->setUnitManager(state->unitManager());
@@ -189,6 +199,27 @@ void Engine::start()
         bool updated = false;
 
         // Process events
+#ifdef USE_SDL2
+        input::Event event;
+        while (m_sdlWindow->pollEvent(event)) {
+            if (event.type == input::Event::Closed) {
+                m_sdlWindow->close();
+            }
+
+            if (event.type == input::Event::MouseButtonPressed || event.type == input::Event::MouseButtonReleased) {
+                mousePos = ScreenPos(event.mouseButton.x, event.mouseButton.y);
+            }
+
+            if (event.type == input::Event::MouseMoved) {
+                mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
+            }
+
+            if (!handleEvent(event, state)) {
+            }
+
+            updated = true;
+        }
+#else
         sf::Event sfEvent;
         while (renderWindow_->pollEvent(sfEvent)) {
             // Close window : exit
@@ -218,6 +249,7 @@ void Engine::start()
 
             updated = true;
         }
+#endif
 
         if (!m_currentDialog && state->result == GameState::Result::Running) {
             updated = state->update(Engine::currentTimeMs()) || updated;
@@ -228,7 +260,7 @@ void Engine::start()
                 } else {
                     m_resultOverlay->string = "You have been defeated!"; // TODO: don't remember the exact text
                 }
-                const Size windowSize = renderWindow_->getSize();
+                const Size windowSize = renderTarget_->getSize();
                 m_resultOverlay->position = ScreenPos(windowSize.width / 2, windowSize.height / 2);
             }
         }
@@ -248,7 +280,11 @@ void Engine::start()
 
         if (updated) {
             // Clear screen
+#ifdef USE_SDL2
+            renderTarget_->clear(Drawable::Color(0, 255, 0));
+#else
             renderWindow_->clear(sf::Color::Green);
+#endif
             m_mapRenderer->display();
 
             drawEntities(state->map());
@@ -256,7 +292,11 @@ void Engine::start()
             state->draw();
 
             if (m_currentDialog) {
+#ifdef USE_SDL2
+                m_currentDialog->render(renderTarget_);
+#else
                 m_currentDialog->render(renderWindow_);
+#endif
             }
 
             if (state->result != GameState::Result::Running) {
@@ -274,7 +314,11 @@ void Engine::start()
             }
 
             // Update the window
+#ifdef USE_SDL2
+            m_sdlWindow->display();
+#else
             renderWindow_->display();
+#endif
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
         }
@@ -315,16 +359,20 @@ void Engine::showStartScreen()
                                     AssetManager::Inst()->getPalette(uiFile->paletteFile.id)
                                     );
 
-    loadingScreen->scaleX = renderWindow_->getSize().x / float(loadingScreen->size.width);
-    loadingScreen->scaleY = renderWindow_->getSize().y / float(loadingScreen->size.height);
+    loadingScreen->scaleX = renderTarget_->getSize().width / float(loadingScreen->size.width);
+    loadingScreen->scaleY = renderTarget_->getSize().height / float(loadingScreen->size.height);
 
     renderTarget_->draw(loadingScreen, ScreenPos(0, 0));
+#ifdef USE_SDL2
+    m_sdlWindow->display();
+#else
     renderWindow_->display();
+#endif
 }
 
 void Engine::loadTopButtons()
 {
-    float x = renderWindow_->getSize().x - 5;
+    float x = renderTarget_->getSize().width - 5;
     for (int i=0; i<IconButton::ButtonsCount; i++) {
         std::unique_ptr<IconButton> button = std::make_unique<IconButton>(renderTarget_);
 
@@ -436,7 +484,11 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         if (choice == Dialog::Cancel) {
             m_currentDialog.reset();
         } else if (choice == Dialog::Quit) {
+#ifdef USE_SDL2
+            m_sdlWindow->close();
+#else
             renderWindow_->close();
+#endif
         }
 
         return true;
@@ -672,6 +724,12 @@ Engine::~Engine() { } // NOLINT
 
 bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 {
+#ifdef USE_SDL2
+    m_sdlWindow = std::make_unique<SdlWindow>(Size(1280, 1024), "freeaoe");
+    // Non-owning shared_ptr — SdlWindow owns the render target lifetime
+    renderTarget_ = std::shared_ptr<IRenderTarget>(m_sdlWindow->renderTarget.get(), [](IRenderTarget*){});
+    m_mainScreen->init();
+#else
     renderWindow_ = std::make_unique<sf::RenderWindow>(sf::VideoMode(1280, 1024), "freeaoe", sf::Style::None);
     renderWindow_->setFramerateLimit(60);
 
@@ -679,11 +737,18 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_mainScreen->init();
 
     renderTarget_ = std::make_shared<SfmlRenderTarget>(*renderWindow_);
+#endif
 
     m_mouseCursor = std::make_unique<MouseCursor>(renderTarget_);
+#ifdef USE_SDL2
+    if (m_mouseCursor->isValid()) {
+        SDL_ShowCursor(SDL_DISABLE);
+    }
+#else
     if (m_mouseCursor->isValid()) {
         renderWindow_->setMouseCursorVisible(false);
     }
+#endif
 
     m_woodLabel = std::make_unique<NumberLabel>(renderTarget_);
     m_foodLabel = std::make_unique<NumberLabel>(renderTarget_);
@@ -750,7 +815,11 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
         uiSize = Size(640, 480);
     }
 
+#ifdef USE_SDL2
+    SDL_SetWindowSize(m_sdlWindow->sdlWindow, uiSize.width, uiSize.height);
+#else
     renderWindow_->setSize(uiSize);
+#endif
     renderTarget_->setSize(uiSize);
 
     m_resultOverlay = renderTarget_->createText(Drawable::Text::UI);

@@ -1,14 +1,29 @@
 #include "TextButton.h"
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include "render/SfmlRenderTarget.h"
+#endif
 #include <memory>
 #include <utility>
 
 #include "UiScreen.h"
-#include "render/SfmlRenderTarget.h"
+
+#ifdef USE_SDL2
+
+TextButton::TextButton()
+{
+}
+
+void TextButton::render(UiScreen * /*screen*/)
+{
+    // TODO: implement TextButton rendering for SDL2
+}
+
+#else // SFML
 
 static sf::Color toSfColor(const Drawable::Color &c) {
     return sf::Color(c.r, c.g, c.b, c.a);
@@ -101,3 +116,4 @@ void TextButton::render(UiScreen *screen)
 
     screen->m_renderWindow->draw(m_text);
 }
+#endif // !USE_SDL2

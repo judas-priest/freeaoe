@@ -24,7 +24,9 @@
 #include "render/IRenderTarget.h"
 #include "render/EventTypes.h"
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/Text.hpp>
+#endif
 
 #include <chrono>
 #include <array>
@@ -36,7 +38,9 @@ class GameState;
 class Map;
 class MapRenderer;
 class ActionPanel;
+#ifndef USE_SDL2
 class SfmlRenderTarget;
+#endif
 struct Dialog;
 struct IconButton;
 class Minimap;
@@ -53,9 +57,13 @@ namespace genie {
 class ScnFile;
 }
 
+#ifdef USE_SDL2
+struct SdlWindow;
+#else
 namespace sf {
 class RenderWindow;
 }
+#endif
 
 struct MouseCursor;
 
@@ -96,8 +104,13 @@ private:
     void showMenu();
     bool updateUi(const std::shared_ptr<GameState> &state);
 
+#ifdef USE_SDL2
+    std::unique_ptr<SdlWindow> m_sdlWindow;
+    std::shared_ptr<IRenderTarget> renderTarget_;
+#else
     std::shared_ptr<sf::RenderWindow> renderWindow_;
     std::shared_ptr<SfmlRenderTarget> renderTarget_;
+#endif
     std::unique_ptr<Dialog> m_currentDialog;
 
     std::unique_ptr<UiScreen> m_mainScreen;

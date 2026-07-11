@@ -9,9 +9,11 @@
 
 struct TextButton;
 
+#ifndef USE_SDL2
 namespace sf {
 class RenderWindow;
 }
+#endif
 
 class UiScreen;
 
@@ -30,7 +32,11 @@ struct Dialog
 
     Dialog(UiScreen *screen);
 
+#ifdef USE_SDL2
+    void render(const std::shared_ptr<IRenderTarget> &renderTarget);
+#else
     void render(std::shared_ptr<sf::RenderWindow> &renderTarget);
+#endif
     Choice handleEvent(const input::Event &event);
 
     Drawable::Image::Ptr background;

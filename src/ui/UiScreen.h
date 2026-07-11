@@ -23,9 +23,11 @@
 #include "render/IRenderTarget.h"
 #include "render/EventTypes.h"
 
+#ifndef USE_SDL2
 namespace sf {
 class RenderWindow;
 }
+#endif
 
 namespace genie {
 class UIFile;
@@ -46,7 +48,9 @@ public:
     virtual bool handleMouseEvent(const input::Event &event) { (void)event; return false; }
     virtual void handleKeyEvent(const input::Event &) {}
 
+#ifndef USE_SDL2
     void setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWindow);
+#endif
 
 protected:
     friend struct TextButton;
@@ -72,7 +76,9 @@ protected:
     std::string m_uiFileName;
     std::shared_ptr<genie::UIFile> m_uiFile;
     std::shared_ptr<genie::SlpFile> m_backgroundSlp;
+#ifndef USE_SDL2
     std::shared_ptr<sf::RenderWindow> m_renderWindow;
+#endif
     std::shared_ptr<IRenderTarget> m_renderTarget;
     Drawable::Image::Ptr m_background;
 };

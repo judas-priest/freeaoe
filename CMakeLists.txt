@@ -368,10 +368,6 @@ set (UI_SRC
     src/ui/FileDialog.h
     src/ui/UnitInfoPanel.cpp
     src/ui/UnitInfoPanel.h
-    src/ui/HomeScreen.cpp
-    src/ui/HomeScreen.h
-    src/ui/HistoryScreen.cpp
-    src/ui/HistoryScreen.h
     src/ui/UiScreen.cpp
     src/ui/UiScreen.h
     src/ui/TextButton.cpp
@@ -389,6 +385,15 @@ set (UI_SRC
 
     ${IMAGE_PARCHMENT}
     )
+
+if(NOT USE_SDL2)
+    list(APPEND UI_SRC
+        src/ui/HomeScreen.cpp
+        src/ui/HomeScreen.h
+        src/ui/HistoryScreen.cpp
+        src/ui/HistoryScreen.h
+    )
+endif()
 
 set (EDITOR_SRC
     src/editor/Editor.cpp

@@ -3,9 +3,10 @@
 #include "core/Logger.h"
 #include "core/Utility.h"
 #include "global/Config.h"
+#ifdef USE_SDL2
+#include "render/SdlRenderTarget.h"
+#else
 #include "render/SfmlRenderTarget.h"
-#include "misc/images/parchment.jpg.h"
-
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Text.hpp>
@@ -14,12 +15,15 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Window/VideoMode.hpp>
+#endif
+#include "misc/images/parchment.jpg.h"
 
 #include <stddef.h>
 #include <algorithm>
 #include <system_error>
 #include <utility>
 
+#ifndef USE_SDL2
 static input::Event convertSfEventFD(const sf::Event &sfEvent) {
     input::Event ev{};
     switch(sfEvent.type) {
@@ -53,6 +57,7 @@ static input::Event convertSfEventFD(const sf::Event &sfEvent) {
     }
     return ev;
 }
+#endif // !USE_SDL2
 
 FileDialog::FileDialog()
 {
@@ -62,7 +67,11 @@ FileDialog::~FileDialog() { }
 
 bool FileDialog::setup(int width, int height)
 {
+#ifdef USE_SDL2
+    m_window = std::make_unique<SdlWindow>(Size(width, height), "freeaoe");
+#else
     m_window = std::make_unique<SfmlWindow>(Size(width, height), "freeaoe");
+#endif
     {
         m_description = m_window->renderTarget->createText(Drawable::Text::UI);
         m_description->string = "Please select the directory containing your Age of Empires 2 installation.";
@@ -115,6 +124,44 @@ std::string FileDialog::getPath()
 
     while (m_window->isOpen()) {
         // Process events
+#ifdef USE_SDL2
+        input::Event event;
+        while (m_window->pollEvent(event)) {
+            if (event.type == input::Event::Closed) {
+                m_window->close();
+                continue;
+            }
+
+            if (m_openDownloadUrlButton->checkClick(event)) {
+                util::openUrl("https://archive.org/details/AgeOfEmpiresIiTheConquerorsDemo", nullptr);
+                continue;
+            }
+
+            if (m_cancelButton->checkClick(event)) {
+                m_window->close();
+            }
+
+            if (m_okButton->checkClick(event)) {
+                m_window->close();
+                ret = m_fileList->currentText();
+            }
+
+            if (m_backButton->checkClick(event)) {
+                m_fileList->setCurrentPath(m_fileList->pathHistory.back());
+                m_fileList->pathHistory.pop_back();
+            }
+
+#if defined(__linux__)
+            if (m_goToWineButton) {
+                if (m_goToWineButton->checkClick(event)) {
+                    m_fileList->setCurrentPath(std::filesystem::path(m_winePath));
+                }
+            }
+#endif
+
+            m_fileList->handleEvent(event);
+        }
+#else
         sf::Event sfEvent;
         if (!m_window->window->waitEvent(sfEvent)) {
             WARN << "failed to get event";
@@ -154,9 +201,11 @@ std::string FileDialog::getPath()
             }
         }
 #endif
-        m_pathText->string = m_fileList->currentText();
 
         m_fileList->handleEvent(event);
+#endif
+
+        m_pathText->string = m_fileList->currentText();
         m_okButton->enabled = m_fileList->hasDataFolder;
         m_backButton->enabled = !m_fileList->pathHistory.empty();
 
@@ -179,6 +228,10 @@ std::string FileDialog::getPath()
         }
 #endif
         m_window->display();
+
+#ifdef USE_SDL2
+        SDL_Delay(16); // ~60fps cap for polling mode
+#endif
     }
 
     return ret;

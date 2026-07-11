@@ -16,6 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef USE_SDL2
+#include <SDL2/SDL.h>
+#endif
+
 #include <genie/script/ScnFile.h>
 #include <filesystem>
 #include <memory>
@@ -31,13 +35,14 @@
 #include "resource/DataManager.h"
 #include "resource/LanguageManager.h"
 #include "ui/FileDialog.h"
+#ifndef USE_SDL2
 #include "ui/HistoryScreen.h"
+#include "ui/HomeScreen.h"
+#endif
 #include "editor/Editor.h"
 #include "debug/SampleGameFactory.h"
 #include <genie/util/Utility.h>
 #include <genie/util/Logger.h>
-
-#include "ui/HomeScreen.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -101,6 +106,7 @@ static void initData()
     }
 }
 
+#ifndef USE_SDL2
 static bool showHomeScreen(genie::ScnFilePtr *scenarioFile)
 {
     Config &config = Config::Inst();
@@ -199,6 +205,7 @@ static bool showHomeScreen(genie::ScnFilePtr *scenarioFile)
 
     return true;
 }
+#endif // !USE_SDL2
 
 static bool requestFilePath(const std::string &errorMessage)
 {
@@ -270,12 +277,14 @@ try
 
     genie::ScnFilePtr scenarioFile;
 
+#ifndef USE_SDL2
     if (!config.isOptionSet(Config::GameSample) && !config.isOptionSet(Config::SinglePlayer)) {
         if (!showHomeScreen(&scenarioFile)) {
             return 0;
         }
 
     }
+#endif
 
     Engine engine;
     if (!engine.setup(scenarioFile)) {

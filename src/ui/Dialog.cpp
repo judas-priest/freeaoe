@@ -1,10 +1,12 @@
 #include "Dialog.h"
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderWindow.hpp>
+#include "render/SfmlRenderTarget.h"
+#endif
 #include <string>
 
 #include "core/Types.h"
-#include "render/SfmlRenderTarget.h"
 
 Dialog::Dialog(UiScreen *screen) :
     m_screen(screen)
@@ -18,6 +20,17 @@ Dialog::Dialog(UiScreen *screen) :
 
 }
 
+#ifdef USE_SDL2
+void Dialog::render(const std::shared_ptr<IRenderTarget> &renderTarget)
+{
+    Size windowSize = renderTarget->getSize();
+    Size textureSize(295, 300);
+    const ScreenPos windowCenter(windowSize.width / 2, windowSize.height / 2);
+    ScreenPos position(windowCenter.x - textureSize.width/2, windowCenter.y - textureSize.height/2);
+    if (background) {
+        renderTarget->draw(background, position);
+    }
+#else
 void Dialog::render(std::shared_ptr<sf::RenderWindow> &renderTarget)
 {
     Size windowSize = renderTarget->getSize();
@@ -28,6 +41,7 @@ void Dialog::render(std::shared_ptr<sf::RenderWindow> &renderTarget)
         SfmlRenderTarget sfmlRT(*renderTarget);
         sfmlRT.draw(background, position);
     }
+#endif
 
     const int buttonWidth = textureSize.width - 80;
     const int buttonHeight = 30;

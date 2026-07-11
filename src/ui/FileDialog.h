@@ -12,13 +12,19 @@
 
 #include "core/Types.h"
 
+#ifndef USE_SDL2
 namespace sf {
 class RenderWindow;
 class Font;
 class Text;
 }
+#endif
 
+#ifdef USE_SDL2
+struct SdlWindow;
+#else
 struct SfmlWindow;
+#endif
 
 struct Button
 {
@@ -93,8 +99,12 @@ public:
     void setErrorString(const std::string &error) noexcept;
 
 private:
+#ifdef USE_SDL2
+    std::unique_ptr<SdlWindow> m_window;
+#else
     std::unique_ptr<SfmlWindow> m_window;
     std::unique_ptr<sf::Font> m_font;
+#endif
     std::unique_ptr<Button> m_okButton;
     std::unique_ptr<Button> m_cancelButton;
     std::unique_ptr<Button> m_openDownloadUrlButton;

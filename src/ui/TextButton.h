@@ -16,7 +16,9 @@
 */
 #pragma once
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/Text.hpp>
+#endif
 #include <string>
 
 #include "core/Types.h"
@@ -34,6 +36,8 @@ struct TextButton
     void render(UiScreen *screen);
 
 private:
+#ifndef USE_SDL2
     static void drawLine(const ScreenPos &from, const ScreenPos &to, const sf::Color &color, UiScreen *screen);
     sf::Text m_text;
+#endif
 };

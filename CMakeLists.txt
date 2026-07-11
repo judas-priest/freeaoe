@@ -52,7 +52,12 @@ if (VC_STATIC)
     set(CMAKE_C_FLAGS_RELEASE "/MT /O2 /Ob2 /DNDEBUG")
 endif()
 
-#find_package(SDL2 REQUIRED)
+option(USE_SDL2 "Use SDL2 backend instead of SFML" OFF)
+
+if(ANDROID)
+    set(USE_SDL2 ON CACHE BOOL "Force SDL2 on Android" FORCE)
+    add_definitions(-DANDROID)
+endif()
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     add_definitions(-DDEBUG)
@@ -117,7 +122,30 @@ else()
     find_package(ZLIB)
 endif()
 
-find_package(SFML COMPONENTS system window graphics REQUIRED)
+if(USE_SDL2)
+    # On Android or when sources are bundled, build SDL2 from submodule
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/extern/SDL2/CMakeLists.txt)
+        message(STATUS "Using bundled SDL2")
+        set(SDL_SHARED ON CACHE BOOL "")
+        set(SDL_STATIC OFF CACHE BOOL "")
+        add_subdirectory(src/extern/SDL2)
+
+        set(SDL_TTF_SHARED ON CACHE BOOL "")
+        set(SDL_TTF_STATIC OFF CACHE BOOL "")
+        add_subdirectory(src/extern/SDL2_ttf)
+
+        set(SDL2_LIBS SDL2 SDL2_ttf)
+    else()
+        # Desktop: use system SDL2
+        find_package(SDL2 REQUIRED)
+        find_package(SDL2_ttf REQUIRED)
+        set(SDL2_LIBS SDL2::SDL2 SDL2_ttf::SDL2_ttf)
+    endif()
+
+    add_definitions(-DUSE_SDL2)
+else()
+    find_package(SFML COMPONENTS system window graphics REQUIRED)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_definitions(-Wno-nested-anon-types)
@@ -274,22 +302,29 @@ set(ACTIONS_SRC
     src/actions/ActionGarrison.h
     )
 
-set(RENDER_SRC
-    src/render/Camera.cpp
-    src/render/Camera.h
-    src/render/GraphicRender.cpp
-    src/render/GraphicRender.h
-    src/render/IRenderer.cpp
-    src/render/IRenderer.h
-    src/render/IRenderTarget.cpp
-    src/render/IRenderTarget.h
-    src/render/MapRenderer.cpp
-    src/render/MapRenderer.h
-    src/render/SfmlRenderTarget.cpp
-    src/render/SfmlRenderTarget.h
-    src/render/UnitsRenderer.cpp
-    src/render/UnitsRenderer.h
+if(USE_SDL2)
+    set(RENDER_SRC
+        src/render/Camera.cpp src/render/Camera.h
+        src/render/GraphicRender.cpp src/render/GraphicRender.h
+        src/render/IRenderer.cpp src/render/IRenderer.h
+        src/render/IRenderTarget.cpp src/render/IRenderTarget.h
+        src/render/MapRenderer.cpp src/render/MapRenderer.h
+        src/render/SdlRenderTarget.cpp src/render/SdlRenderTarget.h
+        src/render/UnitsRenderer.cpp src/render/UnitsRenderer.h
+        src/render/EventTypes.h
     )
+else()
+    set(RENDER_SRC
+        src/render/Camera.cpp src/render/Camera.h
+        src/render/GraphicRender.cpp src/render/GraphicRender.h
+        src/render/IRenderer.cpp src/render/IRenderer.h
+        src/render/IRenderTarget.cpp src/render/IRenderTarget.h
+        src/render/MapRenderer.cpp src/render/MapRenderer.h
+        src/render/SfmlRenderTarget.cpp src/render/SfmlRenderTarget.h
+        src/render/UnitsRenderer.cpp src/render/UnitsRenderer.h
+        src/render/EventTypes.h
+    )
+endif()
 
 set(SERVER_SRC
     src/server/GameServer.cpp
@@ -391,15 +426,11 @@ set(ENGINE_SRC
     ${EDITOR_SRC}
     )
 
-set(ALL_LIBRARIES
-    sfml-system
-    sfml-window
-    sfml-graphics
-    genieutils
-    ${EXTRA_LIBS}
-#    SDL2::SDL2
-#    SDL2::SDL2main
-)
+if(USE_SDL2)
+    set(ALL_LIBRARIES ${SDL2_LIBS} genieutils ${EXTRA_LIBS})
+else()
+    set(ALL_LIBRARIES sfml-system sfml-window sfml-graphics genieutils ${EXTRA_LIBS})
+endif()
 
 add_library(freeaoe_common OBJECT ${ENGINE_SRC})
 target_link_libraries(freeaoe_common ${ALL_LIBRARIES})
@@ -408,6 +439,12 @@ target_link_libraries(freeaoe_common ${ALL_LIBRARIES})
 add_executable(freeaoe src/main.cpp $<TARGET_OBJECTS:freeaoe_common>)
 target_link_libraries(freeaoe ${ALL_LIBRARIES})
 install(TARGETS freeaoe DESTINATION bin)
+
+if(ANDROID)
+    # On Android, build as shared library loaded by SDLActivity
+    add_library(freeaoe SHARED src/main.cpp $<TARGET_OBJECTS:freeaoe_common>)
+    target_link_libraries(freeaoe ${ALL_LIBRARIES})
+endif()
 
 if (BUILD_TESTS)
     add_executable(test src/test/main.cpp $<TARGET_OBJECTS:freeaoe_common>)

@@ -79,7 +79,7 @@ void GameClient::selectUnit(Unit *unit)
     selected_unit_ = unit;
 }
 
-void GameClient::moveSelectedTo(sf::Vector2f pos)
+void GameClient::moveSelectedTo(MapPos pos)
 {
     if (!selected_unit_)
         log.warn("No unit selected to move");

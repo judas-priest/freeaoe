@@ -16,9 +16,15 @@
 */
 #include "HomeScreen.h"
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/Color.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Rect.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderWindow.hpp>
+#endif
 #include <genie/resource/SlpFile.h>
 #include <genie/resource/SlpFrame.h>
 #include <genie/util/Utility.h>

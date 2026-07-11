@@ -22,7 +22,7 @@ UnitStatus::UnitStatus()
 {
 }
 
-UnitStatus::UnitStatus(sf::Uint32 id, sf::Uint32 data_id, MapPos pos) :
+UnitStatus::UnitStatus(uint32_t id, uint32_t data_id, MapPos pos) :
     id_(id),
     data_id_(data_id), pos_(pos)
 
@@ -33,12 +33,12 @@ UnitStatus::~UnitStatus()
 {
 }
 
-sf::Uint32 UnitStatus::getID()
+uint32_t UnitStatus::getID()
 {
     return id_;
 }
 
-sf::Uint32 UnitStatus::getDataID()
+uint32_t UnitStatus::getDataID()
 {
     return data_id_;
 }

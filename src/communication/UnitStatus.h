@@ -17,7 +17,7 @@
 */
 
 #pragma once
-#include <SFML/Config.hpp>
+#include <cstdint>
 #include "core/Types.h"
 
 //------------------------------------------------------------------------------
@@ -29,20 +29,20 @@ class UnitStatus
 public:
     UnitStatus();
 
-    UnitStatus(sf::Uint32 id, sf::Uint32 data_id, MapPos pos);
+    UnitStatus(uint32_t id, uint32_t data_id, MapPos pos);
 
     virtual ~UnitStatus();
 
-    sf::Uint32 getID();
+    uint32_t getID();
 
-    sf::Uint32 getDataID();
+    uint32_t getDataID();
 
     MapPos getPos();
 
 private:
     void *player;
-    sf::Uint32 id_;
-    sf::Uint32 data_id_;
+    uint32_t id_;
+    uint32_t data_id_;
 
     MapPos pos_;
 };

@@ -7,14 +7,30 @@
 #include "render/SdlRenderTarget.h"
 #else
 #include "render/SfmlRenderTarget.h"
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderWindow.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Color.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Text.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/View.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Window/Event.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Window/Keyboard.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Window/Mouse.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Window/VideoMode.hpp>
+#endif
 #endif
 #include "misc/images/parchment.jpg.h"
 

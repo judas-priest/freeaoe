@@ -2,7 +2,7 @@
 
 #include "core/Types.h"
 
-#include <SFML/Graphics/Text.hpp>
+#include "render/IRenderTarget.h"
 #include <memory>
 
 namespace genie {
@@ -57,7 +57,7 @@ private:
     std::shared_ptr<Drawable::Image> m_image;
     genie::SlpFilePtr m_cursorsFile;
     ScreenPos m_position;
-    sf::Text m_cursor_pos_text;
+    Drawable::Text::Ptr m_cursor_pos_text;
 
     std::shared_ptr<IRenderTarget> m_renderTarget;
 };

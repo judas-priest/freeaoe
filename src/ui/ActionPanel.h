@@ -22,7 +22,9 @@ struct Unit;
 struct Player;
 using PlayerPtr = std::shared_ptr<Player>;
 
+#ifndef USE_SDL2
 class SfmlRenderTarget;
+#endif
 class UnitManager;
 namespace genie {
 class Unit;
@@ -240,7 +242,11 @@ public:
         Undefined
     };
 
+#ifdef USE_SDL2
+    ActionPanel(std::shared_ptr<IRenderTarget> renderTarget);
+#else
     ActionPanel(std::shared_ptr<SfmlRenderTarget> renderTarget);
+#endif
     ActionPanel() = delete;
     ~ActionPanel();
 
@@ -300,7 +306,11 @@ private:
     ScreenPos buttonPosition(const int index) const;
     ScreenRect buttonRect(const int index) const;
 
+#ifdef USE_SDL2
+    std::shared_ptr<IRenderTarget> m_renderTarget;
+#else
     std::shared_ptr<SfmlRenderTarget> m_renderTarget;
+#endif
     std::shared_ptr<UnitManager> m_unitManager;
     std::weak_ptr<Player> m_humanPlayer;
     int m_humanPlayerId = -1;

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <SFML/Graphics/Text.hpp>
+#include "render/IRenderTarget.h"
 
 #include <memory>
 
-class IRenderTarget;
 struct ScreenPos;
 
 struct NumberLabel
@@ -18,8 +17,6 @@ struct NumberLabel
     void render();
 
 private:
-    void updatePosition();
-
     void updateText();
 
     int m_maxValue = 0;
@@ -27,7 +24,7 @@ private:
 
     int m_right = 0;
     int m_top = 0;
-    sf::Text m_text;
+    Drawable::Text::Ptr m_text;
 
     std::shared_ptr<IRenderTarget> m_renderTarget;
 };

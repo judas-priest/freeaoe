@@ -21,8 +21,7 @@
 #include "core/Logger.h"
 
 #include <map>
-#include <SFML/Config.hpp>
-#include <SFML/System/Vector2.hpp>
+#include <cstdint>
 
 struct Unit;
 class RenderGame;
@@ -41,7 +40,7 @@ public:
     void update();
 
     void selectUnit(Unit *unit);
-    void moveSelectedTo(sf::Vector2f pos);
+    void moveSelectedTo(MapPos pos);
 
     void test();
 
@@ -52,7 +51,7 @@ private:
 
     RenderGame *game_renderer_;
 
-    typedef std::map<sf::Uint32, Unit *> UnitMap;
+    typedef std::map<uint32_t, Unit *> UnitMap;
     UnitMap units_;
 
     Unit *selected_unit_;

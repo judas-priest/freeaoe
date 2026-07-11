@@ -21,7 +21,7 @@
 #include <server/GameServer.h>
 #include <mechanics/ActionMove.h>
 
-CommandMove::CommandMove(sf::Uint32 unit_id, MapPos target): unit_id_(unit_id),
+CommandMove::CommandMove(uint32_t unit_id, MapPos target): unit_id_(unit_id),
                          target_(target)
 {
 

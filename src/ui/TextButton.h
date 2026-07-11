@@ -17,7 +17,9 @@
 #pragma once
 
 #ifndef USE_SDL2
+#ifndef USE_SDL2
 #include <SFML/Graphics/Text.hpp>
+#endif
 #endif
 #include <string>
 

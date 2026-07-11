@@ -19,21 +19,21 @@
 
 #pragma once
 #include <communication/ICommand.h>
-#include <SFML/Config.hpp>
-#include <global/Types.h>
+#include <cstdint>
+#include "core/Types.h"
 
 class CommandMove : public ICommand
 {
 
 public:
-  CommandMove(sf::Uint32 unit_id, MapPos target);
+  CommandMove(uint32_t unit_id, MapPos target);
   CommandMove(const CommandMove& other);
   virtual ~CommandMove();
   
   virtual void execute(GameServer *gs);
   
 private:
-  sf::Uint32 unit_id_;
+  uint32_t unit_id_;
   MapPos target_;
 };
 

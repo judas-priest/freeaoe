@@ -21,7 +21,9 @@
 #include "TextButton.h"
 #include "UiScreen.h"
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/Text.hpp>
+#endif
 
 #include <array>
 #include <string>

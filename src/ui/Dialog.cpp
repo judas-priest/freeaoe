@@ -1,7 +1,9 @@
 #include "Dialog.h"
 
 #ifndef USE_SDL2
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderWindow.hpp>
+#endif
 #include "render/SfmlRenderTarget.h"
 #endif
 #include <string>

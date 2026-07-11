@@ -76,9 +76,12 @@ void MouseCursor::render()
     if (m_currentType == Invalid) {
         return;
     }
-    m_cursor_pos_text.setString(std::to_string(m_position.x) + ", " + std::to_string(m_position.y));
-    m_cursor_pos_text.setCharacterSize(11);
-    m_cursor_pos_text.setPosition(ScreenPos(m_position));
+    if (!m_cursor_pos_text) {
+        m_cursor_pos_text = m_renderTarget->createText();
+        m_cursor_pos_text->pointSize = 11;
+    }
+    m_cursor_pos_text->string = std::to_string(m_position.x) + ", " + std::to_string(m_position.y);
+    m_cursor_pos_text->position = ScreenPos(m_position);
 
     if (m_currentType != Invalid) {
         m_renderTarget->draw(m_image, m_position);

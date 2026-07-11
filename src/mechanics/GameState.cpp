@@ -22,7 +22,11 @@
 #include "ScenarioController.h"
 
 #include <Engine.h>
+#ifdef USE_SDL2
+#include "render/SdlRenderTarget.h"
+#else
 #include "render/SfmlRenderTarget.h"
+#endif
 #include "resource/DataManager.h"
 #include "resource/AssetManager.h"
 #include "core/Constants.h"
@@ -44,7 +48,11 @@
 #include <genie/resource/Color.h>
 #include "genie/script/ScnFile.h"
 
+#ifndef USE_SDL2
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderTarget.hpp>
+#endif
+#endif
 
 #include <iostream>
 #include <render/GraphicRender.h>
@@ -100,7 +108,11 @@ std::unordered_map<GameType, ResourceMap> GameState::defaultStartingResources = 
     },
 };
 
+#ifdef USE_SDL2
+GameState::GameState(const std::shared_ptr<IRenderTarget> &renderTarget)
+#else
 GameState::GameState(const std::shared_ptr<SfmlRenderTarget> &renderTarget)
+#endif
 {
     m_unitManager = std::make_shared<UnitManager>();
     renderTarget_ = renderTarget;

@@ -97,7 +97,7 @@ Unit *GameServer::getUnit(Uint32 unit_id)
 }
 
 //------------------------------------------------------------------------------
-bool GameServer::spawnUnit(void *player, sf::Uint32 unit_id, MapPos pos)
+bool GameServer::spawnUnit(void *player, uint32_t unit_id, MapPos pos)
 {
     Unit *unit = new Unit(unit_id_counter_);
     units_[unit_id_counter_] = unit;

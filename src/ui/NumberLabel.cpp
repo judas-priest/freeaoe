@@ -1,22 +1,18 @@
 #include "NumberLabel.h"
 
 #include "render/IRenderTarget.h"
-#include "render/SfmlRenderTarget.h"
-
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Rect.hpp>
-#include <SFML/System/Vector2.hpp>
+#include "core/Types.h"
 
 #include <string>
 
 NumberLabel::NumberLabel(std::shared_ptr<IRenderTarget> renderTarget) :
     m_renderTarget(std::move(renderTarget))
 {
-    m_text.setFont(SfmlRenderTarget::uiFont());
-    m_text.setOutlineColor(sf::Color::Black);
-    m_text.setOutlineThickness(1);
-    m_text.setFillColor(sf::Color::White);
-    m_text.setCharacterSize(16);
+    m_text = m_renderTarget->createText(Drawable::Text::UI);
+    m_text->outlineColor = Drawable::Black;
+    m_text->color = Drawable::White;
+    m_text->pointSize = 16;
+    m_text->alignment = Drawable::Text::AlignRight;
 }
 
 bool NumberLabel::setValue(const int value)
@@ -50,11 +46,6 @@ void NumberLabel::render()
     m_renderTarget->draw(m_text);
 }
 
-void NumberLabel::updatePosition()
-{
-    m_text.setPosition(sf::Vector2f(m_right - m_text.getLocalBounds().width, m_top));
-}
-
 void NumberLabel::updateText()
 {
     std::string string = std::to_string(m_value);
@@ -62,6 +53,6 @@ void NumberLabel::updateText()
         string += '/';
         string += std::to_string(m_maxValue);
     }
-    m_text.setString(string);
-    updatePosition();
+    m_text->string = string;
+    m_text->position = ScreenPos(m_right, m_top);
 }

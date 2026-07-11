@@ -1,10 +1,18 @@
 #include "TextButton.h"
 
 #ifndef USE_SDL2
+#ifndef USE_SDL2
 #include <SFML/Graphics/Color.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Rect.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/RectangleShape.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderWindow.hpp>
+#endif
 #include "render/SfmlRenderTarget.h"
 #endif
 #include <memory>

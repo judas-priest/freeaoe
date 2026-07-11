@@ -95,6 +95,8 @@ public:
     SDL_Texture *texture() const { return m_texture; }
 
 private:
+    friend struct SdlWindow;
+
     SDL_Renderer *m_renderer = nullptr; // non-owning
     SDL_Texture *m_texture = nullptr;   // owned, for off-screen targets
     mutable Size m_size;

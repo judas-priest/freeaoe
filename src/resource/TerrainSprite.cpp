@@ -30,10 +30,20 @@
 #include <genie/resource/Color.h>
 #include <genie/resource/SlpFile.h>
 
+#ifndef USE_SDL2
+#ifndef USE_SDL2
 #include <SFML/Config.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Image.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Rect.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/System/Vector2.hpp>
+#endif
+#endif
 
 #include <assert.h>
 #include <algorithm>
@@ -46,7 +56,7 @@
 
 #ifdef __BYTE_ORDER__
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#error "I don't think big endian will work with SFML images"
+#error "I don't think big endian will work with image pixel layout"
 #endif
 #endif
 

@@ -25,7 +25,7 @@
 
 #include <iostream>
 
-CommandSpawn::CommandSpawn(void* player, sf::Uint32 unit_id, MapPos pos) : 
+CommandSpawn::CommandSpawn(void* player, uint32_t unit_id, MapPos pos) : 
                            ICommand(), unit_id_(unit_id), pos_(pos)
                            
 {

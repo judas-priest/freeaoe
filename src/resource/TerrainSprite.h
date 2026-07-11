@@ -34,7 +34,11 @@ class SlpFile;
 using SlpFilePtr = std::shared_ptr<SlpFile>;
 }
 
+#ifdef USE_SDL2
+#define PNG_TERRAIN_TEXTURES 0
+#else
 #define PNG_TERRAIN_TEXTURES 1
+#endif
 
 class TerrainSprite
 {
@@ -60,14 +64,13 @@ public:
         }
     }
     const Drawable::Image::Ptr &pngTexture(const MapTile &tile, const IRenderTargetPtr &renderer);
-
-    const Drawable::Image::Ptr &texture(const MapTile &tile, const IRenderTargetPtr &renderer);
 #else
     inline int coordinatesToFrame(int x, int y) const noexcept {
         return (y % m_tileSquareCount) + (x % m_tileSquareCount) * m_tileSquareCount;
     }
-
 #endif
+
+    const Drawable::Image::Ptr &texture(const MapTile &tile, const IRenderTargetPtr &renderer);
 
     bool isValid() const noexcept;
 

@@ -16,12 +16,24 @@
 */
 #include "HistoryScreen.h"
 
+#ifndef USE_SDL2
 #include <SFML/Graphics/Color.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Font.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Glyph.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/Rect.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/RenderWindow.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/System/Vector2.hpp>
+#endif
 #include <genie/resource/SlpFile.h>
 #include <genie/resource/SlpFrame.h>
 #include <algorithm>

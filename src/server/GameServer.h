@@ -19,7 +19,7 @@
 #pragma once
 
 #include "core/Types.h"
-#include <SFML/Config.hpp>
+#include <cstdint>
 #include <map>
 #include <vector>
 
@@ -45,20 +45,20 @@ public:
 
     Unit *createUnit(void);
 
-    Unit *getUnit(sf::Uint32 unit_id);
+    Unit *getUnit(uint32_t unit_id);
 
     //----------------------------------------------------------------------------
     ///
     /// @param unit_id Id of the unit in dat file.
     //
-    bool spawnUnit(void *player, sf::Uint32 unit_id, MapPos pos);
+    bool spawnUnit(void *player, uint32_t unit_id, MapPos pos);
 
     bool addAction(IAction *act);
 
 private:
-    sf::Uint32 unit_id_counter_;
+    uint32_t unit_id_counter_;
 
-    typedef std::map<sf::Uint32, Unit *> UnitMap;
+    typedef std::map<uint32_t, Unit *> UnitMap;
     UnitMap units_;
 
     typedef std::vector<IAction *> ActionArray;

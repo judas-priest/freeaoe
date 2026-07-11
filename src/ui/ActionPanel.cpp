@@ -1,7 +1,13 @@
 #include "ActionPanel.h"
 
+#ifndef USE_SDL2
+#ifndef USE_SDL2
 #include <SFML/Graphics/Color.hpp>
+#endif
+#ifndef USE_SDL2
 #include <SFML/Graphics/RectangleShape.hpp>
+#endif
+#endif
 #include <genie/dat/Research.h>
 #include <genie/dat/Unit.h>
 
@@ -16,14 +22,22 @@
 #include "mechanics/Civilization.h"
 #include "mechanics/Player.h"
 #include "mechanics/Unit.h"
+#ifdef USE_SDL2
+#include "render/SdlRenderTarget.h"
+#else
 #include "render/SfmlRenderTarget.h"
+#endif
 #include "resource/AssetManager.h"
 #include "resource/LanguageManager.h"
 #include "resource/Resource.h"
 #include "resource/GameSpecific.h"
 #include "resource/DataManager.h"
 
+#ifdef USE_SDL2
+ActionPanel::ActionPanel(std::shared_ptr<IRenderTarget> renderTarget) :
+#else
 ActionPanel::ActionPanel(std::shared_ptr<SfmlRenderTarget> renderTarget) :
+#endif
     m_renderTarget(std::move(renderTarget))
 {
 }

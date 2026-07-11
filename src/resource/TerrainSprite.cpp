@@ -31,18 +31,10 @@
 #include <genie/resource/SlpFile.h>
 
 #ifndef USE_SDL2
-#ifndef USE_SDL2
 #include <SFML/Config.hpp>
-#endif
-#ifndef USE_SDL2
 #include <SFML/Graphics/Image.hpp>
-#endif
-#ifndef USE_SDL2
 #include <SFML/Graphics/Rect.hpp>
-#endif
-#ifndef USE_SDL2
 #include <SFML/System/Vector2.hpp>
-#endif
 #endif
 
 #include <assert.h>
@@ -102,6 +94,37 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
 
 TerrainSprite::~TerrainSprite() {  }
 
+// Helper: load PNG file to RGBA pixel buffer
+#ifdef USE_SDL2
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#include "stb_image.h"
+#endif
+
+struct PngImageData {
+    std::vector<uint8_t> pixels;
+    int width = 0;
+    int height = 0;
+
+    bool loadFromFile(const std::string &path) {
+#ifdef USE_SDL2
+        int channels = 0;
+        uint8_t *data = stbi_load(path.c_str(), &width, &height, &channels, 4);
+        if (!data) return false;
+        pixels.assign(data, data + width * height * 4);
+        stbi_image_free(data);
+#else
+        sf::Image img;
+        if (!img.loadFromFile(path)) return false;
+        width = img.getSize().x;
+        height = img.getSize().y;
+        const uint8_t *src = img.getPixelsPtr();
+        pixels.assign(src, src + width * height * 4);
+#endif
+        return true;
+    }
+};
+
 #if PNG_TERRAIN_TEXTURES
 const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const IRenderTargetPtr &renderer)
 {
@@ -115,30 +138,28 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
         return it->second;
     }
 
-    sf::Image sourceImage;
-    sourceImage.loadFromFile(m_pngPath);
+    PngImageData sourceImage;
+    if (!sourceImage.loadFromFile(m_pngPath)) {
+        WARN << "Failed to load PNG" << m_pngPath;
+        return Drawable::Image::null;
+    }
 
+    const int cols = sourceImage.width / 64;
 
-    const int cols = sourceImage.getSize().x / 64;
+    const int subWidth = Constants::TILE_SIZE_HORIZONTAL;
+    const int subHeight = Constants::TILE_SIZE_VERTICAL;
 
-    sf::IntRect subRect;
-    subRect.width = Constants::TILE_SIZE_HORIZONTAL;
-    subRect.height = Constants::TILE_SIZE_VERTICAL;
-    subRect.left = (tile.frame % cols) * 64;
-    subRect.top = (tile.frame / cols) * 64;
-
-    const int area = subRect.width * subRect.height;
-
-    // First generate an alpha mask that we use to blend the two frames below
+    const int area = subWidth * subHeight;
     const int byteCount = area * 4;
     if (byteCount <= 0) {
-        WARN << "invalid size" << subRect.width << subRect.height;
+        WARN << "invalid size" << subWidth << subHeight;
         return Drawable::Image::null;
     }
     std::vector<uint8_t> pixelsBuf(byteCount, 0);
     uint8_t *pixels = pixelsBuf.data();
-    const sf::Uint8 *sourcePixels = sourceImage.getPixelsPtr();
-    Vector2u sourceSize = sourceImage.getSize();
+    const uint8_t *sourcePixels = sourceImage.pixels.data();
+    const int srcW = sourceImage.width;
+    const int srcH = sourceImage.height;
 
     uint8_t widths[49];
     uint8_t size = 1;
@@ -156,13 +177,9 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
             const int index = (y * Constants::TILE_SIZE_HORIZONTAL + x + leftEdge[y]) * 4;
             ScreenPos sourcePos = MapPos(x, y).toScreen() ;
             sourcePos += ScreenPos(Constants::TILE_SIZE_HORIZONTAL, Constants::TILE_SIZE_VERTICAL);
-            if (sourcePos.x < 0 || sourcePos.x >= sourceSize.x) {
-                continue;
-            }
-            if (sourcePos.y < 0 || sourcePos.y >= sourceSize.y) {
-                continue;
-            }
-            const int sourceIndex = (sourcePos.y * sourceSize.x + sourcePos.x) * 4;
+            if (sourcePos.x < 0 || sourcePos.x >= srcW) continue;
+            if (sourcePos.y < 0 || sourcePos.y >= srcH) continue;
+            const int sourceIndex = (int(sourcePos.y) * srcW + int(sourcePos.x)) * 4;
             pixels[index + 0] = sourcePixels[sourceIndex + 0];
             pixels[index + 1] = sourcePixels[sourceIndex + 1];
             pixels[index + 2] = sourcePixels[sourceIndex + 2];
@@ -171,10 +188,7 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
     }
 
     const std::string pngFolder = AssetManager::Inst()->assetsPath() + "/terrain/textures/";
-#if DEBUG_TERRAIN_TEXTURES
-    float maxAlpha = 0.f;
-    float minAlpha = 1.f;
-#endif
+
     for (const Blend &tileBlend : tile.blends) {
         const genie::BlendMode &blendMode = AssetManager::Inst()->getBlendmode(tileBlend.blendMode);
         std::vector<float> alphamask(area, 1.);
@@ -184,29 +198,22 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
         }
 
         for (unsigned i=0; i < Blend::BlendTileCount; i++) {
-            if ((tileBlend.bits & (1u << i)) == 0) {
-                continue;
-            }
-
+            if ((tileBlend.bits & (1u << i)) == 0) continue;
             for (unsigned j=0; j<blendMode.alphaValues[i].size(); j++) {
                 alphamask[j] = std::min(alphamask[j], blendMode.alphaValues[i][j] / 128.f);
-#if DEBUG_TERRAIN_TEXTURES
-                maxAlpha = std::max(alphamask[j], maxAlpha);
-                minAlpha = std::min(alphamask[j], minAlpha);
-#endif
             }
         }
 
         const genie::Terrain *data = &DataManager::Inst().getTerrain(tileBlend.terrainId);
         const std::string blendPngPath = AssetManager::findFile(data->Name2 + "_00_color.png", pngFolder);
-        sf::Image blendSourceImage;
-        blendSourceImage.loadFromFile(blendPngPath);
-        if (!blendSourceImage.getSize().x) {
+        PngImageData blendSourceImage;
+        if (!blendSourceImage.loadFromFile(blendPngPath)) {
             WARN << "Invalid blend" << blendPngPath << tileBlend.terrainId;
             continue;
         }
-        Vector2u blendSourceSize = blendSourceImage.getSize();
-        const sf::Uint8 *blendSourcePixels = blendSourceImage.getPixelsPtr();
+        const int blendW = blendSourceImage.width;
+        const int blendH = blendSourceImage.height;
+        const uint8_t *blendSourcePixels = blendSourceImage.pixels.data();
 
         int alphaOffset = 0;
         for (int y = 0; y<Constants::TILE_SIZE_VERTICAL; y++) {
@@ -214,64 +221,19 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
                 const int index = (y * Constants::TILE_SIZE_HORIZONTAL + x + leftEdge[y]) * 4;
                 ScreenPos sourcePos = MapPos(x, y).toScreen() ;
                 sourcePos += ScreenPos(Constants::TILE_SIZE_HORIZONTAL, Constants::TILE_SIZE_VERTICAL);
-                if (sourcePos.x < 0 || sourcePos.x >= blendSourceSize.x) {
-                    continue;
-                }
-                if (sourcePos.y < 0 || sourcePos.y >= blendSourceSize.y) {
-                    continue;
-                }
-                const int sourceIndex = (sourcePos.y * sourceSize.x + sourcePos.x) * 4;
+                if (sourcePos.x < 0 || sourcePos.x >= blendW) continue;
+                if (sourcePos.y < 0 || sourcePos.y >= blendH) continue;
+                const int sourceIndex = (int(sourcePos.y) * srcW + int(sourcePos.x)) * 4;
                 const float alpha = alphamask[alphaOffset];
-                pixels[index + 0] = (blendSourcePixels[sourceIndex + 0] * (1.f - alpha)) + (pixels[index + 0] *( alpha));
-                pixels[index + 1] = (blendSourcePixels[sourceIndex + 1] * (1.f - alpha)) + (pixels[index + 1] *( alpha));
-                pixels[index + 2] = (blendSourcePixels[sourceIndex + 2] * (1.f - alpha)) + (pixels[index + 2] *( alpha));
+                pixels[index + 0] = (blendSourcePixels[sourceIndex + 0] * (1.f - alpha)) + (pixels[index + 0] * alpha);
+                pixels[index + 1] = (blendSourcePixels[sourceIndex + 1] * (1.f - alpha)) + (pixels[index + 1] * alpha);
+                pixels[index + 2] = (blendSourcePixels[sourceIndex + 2] * (1.f - alpha)) + (pixels[index + 2] * alpha);
                 alphaOffset++;
             }
         }
     }
 
-#if 0
-    // This is used to alter the source SLP (for sloping), but we mostly ignore it,
-    // we only need the modified offset to the left and then use the texture filtering for the rest
-    const genie::SlpTemplateFile::SlpTemplate &slpTemplate = AssetManager::Inst()->getSlpTemplateFile()->templates[tile.slopes.self.toGenie()];
-
-    // This defines the texture mapping for slopes (what pixels from the original SLP should go where)
-    const genie::FiltermapFile::Filtermap &filter = AssetManager::Inst()->filtermapFile()->maps[tile.slopes.self.toGenie()];
-
-    const std::vector<genie::Pattern> &slopePatterns = tile.slopePatterns();
-
-    const int width = m_slp->frameWidth(tile.frame);
-    const int area = width * filter.height;
-
-    for (uint32_t y=0; y<filter.height; y++) {
-        int xPos = slpTemplate.left_edges_[y];
-        const genie::FiltermapFile::FilterLine &line = filter.lines[y];
-
-        for (uint32_t x=0; x<line.width; x++, xPos++) {
-            const genie::FiltermapFile::FilterCmd &cmd = line.commands[x];
-
-            // Each target pixel can blend several source pixels
-            int r = 0, g = 0, b = 0;
-            for (const genie::FiltermapFile::SourcePixel &source : cmd.sourcePixels) {
-                const uint8_t sourcePaletteIndex = data[source.sourceIndex];
-                const genie::Color &sourceColor = colors[sourcePaletteIndex];
-                r += sourceColor.r * source.alpha;
-                g += sourceColor.g * source.alpha;
-                b += sourceColor.b * source.alpha;
-            }
-
-            // Get the appropriate lightning from the pattern masks file
-            // There are several lightning textures used for each tile, so here we blend them
-            // together to get the inverse color map with the appropriate darkness for this pixel
-            const genie::IcmFile::InverseColorMap &icm = patternmasksFile->getIcm(cmd.lightIndex, slopePatterns);
-            const int pixelIndex = icm.paletteIndex(r >> 11, g >> 11, b >> 11);
-
-            // And then finally we get the color for a single pixel
-            pixels[y * width + xPos] = colors[pixelIndex].toUint32();
-        }
-    }
-#endif
-    m_textures[tile] = renderer->createImage(Size(subRect.width, subRect.height), pixelsBuf.data());
+    m_textures[tile] = renderer->createImage(Size(subWidth, subHeight), pixelsBuf.data());
     return m_textures[tile];
 }
 

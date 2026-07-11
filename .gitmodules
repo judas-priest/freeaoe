@@ -10,3 +10,6 @@
 [submodule "src/extern/tinysoundfont"]
 	path = src/extern/tinysoundfont
 	url = https://github.com/schellingb/TinySoundFont.git
+[submodule "src/extern/SDL2"]
+	path = src/extern/SDL2
+	url = https://github.com/libsdl-org/SDL.git

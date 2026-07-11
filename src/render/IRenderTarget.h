@@ -22,15 +22,6 @@
 
 #include <memory>
 
-namespace sf {
-class Sprite;
-class Drawable;
-class Texture;
-class Shape;
-class Image;
-class Color;
-struct BlendMode;
-}
 
 namespace genie{
 class SlpFrame;
@@ -43,6 +34,14 @@ using CameraPtr = std::shared_ptr<Camera>;
 class IRenderTarget;
 
 namespace Drawable {
+
+enum class BlendMode {
+    Alpha,
+    Add,
+    Multiply,
+    None
+};
+
 struct Color {
     Color() = default;
     constexpr Color(const uint8_t r_, const uint8_t g_, const uint8_t b_, const uint8_t a_ = 255) :
@@ -157,23 +156,8 @@ public:
 
     virtual void setSize(const Size size) const = 0;
 
-    //----------------------------------------------------------------------------
-    /// TODO: Remove sf:: from api
-    virtual void draw(const sf::Image &image, ScreenPos pos) = 0;
-
-    //----------------------------------------------------------------------------
-    /// TODO: Remove sf:: from api
-    virtual void draw(const sf::Texture &texture, ScreenPos pos) = 0;
-
-    //----------------------------------------------------------------------------
-    /// TODO: Remove sf:: from api
-    virtual void draw(const sf::Drawable &shape) = 0;
-    virtual void draw(const sf::Sprite &sprite) = 0;
-    virtual void draw(const sf::Sprite &sprite, const sf::BlendMode &blendMode) = 0;
-
-//    virtual void draw(const ScreenRect &rect, const sf::Color &fillColor, const sf::Color &outlineColor = sf::Color::Transparent, const float outlineSize = 1.) = 0;
     virtual void draw(const ScreenRect &rect, const Drawable::Color &fillColor, const Drawable::Color &outlineColor = Drawable::Transparent, const float outlineSize = 1.) = 0;
-    virtual void draw(const std::shared_ptr<IRenderTarget> &renderTarget, const sf::BlendMode &blendMode) = 0;
+    virtual void draw(const std::shared_ptr<IRenderTarget> &renderTarget, const Drawable::BlendMode blendMode) = 0;
 
     //----------------------------------------------------------------------------
     /// Displays frame.

@@ -461,6 +461,10 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         return handleMouseRelease(event, state);
     case input::Event::MouseMoved:
         return handleMouseMove(event, state);
+    case input::Event::TouchBegan:
+    case input::Event::TouchMoved:
+    case input::Event::TouchEnded:
+        return handleTouchEvent(event, state);
     default:
         break;
     }
@@ -560,6 +564,65 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
     }
 
     return true;
+}
+
+bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
+{
+    switch (event.type) {
+    case input::Event::TouchBegan: {
+        m_touchState.active = true;
+        m_touchState.startPos = ScreenPos(event.touch.x, event.touch.y);
+        m_touchState.startTime = currentTimeMs();
+        m_touchState.moved = false;
+        return true;
+    }
+    case input::Event::TouchMoved: {
+        ScreenPos pos(event.touch.x, event.touch.y);
+        float dist = m_touchState.startPos.distanceTo(pos);
+        if (dist > TouchState::MOVE_THRESHOLD) {
+            m_touchState.moved = true;
+        }
+        if (m_touchState.moved) {
+            // Camera scroll: move camera opposite to finger direction
+            ScreenPos delta = m_touchState.startPos - pos;
+            ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
+            camScreen.x += delta.x;
+            camScreen.y -= delta.y;
+            MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
+            renderTarget_->camera()->setTargetPosition(camMap);
+            m_touchState.startPos = pos;
+        }
+        return true;
+    }
+    case input::Event::TouchEnded: {
+        if (!m_touchState.moved) {
+            int64_t duration = currentTimeMs() - m_touchState.startTime;
+            input::Event clickEvent;
+            clickEvent.mouseButton.x = event.touch.x;
+            clickEvent.mouseButton.y = event.touch.y;
+
+            if (duration >= TouchState::LONG_PRESS_MS) {
+                // Long press = right click
+                clickEvent.type = input::Event::MouseButtonPressed;
+                clickEvent.mouseButton.button = input::MouseButton::Right;
+                handleMousePress(clickEvent, state);
+                clickEvent.type = input::Event::MouseButtonReleased;
+                handleMouseRelease(clickEvent, state);
+            } else {
+                // Tap = left click
+                clickEvent.type = input::Event::MouseButtonPressed;
+                clickEvent.mouseButton.button = input::MouseButton::Left;
+                handleMousePress(clickEvent, state);
+                clickEvent.type = input::Event::MouseButtonReleased;
+                handleMouseRelease(clickEvent, state);
+            }
+        }
+        m_touchState.active = false;
+        return true;
+    }
+    default:
+        return false;
+    }
 }
 
 bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state)

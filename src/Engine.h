@@ -92,6 +92,7 @@ private:
     bool handleMouseMove(const input::Event &event, const std::shared_ptr<GameState> &state);
     bool handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state);
     bool handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state);
+    bool handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state);
     void showMenu();
     bool updateUi(const std::shared_ptr<GameState> &state);
 
@@ -140,5 +141,14 @@ private:
     ScreenPos m_selectionCurr;
     ScreenRect m_selectionRect;
     bool m_selecting = false;
+
+    struct TouchState {
+        bool active = false;
+        ScreenPos startPos;
+        int64_t startTime = 0;
+        bool moved = false;
+        static constexpr float MOVE_THRESHOLD = 10.f;
+        static constexpr int64_t LONG_PRESS_MS = 500;
+    } m_touchState;
 };
 

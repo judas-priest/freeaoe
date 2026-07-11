@@ -30,8 +30,7 @@
 #include <genie/dat/TerrainRestriction.h>
 #include <genie/dat/Unit.h>
 
-#include <SFML/System/Clock.hpp>
-#include <SFML/System/Time.hpp>
+#include <chrono>
 
 #include <algorithm>
 #include <iosfwd>
@@ -704,7 +703,11 @@ std::vector<MapPos> ActionMove::findPath(MapPos start, MapPos end, int coarsenes
         return {};
     }
 
-    sf::Clock clock;
+    const auto clockStart = std::chrono::steady_clock::now();
+    auto clockElapsedMs = [&clockStart]() -> int32_t {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - clockStart).count();
+    };
 
     std::vector<MapPos> path;
 
@@ -850,14 +853,14 @@ std::vector<MapPos> ActionMove::findPath(MapPos start, MapPos end, int coarsenes
             }
         }
 
-        if (clock.getElapsedTime().asMilliseconds() > 50) {
-            WARN << "Timeout while pathing (" << tried << "nodes in" << clock.getElapsedTime().asMilliseconds() << "ms)";
+        if (clockElapsedMs() > 50) {
+            WARN << "Timeout while pathing (" << tried << "nodes in" << clockElapsedMs() << "ms)";
             DBG << "visited" << visited.size();
             DBG << "queue size" << queue.size();
             return path;
         }
     }
-    const int32_t elapsed = clock.getElapsedTime().asMilliseconds();
+    const int32_t elapsed = clockElapsedMs();
     if (elapsed > 10) {
         DBG << "walked" << tried << "nodes in" << elapsed << "ms";
         DBG << "visited" << visited.size();

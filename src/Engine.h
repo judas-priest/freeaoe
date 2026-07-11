@@ -22,9 +22,11 @@
 #include "mechanics/StateManager.h"
 
 #include "render/IRenderTarget.h"
+#include "render/EventTypes.h"
 
 #include <SFML/Graphics/Text.hpp>
 
+#include <chrono>
 #include <array>
 #include <memory>
 #include <string>
@@ -52,8 +54,6 @@ class ScnFile;
 }
 
 namespace sf {
-class Clock;
-class Event;
 class RenderWindow;
 }
 
@@ -65,7 +65,12 @@ public:
     static const int s_numMessagesLines = 15;
     static const Time s_messageTimeout = 30000; // 30 seconds, I don't remember what it really is
 
-    static const sf::Clock GameClock;
+    static inline int64_t currentTimeMs() {
+        static const auto start = std::chrono::steady_clock::now();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start
+        ).count();
+    }
 
     Engine();
     virtual ~Engine();
@@ -82,11 +87,11 @@ private:
     void drawUi();
     void drawEntities(const std::shared_ptr<Map> &map);
     bool updateCamera(const std::shared_ptr<GameState> &state);
-    bool handleEvent(const sf::Event &event, const std::shared_ptr<GameState> &state);
-    bool handleKeyEvent(const sf::Event &event, const std::shared_ptr<GameState> &state);
-    bool handleMouseMove(const sf::Event &event, const std::shared_ptr<GameState> &state);
-    bool handleMousePress(const sf::Event &event, const std::shared_ptr<GameState> &state);
-    bool handleMouseRelease(const sf::Event &event, const std::shared_ptr<GameState> &state);
+    bool handleEvent(const input::Event &event, const std::shared_ptr<GameState> &state);
+    bool handleKeyEvent(const input::Event &event, const std::shared_ptr<GameState> &state);
+    bool handleMouseMove(const input::Event &event, const std::shared_ptr<GameState> &state);
+    bool handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state);
+    bool handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state);
     void showMenu();
     bool updateUi(const std::shared_ptr<GameState> &state);
 

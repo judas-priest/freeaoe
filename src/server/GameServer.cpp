@@ -22,7 +22,7 @@
 #include <resource/DataManager.h>
 #include <communication/UnitStatus.h>
 #include <mechanics/IAction.h>
-#include <SFML/System/Clock.hpp>
+#include <chrono>
 
 GameServer::GameServer() :
     unit_id_counter_(0)
@@ -40,15 +40,16 @@ void GameServer::addClient(TunnelToClient *client)
 
 void GameServer::update()
 {
-    static sf::Clock clock;
+    static auto lastTime = std::chrono::steady_clock::now();
 
-    if (clock.GetElapsedTime() > 150) {
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTime).count() > 150) {
 
         while (client_->commandAvailable()) {
             client_->getCommand()->execute(this);
         }
 
-        clock.Reset();
+        lastTime = now;
     }
 
     std::vector<ActionArray::iterator> to_remove;

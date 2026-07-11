@@ -52,10 +52,9 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/System/Clock.hpp>
-#include <SFML/System/Sleep.hpp>
-#include <SFML/System/Time.hpp>
 #include <SFML/System/Vector2.hpp>
+
+#include <thread>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -70,8 +69,92 @@
 #define MOUSE_MOVE_EDGE_SIZE 10
 #define CAMERA_SPEED 1.
 
+static input::Key sfKeyToInput(sf::Keyboard::Key key) {
+    switch(key) {
+    case sf::Keyboard::Left: return input::Key::Left;
+    case sf::Keyboard::Right: return input::Key::Right;
+    case sf::Keyboard::Up: return input::Key::Up;
+    case sf::Keyboard::Down: return input::Key::Down;
+    case sf::Keyboard::Escape: return input::Key::Escape;
+    case sf::Keyboard::Return: return input::Key::Return;
+    case sf::Keyboard::Delete: return input::Key::Delete;
+    case sf::Keyboard::BackSpace: return input::Key::BackSpace;
+    case sf::Keyboard::Space: return input::Key::Space;
+    case sf::Keyboard::Tab: return input::Key::Tab;
+    case sf::Keyboard::F5: return input::Key::F5;
+    default:
+        if (key >= sf::Keyboard::A && key <= sf::Keyboard::Z)
+            return input::Key(int(input::Key::A) + (key - sf::Keyboard::A));
+        if (key >= sf::Keyboard::Num0 && key <= sf::Keyboard::Num9)
+            return input::Key(int(input::Key::Num0) + (key - sf::Keyboard::Num0));
+        if (key >= sf::Keyboard::F1 && key <= sf::Keyboard::F12)
+            return input::Key(int(input::Key::F1) + (key - sf::Keyboard::F1));
+        return input::Key::Unknown;
+    }
+}
 
-const sf::Clock Engine::GameClock;
+static input::MouseButton sfMouseButtonToInput(sf::Mouse::Button button) {
+    switch(button) {
+    case sf::Mouse::Left: return input::MouseButton::Left;
+    case sf::Mouse::Right: return input::MouseButton::Right;
+    case sf::Mouse::Middle: return input::MouseButton::Middle;
+    default: return input::MouseButton::Left;
+    }
+}
+
+static input::Event sfEventToInput(const sf::Event &sfEvent) {
+    input::Event ev{};
+    switch(sfEvent.type) {
+    case sf::Event::Closed:
+        ev.type = input::Event::Closed;
+        break;
+    case sf::Event::KeyPressed:
+        ev.type = input::Event::KeyPressed;
+        ev.key.code = sfKeyToInput(sfEvent.key.code);
+        ev.key.shift = sfEvent.key.shift;
+        ev.key.control = sfEvent.key.control;
+        ev.key.alt = sfEvent.key.alt;
+        break;
+    case sf::Event::KeyReleased:
+        ev.type = input::Event::KeyReleased;
+        ev.key.code = sfKeyToInput(sfEvent.key.code);
+        ev.key.shift = sfEvent.key.shift;
+        ev.key.control = sfEvent.key.control;
+        ev.key.alt = sfEvent.key.alt;
+        break;
+    case sf::Event::MouseButtonPressed:
+        ev.type = input::Event::MouseButtonPressed;
+        ev.mouseButton.button = sfMouseButtonToInput(sfEvent.mouseButton.button);
+        ev.mouseButton.x = sfEvent.mouseButton.x;
+        ev.mouseButton.y = sfEvent.mouseButton.y;
+        break;
+    case sf::Event::MouseButtonReleased:
+        ev.type = input::Event::MouseButtonReleased;
+        ev.mouseButton.button = sfMouseButtonToInput(sfEvent.mouseButton.button);
+        ev.mouseButton.x = sfEvent.mouseButton.x;
+        ev.mouseButton.y = sfEvent.mouseButton.y;
+        break;
+    case sf::Event::MouseMoved:
+        ev.type = input::Event::MouseMoved;
+        ev.mouseMove.x = sfEvent.mouseMove.x;
+        ev.mouseMove.y = sfEvent.mouseMove.y;
+        break;
+    case sf::Event::MouseWheelScrolled:
+        ev.type = input::Event::MouseWheelScrolled;
+        ev.mouseWheel.delta = sfEvent.mouseWheelScroll.delta;
+        ev.mouseWheel.x = sfEvent.mouseWheelScroll.x;
+        ev.mouseWheel.y = sfEvent.mouseWheelScroll.y;
+        break;
+    case sf::Event::TextEntered:
+        ev.type = input::Event::TextEntered;
+        ev.text.unicode = sfEvent.text.unicode;
+        break;
+    default:
+        ev.type = input::Event::Closed; // fallback
+        break;
+    }
+    return ev;
+}
 
 //------------------------------------------------------------------------------
 void Engine::start()
@@ -101,26 +184,28 @@ void Engine::start()
             m_unitsRenderer->setVisibilityMap(state->humanPlayer()->visibility);
         }
 
-        const int renderStart = GameClock.getElapsedTime().asMilliseconds();
+        const int renderStart = Engine::currentTimeMs();
 
         bool updated = false;
 
         // Process events
-        sf::Event event;
-        while (renderWindow_->pollEvent(event)) {
+        sf::Event sfEvent;
+        while (renderWindow_->pollEvent(sfEvent)) {
             // Close window : exit
-            if (event.type == sf::Event::Closed) {
+            if (sfEvent.type == sf::Event::Closed) {
                 renderWindow_->close();
             }
 
-            if (event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::MouseButtonReleased) {
+            input::Event event = sfEventToInput(sfEvent);
+
+            if (event.type == input::Event::MouseButtonPressed || event.type == input::Event::MouseButtonReleased) {
                 sf::Vector2f mappedPos = renderWindow_->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
                 event.mouseButton.x = mappedPos.x;
                 event.mouseButton.y = mappedPos.y;
                 mousePos = ScreenPos(mappedPos);
             }
 
-            if (event.type == sf::Event::MouseMoved) {
+            if (event.type == input::Event::MouseMoved) {
                 sf::Vector2f mappedPos = renderWindow_->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
                 event.mouseMove.x = mappedPos.x;
                 event.mouseMove.y = mappedPos.y;
@@ -135,7 +220,7 @@ void Engine::start()
         }
 
         if (!m_currentDialog && state->result == GameState::Result::Running) {
-            updated = state->update(GameClock.getElapsedTime().asMilliseconds()) || updated;
+            updated = state->update(Engine::currentTimeMs()) || updated;
 
             if (state->result != GameState::Result::Running) {
                 if (state->result == GameState::Result::Won) {
@@ -180,7 +265,7 @@ void Engine::start()
 
             drawUi();
 
-            const int renderTime = GameClock.getElapsedTime().asMilliseconds() - renderStart;
+            const int renderTime = Engine::currentTimeMs() - renderStart;
 
             if (renderTime > 0) {
                 fpsSamples++;
@@ -191,7 +276,7 @@ void Engine::start()
             // Update the window
             renderWindow_->display();
         } else {
-            sf::sleep(sf::milliseconds(1000 / 60));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
         }
 
     }
@@ -208,7 +293,7 @@ void Engine::addMessage(const std::string &message)
         m_visibleText[i].endTime = m_visibleText[i+1].endTime;
     }
     m_visibleText[s_numMessagesLines - 1].text->string = message;
-    m_visibleText[s_numMessagesLines - 1].endTime = GameClock.getElapsedTime().asMilliseconds() + s_messageTimeout;
+    m_visibleText[s_numMessagesLines - 1].endTime = Engine::currentTimeMs() + s_messageTimeout;
 }
 
 void Engine::showStartScreen()
@@ -310,7 +395,7 @@ void Engine::drawUi()
 
     renderTarget_->draw(fps_label_);
 
-    const Time currentTime = GameClock.getElapsedTime().asMilliseconds();
+    const Time currentTime = Engine::currentTimeMs();
     for (const MessageLine &messageLine : m_visibleText) {
         if (messageLine.endTime < currentTime) {
             continue;
@@ -344,7 +429,7 @@ void Engine::drawEntities(const std::shared_ptr<Map> &map)
     m_unitsRenderer->display(renderTarget_);
 }
 
-bool Engine::handleEvent(const sf::Event &event, const std::shared_ptr<GameState> &state)
+bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     if (m_currentDialog) {
         Dialog::Choice choice = m_currentDialog->handleEvent(event);
@@ -368,13 +453,13 @@ bool Engine::handleEvent(const sf::Event &event, const std::shared_ptr<GameState
     }
 
     switch(event.type) {
-    case sf::Event::KeyPressed:
+    case input::Event::KeyPressed:
         return handleKeyEvent(event, state);
-    case sf::Event::MouseButtonPressed:
+    case input::Event::MouseButtonPressed:
         return handleMousePress(event, state);
-    case sf::Event::MouseButtonReleased:
+    case input::Event::MouseButtonReleased:
         return handleMouseRelease(event, state);
-    case sf::Event::MouseMoved:
+    case input::Event::MouseMoved:
         return handleMouseMove(event, state);
     default:
         break;
@@ -383,24 +468,24 @@ bool Engine::handleEvent(const sf::Event &event, const std::shared_ptr<GameState
     return false;
 }
 
-bool Engine::handleKeyEvent(const sf::Event &event, const std::shared_ptr<GameState> &state)
+bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     ScreenPos cameraScreenPos = renderTarget_->camera()->targetPosition().toScreen();
 
     switch(event.key.code) {
-    case sf::Keyboard::Left:
+    case input::Key::Left:
         cameraScreenPos.x -= 20;
         break;
 
-    case sf::Keyboard::Right:
+    case input::Key::Right:
         cameraScreenPos.x += 20;
         break;
 
-    case sf::Keyboard::Down:
+    case input::Key::Down:
         cameraScreenPos.y -= 20;
         break;
 
-    case sf::Keyboard::Up:
+    case input::Key::Up:
         cameraScreenPos.y += 20;
         break;
 
@@ -416,7 +501,7 @@ bool Engine::handleKeyEvent(const sf::Event &event, const std::shared_ptr<GameSt
 
 }
 
-bool Engine::handleMouseMove(const sf::Event &event, const std::shared_ptr<GameState> &state)
+bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     bool handled = false;
@@ -453,7 +538,7 @@ bool Engine::handleMouseMove(const sf::Event &event, const std::shared_ptr<GameS
     return handled;
 }
 
-bool Engine::handleMousePress(const sf::Event &event, const std::shared_ptr<GameState> &state)
+bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
     bool updated = false;
@@ -464,7 +549,7 @@ bool Engine::handleMousePress(const sf::Event &event, const std::shared_ptr<Game
         return true;
     }
 
-    if (mousePos.y < 800 && event.mouseButton.button == sf::Mouse::Button::Left) {
+    if (mousePos.y < 800 && event.mouseButton.button == input::MouseButton::Left) {
         if (state->unitManager()->onLeftClick(ScreenPos(event.mouseButton.x, event.mouseButton.y), renderTarget_->camera())) {
             return true;
         }
@@ -477,11 +562,11 @@ bool Engine::handleMousePress(const sf::Event &event, const std::shared_ptr<Game
     return true;
 }
 
-bool Engine::handleMouseRelease(const sf::Event &event, const std::shared_ptr<GameState> &state)
+bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
 
-    if (mousePos.y < 800 && event.mouseButton.button == sf::Mouse::Button::Left) {
+    if (mousePos.y < 800 && event.mouseButton.button == input::MouseButton::Left) {
         if (state->unitManager()->onMouseRelease()) {
             return true;
         }
@@ -500,13 +585,13 @@ bool Engine::handleMouseRelease(const sf::Event &event, const std::shared_ptr<Ga
         return true;
     }
 
-    if (event.mouseButton.button == sf::Mouse::Button::Left && m_selecting) {
+    if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
         state->unitManager()->selectUnits(m_selectionRect, renderTarget_->camera());
         m_selectionRect = ScreenRect();
         m_selecting = false;
         return true;
     }
-    if (event.mouseButton.button == sf::Mouse::Button::Right) {
+    if (event.mouseButton.button == input::MouseButton::Right) {
         state->unitManager()->onRightClick(mousePos, renderTarget_->camera());
     }
 
@@ -665,7 +750,7 @@ void Engine::showMenu()
 
 bool Engine::updateUi(const std::shared_ptr<GameState> &state)
 {
-    const int deltaTime = GameClock.getElapsedTime().asMilliseconds() - m_lastUpdate;
+    const int deltaTime = Engine::currentTimeMs() - m_lastUpdate;
 
     bool updated = false;
 
@@ -680,7 +765,7 @@ bool Engine::updateUi(const std::shared_ptr<GameState> &state)
 
     updated = m_mouseCursor->update(state->unitManager()) || updated;
 
-    updated = m_mapRenderer->update(GameClock.getElapsedTime().asMilliseconds()) || updated;
+    updated = m_mapRenderer->update(Engine::currentTimeMs()) || updated;
 
     updated = updateCamera(state) || updated;
 
@@ -688,7 +773,7 @@ bool Engine::updateUi(const std::shared_ptr<GameState> &state)
     updated = m_actionPanel->update(deltaTime) || updated;
     updated = m_unitInfoPanel->update(deltaTime) || updated;
 
-    m_lastUpdate = GameClock.getElapsedTime().asMilliseconds();
+    m_lastUpdate = Engine::currentTimeMs();
     return updated;
 }
 
@@ -700,7 +785,7 @@ bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
 
     ScreenPos cameraScreenPos = renderTarget_->camera()->targetPosition().toScreen();
 
-    const int deltaTime = GameClock.getElapsedTime().asMilliseconds() - m_lastUpdate;
+    const int deltaTime = Engine::currentTimeMs() - m_lastUpdate;
     cameraScreenPos.x += m_cameraDeltaX * deltaTime * CAMERA_SPEED;
     cameraScreenPos.y += m_cameraDeltaY * deltaTime * CAMERA_SPEED;
 

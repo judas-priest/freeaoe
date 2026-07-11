@@ -72,17 +72,7 @@ public:
     Size getSize() const override;
     void setSize(const Size size) const override;
 
-    //----------------------------------------------------------------------------
-    void draw(const sf::Image &image, ScreenPos pos) override;
-
-    //----------------------------------------------------------------------------
-    void draw(const sf::Texture &texture, ScreenPos pos) override;
-
-    //----------------------------------------------------------------------------
-    void draw(const sf::Drawable &shape) override;
-    void draw(const sf::Sprite &sprite) override;
-    void draw(const sf::Sprite &sprite, const sf::BlendMode &blendMode) override;
-    void draw(const std::shared_ptr<IRenderTarget> &renderTarget, const sf::BlendMode &blendMode) override;
+    void draw(const std::shared_ptr<IRenderTarget> &renderTarget, const Drawable::BlendMode blendMode) override;
 
     void draw(const ScreenRect &rect, const Drawable::Color &fillColor, const Drawable::Color &outlineColor = Drawable::Transparent, const float outlineSize = 1.) override;
 
@@ -110,6 +100,13 @@ public:
 
     Drawable::Text::Ptr createText(const Drawable::Text::Style style = Drawable::Text::Plain) const override;
     void draw(const Drawable::Text::Ptr &text) override;
+
+private:
+    void drawSfSprite(const sf::Sprite &sprite);
+    void drawSfSprite(const sf::Sprite &sprite, const sf::BlendMode &blendMode);
+    void drawSfTexture(const sf::Texture &texture, ScreenPos pos);
+    void drawSfImage(const sf::Image &image, ScreenPos pos);
+    void drawSfDrawable(const sf::Drawable &shape);
 };
 
 

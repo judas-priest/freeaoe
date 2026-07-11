@@ -157,7 +157,7 @@ void SfmlRenderTarget::setSize(const Size size) const
     m_camera->setViewportSize(size);
 }
 
-void SfmlRenderTarget::draw(const sf::Image &image, ScreenPos pos)
+void SfmlRenderTarget::drawSfImage(const sf::Image &image, ScreenPos pos)
 {
     sf::Texture texture;
 
@@ -173,7 +173,7 @@ void SfmlRenderTarget::draw(const sf::Image &image, ScreenPos pos)
     renderTarget_->draw(sprite);
 }
 
-void SfmlRenderTarget::draw(const sf::Texture &texture, ScreenPos pos)
+void SfmlRenderTarget::drawSfTexture(const sf::Texture &texture, ScreenPos pos)
 {
     sf::Sprite sprite;
     sprite.setTexture(texture);
@@ -183,12 +183,12 @@ void SfmlRenderTarget::draw(const sf::Texture &texture, ScreenPos pos)
     renderTarget_->draw(sprite);
 }
 
-void SfmlRenderTarget::draw(const sf::Drawable &shape)
+void SfmlRenderTarget::drawSfDrawable(const sf::Drawable &shape)
 {
     renderTarget_->draw(shape);
 }
 
-void SfmlRenderTarget::draw(const sf::Sprite &sprite)
+void SfmlRenderTarget::drawSfSprite(const sf::Sprite &sprite)
 {
     if (sprite.getTransform() == sf::Transform::Identity) {
         renderTarget_->draw(sprite);
@@ -211,12 +211,22 @@ void SfmlRenderTarget::draw(const sf::Sprite &sprite)
     renderTarget_->draw(toDraw, transform);
 }
 
-void SfmlRenderTarget::draw(const sf::Sprite &sprite, const sf::BlendMode &blendMode)
+void SfmlRenderTarget::drawSfSprite(const sf::Sprite &sprite, const sf::BlendMode &blendMode)
 {
     renderTarget_->draw(sprite, blendMode);
 }
 
-void SfmlRenderTarget::draw(const std::shared_ptr<IRenderTarget> &renderTarget, const sf::BlendMode &blendMode)
+static sf::BlendMode toSfBlendMode(Drawable::BlendMode mode) {
+    switch (mode) {
+    case Drawable::BlendMode::Add: return sf::BlendAdd;
+    case Drawable::BlendMode::Multiply: return sf::BlendMultiply;
+    case Drawable::BlendMode::None: return sf::BlendNone;
+    case Drawable::BlendMode::Alpha:
+    default: return sf::BlendAlpha;
+    }
+}
+
+void SfmlRenderTarget::draw(const std::shared_ptr<IRenderTarget> &renderTarget, const Drawable::BlendMode blendMode)
 {
     if (!renderTarget) {
         WARN << "can't render null render target";
@@ -232,7 +242,7 @@ void SfmlRenderTarget::draw(const std::shared_ptr<IRenderTarget> &renderTarget, 
     sfmlRenderTarget->m_renderTexture->display();
     sf::Sprite sprite;
     sprite.setTexture(sfmlRenderTarget->m_renderTexture->getTexture());
-    draw(sprite, blendMode);
+    drawSfSprite(sprite, toSfBlendMode(blendMode));
 }
 
 void SfmlRenderTarget::draw(const ScreenRect &rect, const Drawable::Color &fillColor, const Drawable::Color &outlineColor, const float outlineSize)
@@ -354,7 +364,7 @@ void SfmlRenderTarget::draw(const Drawable::Image::Ptr &image, const ScreenPos &
     sprite.setScale(SCALE * image->scaleX, SCALE * image->scaleY);
     sprite.setPosition(position);
 
-    renderTarget_->draw(sprite);
+    drawSfSprite(sprite);
 }
 
 
@@ -385,7 +395,7 @@ void SfmlRenderTarget::draw(const std::shared_ptr<IRenderTarget> &renderTarget, 
 
     sfmlRenderTarget->m_renderTexture->display();
 //    DBG << "rendrering texture target at" << pos;
-    draw(sfmlRenderTarget->m_renderTexture->getTexture(), pos);
+    drawSfTexture(sfmlRenderTarget->m_renderTexture->getTexture(), pos);
 }
 
 

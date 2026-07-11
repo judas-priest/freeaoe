@@ -26,27 +26,15 @@
 
 #include <genie/Types.h>
 
-#include <SFML/System/Vector2.hpp>
-#include <SFML/Graphics/Rect.hpp>
+#include <cstdint>
 #include <cmath>
 
 #include "core/Logger.h"
 #include "core/Utility.h"
 
-#ifndef SFML_CONFIG_HPP
-namespace sf {
-    typedef unsigned char Uint8;
-    typedef signed   int Int32;
-    typedef unsigned int Uint32;
-}
-#endif
-
-using sf::Uint32;
-using sf::Uint8;
-
-using sf::Int32;
-
-using sf::Vector2u;
+using Uint8 = uint8_t;
+using Uint32 = uint32_t;
+using Int32 = int32_t;
 
 struct Size {
     float width = 0.f;
@@ -65,28 +53,8 @@ struct Size {
         width(xyf.x), height(xyf.y)
     {}
 
-    Size(const sf::Vector2f &sfVector) :
-        width(sfVector.x), height(sfVector.y)
-    {}
-
-    Size(const sf::Vector2u &sfVector) :
-        width(sfVector.x), height(sfVector.y)
-    {}
-
     inline bool isValid() const {
         return width > 0.f && height > 0.f;
-    }
-
-    inline operator sf::Vector2f() const {
-        return sf::Vector2f(width, height);
-    }
-
-    inline operator sf::Vector2u() const {
-        return sf::Vector2u(width, height);
-    }
-
-    inline operator sf::FloatRect() const {
-        return sf::FloatRect(0, 0, width, height);
     }
 
     inline Size operator/(const float divisor) const {
@@ -309,12 +277,6 @@ struct ScreenPos {
         y(size.height)
     {}
 
-    ScreenPos(const sf::Vector2i &v) :
-        x(v.x),
-        y(v.y)
-    {}
-
-
     ScreenPos (float x_, float y_) :
         x(x_),
         y(y_)
@@ -322,18 +284,6 @@ struct ScreenPos {
 
     float x = 0.;
     float y = 0.;
-
-    inline operator sf::Vector2f() const {
-        return sf::Vector2f(x, y);
-    }
-
-    inline bool operator==(const sf::Vector2f &other) const {
-        return (util::floatsEquals(other.x, x) && util::floatsEquals(other.y, y));
-    }
-
-    inline bool operator!=(const sf::Vector2f &other) const {
-        return !(*this == other);
-    }
 
     inline bool operator==(const ScreenPos &other) const {
         return (util::floatsEquals(other.x, x) && util::floatsEquals(other.y, y));
@@ -426,10 +376,6 @@ struct ScreenRect
     float height = -1;
 
     ScreenRect() = default;
-
-    ScreenRect(const sf::FloatRect &r) :
-        x(r.left), y(r.top), width(r.width), height(r.height)
-    {}
 
     ScreenRect(const float x_, const float y_, const float w_, const float h_) :
         x(x_), y(y_), width(w_), height(h_)

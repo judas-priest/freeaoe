@@ -16,15 +16,14 @@
 */
 #pragma once
 
-#include <SFML/Graphics/Color.hpp>
 #include <memory>
 #include <string>
 
 #include "core/Types.h"
 #include "render/IRenderTarget.h"
+#include "render/EventTypes.h"
 
 namespace sf {
-class Event;
 class RenderWindow;
 }
 
@@ -44,8 +43,8 @@ public:
     bool run();
 
     virtual void render() {}
-    virtual bool handleMouseEvent(const sf::Event &event) { (void)event; return false; }
-    virtual void handleKeyEvent(const sf::Event &) {}
+    virtual bool handleMouseEvent(const input::Event &event) { (void)event; return false; }
+    virtual void handleKeyEvent(const input::Event &) {}
 
     void setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWindow);
 
@@ -54,16 +53,16 @@ protected:
 
 
     Size m_backgroundSize;
-    sf::Color m_textFillColor;
-    sf::Color m_textOutlineColor;
+    Drawable::Color m_textFillColor;
+    Drawable::Color m_textOutlineColor;
 
-    sf::Color m_bevelColor1a;
-    sf::Color m_bevelColor1b;
-    sf::Color m_bevelColor1c;
+    Drawable::Color m_bevelColor1a;
+    Drawable::Color m_bevelColor1b;
+    Drawable::Color m_bevelColor1c;
 
-    sf::Color m_bevelColor2a;
-    sf::Color m_bevelColor2b;
-    sf::Color m_bevelColor2c;
+    Drawable::Color m_bevelColor2a;
+    Drawable::Color m_bevelColor2b;
+    Drawable::Color m_bevelColor2c;
 
     int m_pressOffset = 0;
 

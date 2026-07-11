@@ -19,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Editor.h"
 
-#include <SFML/Window/Event.hpp>
-
 #include <algorithm>
 #include <utility>
 
@@ -48,22 +46,22 @@ bool Editor::init()
     m_exitButton.text = "Not implemented, click to exit";
     m_exitButton.rect.width = 300;
     m_exitButton.rect.height = 50;
-    m_exitButton.rect.x = m_background.getSize().x / 2.f - m_exitButton.rect.width / 2.f;
-    m_exitButton.rect.y = m_background.getSize().y / 2.f - m_exitButton.rect.height / 2.f;
+    m_exitButton.rect.x = m_backgroundSize.width / 2.f - m_exitButton.rect.width / 2.f;
+    m_exitButton.rect.y = m_backgroundSize.height / 2.f - m_exitButton.rect.height / 2.f;
 
     return true;
 }
 
-bool Editor::handleMouseEvent(const sf::Event &event)
+bool Editor::handleMouseEvent(const input::Event &event)
 {
-    if (event.type == sf::Event::MouseButtonPressed) {
+    if (event.type == input::Event::MouseButtonPressed) {
         ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
         if (m_exitButton.rect.contains(mousePos)) {
             m_exitButton.pressed = true;
         }
     }
 
-    if (event.type == sf::Event::MouseButtonReleased) {
+    if (event.type == input::Event::MouseButtonReleased) {
         if (m_exitButton.pressed) {
             return true;
         }

@@ -31,10 +31,6 @@
 
 struct TextButton;
 
-namespace sf {
-class Event;
-}
-
 class HomeScreen : public UiScreen
 {
 public:
@@ -87,7 +83,7 @@ public:
 
 private:
     void render();
-    bool handleMouseEvent(const sf::Event &event);
+    bool handleMouseEvent(const input::Event &event) override;
 
     std::array<Button, Button::TypeCount> m_buttons;
 

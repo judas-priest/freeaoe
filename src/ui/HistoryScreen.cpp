@@ -22,8 +22,6 @@
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/Keyboard.hpp>
 #include <genie/resource/SlpFile.h>
 #include <genie/resource/SlpFrame.h>
 #include <algorithm>
@@ -40,6 +38,10 @@
 #include "resource/LanguageManager.h"
 #include "resource/Resource.h"
 #include "resource/DataManager.h"
+
+static sf::Color toSfColor(const Drawable::Color &c) {
+    return sf::Color(c.r, c.g, c.b, c.a);
+}
 
 HistoryScreen::HistoryScreen() :
     UiScreen("scr_hist.sin")
@@ -292,8 +294,8 @@ bool HistoryScreen::init(const std::string &filesDir)
         if (DataManager::Inst().gameVersion() >= genie::GV_SWGB) {
             m_visibleTitles[i].text.setFont(stylishFont);
             m_visibleTitles[i].text.setOutlineThickness(0.5);
-            m_visibleTitles[i].text.setFillColor(m_textFillColor);
-            m_visibleTitles[i].text.setOutlineColor(m_textOutlineColor);
+            m_visibleTitles[i].text.setFillColor(toSfColor(m_textFillColor));
+            m_visibleTitles[i].text.setOutlineColor(toSfColor(m_textOutlineColor));
             m_visibleTitles[i].text.setStyle(m_visibleTitles[i].text.getStyle() | sf::Text::Bold);
             posY += stylishFont.getLineSpacing(s_titlesTextSize);
         } else {
@@ -318,7 +320,7 @@ bool HistoryScreen::init(const std::string &filesDir)
         m_visibleText[i].setCharacterSize(s_mainTextSize);
         m_visibleText[i].setPosition(m_textRect.x, posY);
         if (DataManager::Inst().gameVersion() >= genie::GV_SWGB) {
-            m_visibleText[i].setFillColor(m_textFillColor);
+            m_visibleText[i].setFillColor(toSfColor(m_textFillColor));
         } else {
             m_visibleText[i].setFillColor(sf::Color::Black);
         }
@@ -350,8 +352,8 @@ bool HistoryScreen::init(const std::string &filesDir)
 
     m_mainScreenText.setString("Main Menu");
     m_mainScreenText.setCharacterSize(s_buttonTextSize);
-    m_mainScreenText.setFillColor(m_textFillColor);
-    m_mainScreenText.setOutlineColor(m_textOutlineColor);
+    m_mainScreenText.setFillColor(toSfColor(m_textFillColor));
+    m_mainScreenText.setOutlineColor(toSfColor(m_textOutlineColor));
     m_mainScreenText.setOutlineThickness(1);
 
     loadFile(m_historyEntries[0].filename);
@@ -413,9 +415,9 @@ void HistoryScreen::render()
     m_renderWindow->draw(m_mainScreenText);
 }
 
-bool HistoryScreen::handleMouseEvent(const sf::Event &event)
+bool HistoryScreen::handleMouseEvent(const input::Event &event)
 {
-    if (event.type == sf::Event::MouseMoved) {
+    if (event.type == input::Event::MouseMoved) {
         if (m_pressedUiElement == TitlesPositionIndicator) {
             const int maxY = m_uiElements[TitlesDownButton].rect.y - m_uiElements[TitlesUpButton].rect.bottom() - m_uiElements[TitlesPositionIndicator].rect.height/2;
             m_titleScrollOffset = (m_historyEntries.size() - s_numListEntries) * (event.mouseMove.y - m_uiElements[TitlesUpButton].rect.bottom()) / maxY;
@@ -440,7 +442,7 @@ bool HistoryScreen::handleMouseEvent(const sf::Event &event)
             }
         }
         return false;
-    } else if (event.type == sf::Event::MouseButtonPressed) {
+    } else if (event.type == input::Event::MouseButtonPressed) {
         m_pressedUiElement = InvalidUiElement;
 
         for (int i=0; i<s_numListEntries; i++) {
@@ -511,15 +513,15 @@ bool HistoryScreen::handleMouseEvent(const sf::Event &event)
 
             return false;
         }
-    } else if (event.type == sf::Event::MouseButtonReleased) {
+    } else if (event.type == input::Event::MouseButtonReleased) {
         if (m_pressedUiElement == MainScreenButton && m_uiElements[m_pressedUiElement].rect.contains(ScreenPos(event.mouseButton.x, event.mouseButton.y))) {
             return true;
         }
 
         m_pressedUiElement = InvalidUiElement;
-    } else if (event.type == sf::Event::MouseWheelScrolled) {
-        if (event.mouseWheelScroll.x > 22 && event.mouseWheelScroll.x < 220 && event.mouseWheelScroll.y > 25 && event.mouseWheelScroll.y < 375) {
-            if (event.mouseWheelScroll.delta < 0) {
+    } else if (event.type == input::Event::MouseWheelScrolled) {
+        if (event.mouseWheel.x > 22 && event.mouseWheel.x < 220 && event.mouseWheel.y > 25 && event.mouseWheel.y < 375) {
+            if (event.mouseWheel.delta < 0) {
                 if (m_titleScrollOffset < int(m_historyEntries.size()) - s_numListEntries) {
                     m_titleScrollOffset++;
                     updateVisibleTitles();
@@ -531,8 +533,8 @@ bool HistoryScreen::handleMouseEvent(const sf::Event &event)
                 }
             }
         }
-        if (m_textRect.contains(ScreenPos(event.mouseWheelScroll.x, event.mouseWheelScroll.y))) {
-            if (event.mouseWheelScroll.delta < 0) {
+        if (m_textRect.contains(ScreenPos(event.mouseWheel.x, event.mouseWheel.y))) {
+            if (event.mouseWheel.delta < 0) {
                 if (m_textScrollOffset < int(m_textLines.size()) - s_numVisibleTextLines) {
                     m_textScrollOffset++;
                     updateVisibleText();
@@ -549,14 +551,14 @@ bool HistoryScreen::handleMouseEvent(const sf::Event &event)
     return false;
 }
 
-void HistoryScreen::handleKeyEvent(const sf::Event &event)
+void HistoryScreen::handleKeyEvent(const input::Event &event)
 {
-    if (event.key.code == sf::Keyboard::Up) {
+    if (event.key.code == input::Key::Up) {
         if (m_textScrollOffset > 0) {
             m_textScrollOffset--;
             updateVisibleText();
         }
-    } else if (event.key.code == sf::Keyboard::Down) {
+    } else if (event.key.code == input::Key::Down) {
         if (m_textScrollOffset < int(m_textLines.size()) - s_numVisibleTextLines) {
             m_textScrollOffset++;
             updateVisibleText();

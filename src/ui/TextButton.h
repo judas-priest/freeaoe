@@ -22,9 +22,6 @@
 #include "core/Types.h"
 
 class UiScreen;
-namespace sf {
-class Color;
-}  // namespace sf
 
 struct TextButton
 {

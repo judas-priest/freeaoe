@@ -19,7 +19,6 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Window/Event.hpp>
 #include <genie/resource/SlpFile.h>
 #include <genie/resource/SlpFrame.h>
 #include <genie/util/Utility.h>
@@ -39,6 +38,10 @@
 namespace genie {
 class PalFile;
 }  // namespace genie
+
+static sf::Color toSfColor(const Drawable::Color &c) {
+    return sf::Color(c.r, c.g, c.b, c.a);
+}
 
 HomeScreen::~HomeScreen()
 {
@@ -80,8 +83,8 @@ bool HomeScreen::init()
         m_descriptionRect = ScreenRect(390, 506, 393, 94);
     }
     m_description.setPosition(m_descriptionRect.topLeft());
-    m_description.setOutlineColor(m_textOutlineColor);
-    m_description.setFillColor(m_textFillColor);
+    m_description.setOutlineColor(toSfColor(m_textOutlineColor));
+    m_description.setFillColor(toSfColor(m_textFillColor));
     m_description.setOutlineThickness(1);
     m_description.setFont(SfmlRenderTarget::uiFont());
     if (AssetManager::Inst()->missingData()) {
@@ -272,15 +275,15 @@ bool HomeScreen::init()
 
         b.text.setCharacterSize(15);
         b.text.setFont(SfmlRenderTarget::uiFont());
-        b.text.setFillColor(m_textFillColor);
-        b.text.setOutlineColor(m_textOutlineColor);
+        b.text.setFillColor(toSfColor(m_textFillColor));
+        b.text.setOutlineColor(toSfColor(m_textOutlineColor));
         b.text.setOutlineThickness(1);
     }
 
     m_versionText.setCharacterSize(30);
     m_versionText.setFont(SfmlRenderTarget::uiFont());
-    m_versionText.setFillColor(m_textFillColor);
-    m_versionText.setOutlineColor(m_textOutlineColor);
+    m_versionText.setFillColor(toSfColor(m_textFillColor));
+    m_versionText.setOutlineColor(toSfColor(m_textOutlineColor));
     m_versionText.setOutlineThickness(2);
     m_versionText.setString("freeaoe");
     if (isHd) {
@@ -291,8 +294,8 @@ bool HomeScreen::init()
 
     m_todoText.setCharacterSize(50);
     m_todoText.setFont(SfmlRenderTarget::uiFont());
-    m_todoText.setFillColor(m_textFillColor);
-    m_todoText.setOutlineColor(m_textOutlineColor);
+    m_todoText.setFillColor(toSfColor(m_textFillColor));
+    m_todoText.setOutlineColor(toSfColor(m_textOutlineColor));
     m_todoText.setOutlineThickness(5);
     m_todoText.setString("TODO");
     if (isHd) {
@@ -396,10 +399,10 @@ void HomeScreen::render()
     m_renderWindow->draw(m_description);
 }
 
-bool HomeScreen::handleMouseEvent(const sf::Event &event)
+bool HomeScreen::handleMouseEvent(const input::Event &event)
 {
     const bool missingData = AssetManager::Inst()->missingData();
-    if (event.type == sf::Event::MouseMoved) {
+    if (event.type == input::Event::MouseMoved) {
         ScreenPos mousePos(event.mouseMove.x, event.mouseMove.y);
         m_hoveredButton = -1;
 
@@ -420,7 +423,7 @@ bool HomeScreen::handleMouseEvent(const sf::Event &event)
         return false;
     }
 
-    if (event.type == sf::Event::MouseButtonPressed) {
+    if (event.type == input::Event::MouseButtonPressed) {
         ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
         if (m_selectedButton == Button::Singleplayer) {
             for (int i=0; i<GameTypeChoice::GameTypeCount; i++) {

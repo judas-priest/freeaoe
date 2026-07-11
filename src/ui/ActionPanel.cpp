@@ -2,7 +2,6 @@
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Window/Event.hpp>
 #include <genie/dat/Research.h>
 #include <genie/dat/Unit.h>
 
@@ -40,9 +39,9 @@ bool ActionPanel::init()
     return true;
 }
 
-bool ActionPanel::handleEvent(sf::Event event)
+bool ActionPanel::handleEvent(input::Event event)
 {
-    if (event.type != sf::Event::MouseButtonPressed && event.type != sf::Event::MouseButtonReleased) {
+    if (event.type != input::Event::MouseButtonPressed && event.type != input::Event::MouseButtonReleased) {
         return false;
     }
     ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
@@ -65,14 +64,14 @@ bool ActionPanel::handleEvent(sf::Event event)
             continue;
         }
         if (button.type == InterfaceButton::AttackStance) {
-            if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.type == input::Event::MouseButtonPressed) {
                 handleButtonClick(button);
             }
 
             break;
         }
 
-        if (event.type == sf::Event::MouseButtonPressed) {
+        if (event.type == input::Event::MouseButtonPressed) {
             if (button.pressed) {
                 m_dirty = true;
             }

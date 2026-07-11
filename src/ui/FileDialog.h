@@ -3,6 +3,7 @@
 #include "core/Types.h"
 
 #include "render/IRenderTarget.h"
+#include "render/EventTypes.h"
 
 #include <filesystem>
 #include <memory>
@@ -13,7 +14,6 @@
 
 namespace sf {
 class RenderWindow;
-class Event;
 class Font;
 class Text;
 }
@@ -24,7 +24,7 @@ struct Button
 {
     Button(const std::string &text, const ScreenRect &rect, const IRenderTarget &renderTarget);
 
-    bool checkClick(const sf::Event &event);
+    bool checkClick(const input::Event &event);
     void render(const std::unique_ptr<IRenderTarget> &window);
 
     bool enabled = false;
@@ -44,7 +44,7 @@ struct ListView
 
     ListView(const ScreenRect rect, const IRenderTarget &window);
 
-    void handleEvent(const sf::Event &event);
+    void handleEvent(const input::Event &event);
     void render(const std::unique_ptr<IRenderTarget> &window);
 
     void setCurrentPath(std::string pathString);

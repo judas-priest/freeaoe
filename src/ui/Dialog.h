@@ -2,6 +2,7 @@
 
 #include "TextButton.h"
 #include "render/IRenderTarget.h"
+#include "render/EventTypes.h"
 
 #include <array>
 #include <memory>
@@ -9,7 +10,6 @@
 struct TextButton;
 
 namespace sf {
-class Event;
 class RenderWindow;
 }
 
@@ -31,7 +31,7 @@ struct Dialog
     Dialog(UiScreen *screen);
 
     void render(std::shared_ptr<sf::RenderWindow> &renderTarget);
-    Choice handleEvent(const sf::Event &event);
+    Choice handleEvent(const input::Event &event);
 
     Drawable::Image::Ptr background;
     UiScreen *m_screen;

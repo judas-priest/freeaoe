@@ -8,16 +8,51 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
 #include <SFML/Window/VideoMode.hpp>
 
 #include <stddef.h>
 #include <algorithm>
 #include <system_error>
 #include <utility>
+
+static input::Event convertSfEventFD(const sf::Event &sfEvent) {
+    input::Event ev{};
+    switch(sfEvent.type) {
+    case sf::Event::Closed: ev.type = input::Event::Closed; break;
+    case sf::Event::MouseButtonPressed:
+        ev.type = input::Event::MouseButtonPressed;
+        ev.mouseButton.button = sfEvent.mouseButton.button == sf::Mouse::Right ? input::MouseButton::Right :
+                                sfEvent.mouseButton.button == sf::Mouse::Middle ? input::MouseButton::Middle : input::MouseButton::Left;
+        ev.mouseButton.x = sfEvent.mouseButton.x;
+        ev.mouseButton.y = sfEvent.mouseButton.y;
+        break;
+    case sf::Event::MouseButtonReleased:
+        ev.type = input::Event::MouseButtonReleased;
+        ev.mouseButton.button = sfEvent.mouseButton.button == sf::Mouse::Right ? input::MouseButton::Right :
+                                sfEvent.mouseButton.button == sf::Mouse::Middle ? input::MouseButton::Middle : input::MouseButton::Left;
+        ev.mouseButton.x = sfEvent.mouseButton.x;
+        ev.mouseButton.y = sfEvent.mouseButton.y;
+        break;
+    case sf::Event::MouseMoved:
+        ev.type = input::Event::MouseMoved;
+        ev.mouseMove.x = sfEvent.mouseMove.x;
+        ev.mouseMove.y = sfEvent.mouseMove.y;
+        break;
+    case sf::Event::MouseWheelScrolled:
+        ev.type = input::Event::MouseWheelScrolled;
+        ev.mouseWheel.delta = sfEvent.mouseWheelScroll.delta;
+        ev.mouseWheel.x = sfEvent.mouseWheelScroll.x;
+        ev.mouseWheel.y = sfEvent.mouseWheelScroll.y;
+        break;
+    default: ev.type = input::Event::Closed; break;
+    }
+    return ev;
+}
 
 FileDialog::FileDialog()
 {
@@ -80,16 +115,18 @@ std::string FileDialog::getPath()
 
     while (m_window->isOpen()) {
         // Process events
-        sf::Event event;
-        if (!m_window->window->waitEvent(event)) {
+        sf::Event sfEvent;
+        if (!m_window->window->waitEvent(sfEvent)) {
             WARN << "failed to get event";
             break;
         }
 
-        if (event.type == sf::Event::Closed) {
+        if (sfEvent.type == sf::Event::Closed) {
             m_window->close();
             continue;
         }
+
+        input::Event event = convertSfEventFD(sfEvent);
 
         if (m_openDownloadUrlButton->checkClick(event)) {
             util::openUrl("https://archive.org/details/AgeOfEmpiresIiTheConquerorsDemo", nullptr);
@@ -172,14 +209,14 @@ Button::Button(const std::string &text, const ScreenRect &rect, const IRenderTar
     m_background.rect = m_rect;
 }
 
-bool Button::checkClick(const sf::Event &event)
+bool Button::checkClick(const input::Event &event)
 {
     if (!enabled) {
         m_pressed = false;
         return false;
     }
 
-    if (event.type == sf::Event::MouseMoved) {
+    if (event.type == input::Event::MouseMoved) {
         ScreenPos mousePos(event.mouseMove.x, event.mouseMove.y);
 
         if (!m_rect.contains(mousePos)) {
@@ -189,7 +226,7 @@ bool Button::checkClick(const sf::Event &event)
         return false;
     }
 
-    if (event.type != sf::Event::MouseButtonPressed && event.type != sf::Event::MouseButtonReleased) {
+    if (event.type != input::Event::MouseButtonPressed && event.type != input::Event::MouseButtonReleased) {
         return false;
     }
 
@@ -201,7 +238,7 @@ bool Button::checkClick(const sf::Event &event)
         return false;
     }
 
-    if (event.type == sf::Event::MouseButtonPressed) {
+    if (event.type == input::Event::MouseButtonPressed) {
         m_pressed = true;
         return false;
     }
@@ -272,9 +309,9 @@ ListView::ListView(const ScreenRect rect, const IRenderTarget &window) :
     updateScrollbar();
 }
 
-void ListView::handleEvent(const sf::Event &event)
+void ListView::handleEvent(const input::Event &event)
 {
-    if (event.type == sf::Event::MouseMoved) {
+    if (event.type == input::Event::MouseMoved) {
         ScreenPos mousePos(event.mouseMove.x, event.mouseMove.y);
 
         if (m_pressed) {
@@ -284,25 +321,21 @@ void ListView::handleEvent(const sf::Event &event)
         return;
     }
 
-    if (event.type == sf::Event::MouseButtonReleased) {
+    if (event.type == input::Event::MouseButtonReleased) {
         m_scrollBar.fillColor = Drawable::Color(255, 255, 255, 200);
         m_pressed = false;
         return;
     }
 
-    if (event.type == sf::Event::MouseWheelScrolled) {
-        if (event.mouseWheelScroll.wheel != sf::Mouse::VerticalWheel) {
-            return;
-        }
-
-        if (event.mouseWheelScroll.delta < 0) {
+    if (event.type == input::Event::MouseWheelScrolled) {
+        if (event.mouseWheel.delta < 0) {
             setOffset(m_offset + 1);
         } else {
             setOffset(m_offset - 1);
         }
     }
 
-    if (event.type != sf::Event::MouseButtonPressed) {
+    if (event.type != input::Event::MouseButtonPressed) {
         return;
     }
 

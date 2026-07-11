@@ -10,6 +10,10 @@
 #include "UiScreen.h"
 #include "render/SfmlRenderTarget.h"
 
+static sf::Color toSfColor(const Drawable::Color &c) {
+    return sf::Color(c.r, c.g, c.b, c.a);
+}
+
 TextButton::TextButton()
 {
     m_text.setCharacterSize(17);
@@ -44,13 +48,13 @@ void TextButton::render(UiScreen *screen)
     background.setPosition(rect.topLeft());
     screen->m_renderWindow->draw(background);
 
-    sf::Color outer1 = screen->m_bevelColor1c;
-    sf::Color middle1 = screen->m_bevelColor1b;
-    sf::Color inner1 = screen->m_bevelColor1a;
+    sf::Color outer1 = toSfColor(screen->m_bevelColor1c);
+    sf::Color middle1 = toSfColor(screen->m_bevelColor1b);
+    sf::Color inner1 = toSfColor(screen->m_bevelColor1a);
 
-    sf::Color outer2 = screen->m_bevelColor2c;
-    sf::Color middle2 =screen->m_bevelColor2b;
-    sf::Color inner2 = screen->m_bevelColor2a;
+    sf::Color outer2 = toSfColor(screen->m_bevelColor2c);
+    sf::Color middle2 = toSfColor(screen->m_bevelColor2b);
+    sf::Color inner2 = toSfColor(screen->m_bevelColor2a);
     if (pressed) {
         std::swap(outer1, outer2);
         std::swap(middle1, middle2);
@@ -79,8 +83,8 @@ void TextButton::render(UiScreen *screen)
 
     ///////////////
     /// Render text
-    m_text.setFillColor(screen->m_textFillColor);
-    m_text.setOutlineColor(screen->m_textOutlineColor);
+    m_text.setFillColor(toSfColor(screen->m_textFillColor));
+    m_text.setOutlineColor(toSfColor(screen->m_textOutlineColor));
     m_text.setString(text);
 
     ScreenPos textPosition = rect.center();

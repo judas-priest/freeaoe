@@ -141,9 +141,9 @@ bool UnitInfoPanel::init()
     return true;
 }
 
-bool UnitInfoPanel::handleEvent(sf::Event event)
+bool UnitInfoPanel::handleEvent(input::Event event)
 {
-    if (event.type != sf::Event::MouseButtonPressed) {
+    if (event.type != input::Event::MouseButtonPressed) {
         return false;
     }
 

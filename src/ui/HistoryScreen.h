@@ -25,9 +25,6 @@
 #include "core/Types.h"
 #include "render/IRenderTarget.h"
 
-namespace sf {
-class Event;
-}  // namespace sf
 
 class HistoryScreen : public UiScreen
 {
@@ -103,8 +100,8 @@ private:
     using UiScreen::init;
 
     void render() override;
-    bool handleMouseEvent(const sf::Event &event) override;
-    void handleKeyEvent(const sf::Event &event) override;
+    bool handleMouseEvent(const input::Event &event) override;
+    void handleKeyEvent(const input::Event &event) override;
     void loadFile(const std::string &filePath);
 
     void updateVisibleText();

@@ -27,10 +27,6 @@ class UnitManager;
 namespace genie {
 class Unit;
 }  // namespace genie
-namespace sf {
-class Event;
-class Texture;
-}  // namespace sf
 
 typedef std::vector<std::shared_ptr<Unit>> UnitVector;
 
@@ -249,7 +245,7 @@ public:
     ~ActionPanel();
 
     bool init() override;
-    bool handleEvent(sf::Event event) override;
+    bool handleEvent(input::Event event) override;
     bool update(Time time) override;
     void draw() override;
 

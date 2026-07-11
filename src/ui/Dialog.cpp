@@ -1,7 +1,6 @@
 #include "Dialog.h"
 
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Window/Event.hpp>
 #include <string>
 
 #include "core/Types.h"
@@ -52,9 +51,9 @@ void Dialog::render(std::shared_ptr<sf::RenderWindow> &renderTarget)
     }
 }
 
-Dialog::Choice Dialog::handleEvent(const sf::Event &event)
+Dialog::Choice Dialog::handleEvent(const input::Event &event)
 {
-    if (event.type == sf::Event::MouseButtonReleased) {
+    if (event.type == input::Event::MouseButtonReleased) {
         const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
         Choice choice = Invalid;
         for (int i=0; i<ChoicesCount; i++) {
@@ -72,7 +71,7 @@ Dialog::Choice Dialog::handleEvent(const sf::Event &event)
 
         return m_pressedButton;
     }
-    if (event.type != sf::Event::MouseButtonPressed) {
+    if (event.type != input::Event::MouseButtonPressed) {
         return Invalid;
     }
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);

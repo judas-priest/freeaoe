@@ -34,9 +34,89 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
 #include <SFML/Window/VideoMode.hpp>
 
 #include <vector>
+
+static input::Key sfKeyToInputKey(sf::Keyboard::Key key) {
+    switch(key) {
+    case sf::Keyboard::Left: return input::Key::Left;
+    case sf::Keyboard::Right: return input::Key::Right;
+    case sf::Keyboard::Up: return input::Key::Up;
+    case sf::Keyboard::Down: return input::Key::Down;
+    case sf::Keyboard::Escape: return input::Key::Escape;
+    case sf::Keyboard::Return: return input::Key::Return;
+    case sf::Keyboard::Delete: return input::Key::Delete;
+    case sf::Keyboard::BackSpace: return input::Key::BackSpace;
+    case sf::Keyboard::Space: return input::Key::Space;
+    default:
+        if (key >= sf::Keyboard::A && key <= sf::Keyboard::Z)
+            return input::Key(int(input::Key::A) + (key - sf::Keyboard::A));
+        if (key >= sf::Keyboard::Num0 && key <= sf::Keyboard::Num9)
+            return input::Key(int(input::Key::Num0) + (key - sf::Keyboard::Num0));
+        if (key >= sf::Keyboard::F1 && key <= sf::Keyboard::F12)
+            return input::Key(int(input::Key::F1) + (key - sf::Keyboard::F1));
+        return input::Key::Unknown;
+    }
+}
+
+static input::MouseButton sfMouseBtnToInput(sf::Mouse::Button button) {
+    switch(button) {
+    case sf::Mouse::Left: return input::MouseButton::Left;
+    case sf::Mouse::Right: return input::MouseButton::Right;
+    case sf::Mouse::Middle: return input::MouseButton::Middle;
+    default: return input::MouseButton::Left;
+    }
+}
+
+static input::Event convertSfEvent(const sf::Event &sfEvent) {
+    input::Event ev{};
+    switch(sfEvent.type) {
+    case sf::Event::Closed: ev.type = input::Event::Closed; break;
+    case sf::Event::KeyPressed:
+        ev.type = input::Event::KeyPressed;
+        ev.key.code = sfKeyToInputKey(sfEvent.key.code);
+        ev.key.shift = sfEvent.key.shift;
+        ev.key.control = sfEvent.key.control;
+        ev.key.alt = sfEvent.key.alt;
+        break;
+    case sf::Event::KeyReleased:
+        ev.type = input::Event::KeyReleased;
+        ev.key.code = sfKeyToInputKey(sfEvent.key.code);
+        break;
+    case sf::Event::MouseButtonPressed:
+        ev.type = input::Event::MouseButtonPressed;
+        ev.mouseButton.button = sfMouseBtnToInput(sfEvent.mouseButton.button);
+        ev.mouseButton.x = sfEvent.mouseButton.x;
+        ev.mouseButton.y = sfEvent.mouseButton.y;
+        break;
+    case sf::Event::MouseButtonReleased:
+        ev.type = input::Event::MouseButtonReleased;
+        ev.mouseButton.button = sfMouseBtnToInput(sfEvent.mouseButton.button);
+        ev.mouseButton.x = sfEvent.mouseButton.x;
+        ev.mouseButton.y = sfEvent.mouseButton.y;
+        break;
+    case sf::Event::MouseMoved:
+        ev.type = input::Event::MouseMoved;
+        ev.mouseMove.x = sfEvent.mouseMove.x;
+        ev.mouseMove.y = sfEvent.mouseMove.y;
+        break;
+    case sf::Event::MouseWheelScrolled:
+        ev.type = input::Event::MouseWheelScrolled;
+        ev.mouseWheel.delta = sfEvent.mouseWheelScroll.delta;
+        ev.mouseWheel.x = sfEvent.mouseWheelScroll.x;
+        ev.mouseWheel.y = sfEvent.mouseWheelScroll.y;
+        break;
+    case sf::Event::TextEntered:
+        ev.type = input::Event::TextEntered;
+        ev.text.unicode = sfEvent.text.unicode;
+        break;
+    default: ev.type = input::Event::Closed; break;
+    }
+    return ev;
+}
 
 UiScreen::UiScreen(const char *uiFile) :
     m_uiFileName(uiFile)
@@ -44,9 +124,9 @@ UiScreen::UiScreen(const char *uiFile) :
 
 }
 
-static sf::Color convertColor(const genie::Color &color)
+static Drawable::Color convertColor(const genie::Color &color)
 {
-    return sf::Color(color.r, color.g, color.b);
+    return Drawable::Color(color.r, color.g, color.b);
 }
 
 bool UiScreen::init()
@@ -74,8 +154,8 @@ bool UiScreen::init()
 
     m_buttonOpacity = m_uiFile->shadePercent / 100.;
 
-    m_textFillColor = sf::Color(m_uiFile->textColor1.r, m_uiFile->textColor1.g, m_uiFile->textColor1.b);
-    m_textOutlineColor = sf::Color(m_uiFile->textColor2.r, m_uiFile->textColor2.g, m_uiFile->textColor2.b);
+    m_textFillColor = Drawable::Color(m_uiFile->textColor1.r, m_uiFile->textColor1.g, m_uiFile->textColor1.b);
+    m_textOutlineColor = Drawable::Color(m_uiFile->textColor2.r, m_uiFile->textColor2.g, m_uiFile->textColor2.b);
 
 //    m_bevelColor1 = sf::Color(m_uiFile->bevelColor1.r, m_uiFile->bevelColor1.g, m_uiFile->bevelColor1.b);
 //    m_bevelColor2 = sf::Color(m_uiFile->bevelColor2.r, m_uiFile->bevelColor2.g, m_uiFile->bevelColor2.b);
@@ -151,29 +231,31 @@ bool UiScreen::run()
 {
     while (m_renderWindow->isOpen()) {
         // Process events
-        sf::Event event;
-        if (!m_renderWindow->waitEvent(event)) {
+        sf::Event sfEvent;
+        if (!m_renderWindow->waitEvent(sfEvent)) {
             WARN << "failed to get event";
             break;
         }
 
-        if (event.type == sf::Event::Closed) {
+        if (sfEvent.type == sf::Event::Closed) {
             return false;
         }
 
-        if (event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::MouseButtonReleased) {
+        input::Event event = convertSfEvent(sfEvent);
+
+        if (event.type == input::Event::MouseButtonPressed || event.type == input::Event::MouseButtonReleased) {
             sf::Vector2f mappedPos = m_renderWindow->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
             event.mouseButton.x = mappedPos.x;
             event.mouseButton.y = mappedPos.y;
         }
 
-        if (event.type == sf::Event::MouseMoved) {
+        if (event.type == input::Event::MouseMoved) {
             sf::Vector2f mappedPos = m_renderWindow->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
             event.mouseMove.x = mappedPos.x;
             event.mouseMove.y = mappedPos.y;
         }
 
-        if (event.type == sf::Event::KeyPressed) {
+        if (event.type == input::Event::KeyPressed) {
             handleKeyEvent(event);
         }
 

@@ -18,8 +18,6 @@
 #include <genie/resource/Color.h>
 #include <genie/resource/PalFile.h>
 
-#include <SFML/Window/Event.hpp>
-
 #include <algorithm>
 #include <functional>
 #include <vector>
@@ -179,20 +177,20 @@ bool Minimap::init()
     return m_terrainTexture != nullptr;
 }
 
-bool Minimap::handleEvent(sf::Event event)
+bool Minimap::handleEvent(input::Event event)
 {
     ScreenPos pos;
-    if (event.type == sf::Event::MouseButtonPressed || event.type == sf::Event::MouseButtonReleased) {
+    if (event.type == input::Event::MouseButtonPressed || event.type == input::Event::MouseButtonReleased) {
         pos = ScreenPos(event.mouseButton.x, event.mouseButton.y);
-    } else if (event.type == sf::Event::MouseMoved && m_mousePressed) {
+    } else if (event.type == input::Event::MouseMoved && m_mousePressed) {
         pos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     } else {
         return false;
     }
 
-    if (event.type == sf::Event::MouseButtonPressed && m_rect.contains(pos)) {
+    if (event.type == input::Event::MouseButtonPressed && m_rect.contains(pos)) {
         m_mousePressed = true;
-    } else if (event.type == sf::Event::MouseButtonReleased && m_mousePressed) {
+    } else if (event.type == input::Event::MouseButtonReleased && m_mousePressed) {
         m_mousePressed = false;
         return true;
     }

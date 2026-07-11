@@ -6,7 +6,6 @@
 namespace sf
 {
 class Clock;
-class Event;
 class RenderWindow;
 }
 
@@ -21,7 +20,7 @@ public:
 
     void render() override;
     bool init() override;
-    bool handleMouseEvent(const sf::Event &event) override;
+    bool handleMouseEvent(const input::Event &event) override;
 
 private:
     TextButton m_exitButton;

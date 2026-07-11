@@ -10,9 +10,6 @@
 
 class Map;
 class UnitManager;
-namespace sf {
-class Event;
-}  // namespace sf
 struct Unit;
 struct VisibilityMap;
 
@@ -33,7 +30,7 @@ public:
     void setVisibilityMap(const std::shared_ptr<VisibilityMap> &visibilityMap);
 
     bool init() override;
-    bool handleEvent(sf::Event event) override;
+    bool handleEvent(input::Event event) override;
     void mouseExited() { m_mousePressed = false; }
     bool update(Time time) override;
     void draw() override;

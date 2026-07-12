@@ -688,6 +688,9 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         if (!m_touchState.dragging) {
             if (m_touchState.startPos.distanceTo(pos) > TouchState::DRAG_THRESHOLD) {
                 m_touchState.dragging = true;
+                // Cancel any in-progress mouse selection to prevent drag-selecting everything
+                m_selecting = false;
+                m_selectionRect = ScreenRect();
             }
         }
         if (m_touchState.dragging) {

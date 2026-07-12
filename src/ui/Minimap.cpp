@@ -45,9 +45,9 @@ bool Minimap::updateRect(const Size &size)
     } else if (size.height == 600) {
         m_rect = ScreenRect(510, 465, 267, 134);
     } else {
-        int mmW = std::min(250, static_cast<int>(size.width * 0.2f));
+        int mmW = std::min(180, static_cast<int>(size.width * 0.14f));
         int mmH = mmW / 2;
-        m_rect = ScreenRect(size.width - mmW - 5, size.height - mmH - 5, mmW, mmH);
+        m_rect = ScreenRect(size.width - mmW - 10, size.height - mmH - 10, mmW, mmH);
     }
 
     m_windowSize = size;

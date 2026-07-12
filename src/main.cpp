@@ -255,6 +255,16 @@ try
         return 1;
     }
 
+#ifdef ANDROID
+    if (!config.isOptionSet(Config::GamePath)) {
+        const char *extPath = SDL_AndroidGetExternalStoragePath();
+        if (extPath) {
+            std::string gamePath = std::string(extPath) + "/aoe2data";
+            config.setValue(Config::GamePath, gamePath);
+        }
+    }
+#endif
+
     while (true) {
         try {
             initData();

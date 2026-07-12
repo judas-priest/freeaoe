@@ -3,10 +3,12 @@
     package="org.freeaoe">
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <application
         android:label="FreeAoE"
         android:hasCode="true"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".FreeAoEActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"

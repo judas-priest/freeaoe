@@ -19,6 +19,9 @@
 #ifdef USE_SDL2
 #include <SDL2/SDL.h>
 #endif
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 #include <genie/script/ScnFile.h>
 #include <filesystem>
@@ -265,7 +268,33 @@ try
     }
     // Force Russian language on Android
     config.setValue(Config::Language, "ru");
-    SDL_Log("ANDROID: gamePath=%s lang=%s", config.getValue(Config::GamePath).c_str(), config.getValue(Config::Language).c_str());
+    __android_log_print(4, "FreeAoE", "gamePath=%s lang=%s", config.getValue(Config::GamePath).c_str(), config.getValue(Config::Language).c_str());
+
+    // Debug: check if HD language files are accessible
+    {
+        std::string gp = config.getValue(Config::GamePath);
+        std::string hdFile = gp + "/resources/_common/strings/key-value/non-localized-key-value-strings-utf8.txt";
+        std::string ruFile = gp + "/resources/ru/strings/key-value/key-value-strings-utf8.txt";
+        bool hdExists = std::filesystem::exists(hdFile);
+        bool ruExists = std::filesystem::exists(ruFile);
+        __android_log_print(4, "FreeAoE", "LANG gamePath=[%s] hdFile=%d ruFile=%d lang=%s",
+            gp.c_str(), hdExists, ruExists, config.getValue(Config::Language).c_str());
+
+        // If HD file not found at current path, try app-specific storage
+        if (!hdExists) {
+            const char *extPath = SDL_AndroidGetExternalStoragePath();
+            if (extPath) {
+                std::string altPath = std::string(extPath) + "/aoe2data";
+                std::string altHd = altPath + "/resources/_common/strings/key-value/non-localized-key-value-strings-utf8.txt";
+                if (std::filesystem::exists(altHd)) {
+                    __android_log_print(4, "FreeAoE", "LANG switching gamePath to [%s]", altPath.c_str());
+                    config.setValue(Config::GamePath, altPath);
+                } else {
+                    __android_log_print(4, "FreeAoE", "LANG alt path also missing: [%s]", altHd.c_str());
+                }
+            }
+        }
+    }
 #endif
 
     while (true) {

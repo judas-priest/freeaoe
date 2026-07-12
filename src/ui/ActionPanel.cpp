@@ -105,6 +105,10 @@ bool ActionPanel::handleEvent(input::Event event)
 
 bool ActionPanel::update(Time /*time*/)
 {
+#ifdef ANDROID
+    m_buttonSize = 50;
+    m_bottomOffset = 15;
+#else
     if (m_renderTarget->getSize().height >= 1024) {
         m_buttonSize = 45;
         m_bottomOffset = 30;
@@ -112,6 +116,7 @@ bool ActionPanel::update(Time /*time*/)
         m_buttonSize = 40;
         m_bottomOffset = 20;
     }
+#endif
     if (m_buttonsDirty) {
         m_selectedUnits = m_unitManager->selected().units;
         updateButtons();
@@ -144,18 +149,18 @@ void ActionPanel::draw()
         if (button.showBorder) {
             Drawable::Rect bevelRect;
             bevelRect.rect.setTopLeft(buttonPosition(button.index) - ScreenPos(2, 2));
-            bevelRect.rect.setSize(Size(40, 40));
+            bevelRect.rect.setSize(Size(m_buttonSize, m_buttonSize));
             bevelRect.filled = true;
 
             Drawable::Rect shadowRect;
             shadowRect.rect.setTopLeft(buttonPosition(button.index));
-            shadowRect.rect.setSize(Size(38, 38));
+            shadowRect.rect.setSize(Size(m_buttonSize - 2, m_buttonSize - 2));
             shadowRect.filled = true;
 
             // need this because the garrison icon is actually a cursor
             Drawable::Rect backgroundRect;
             backgroundRect.rect.setTopLeft(buttonPosition(button.index));
-            backgroundRect.rect.setSize(Size(36, 36));
+            backgroundRect.rect.setSize(Size(m_buttonSize - 4, m_buttonSize - 4));
             backgroundRect.filled = true;
 
             if (button.pressed) {

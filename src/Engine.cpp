@@ -513,11 +513,18 @@ void Engine::drawUi()
     m_minimap->draw();
 
 #ifdef ANDROID
-    // Draw dark background behind action panel and unit info when they have content
+    // Draw dark backgrounds behind action panel and unit info
     if (m_actionPanel->hasButtons()) {
         ScreenRect apRect = m_actionPanel->rect();
-        renderTarget_->draw(ScreenRect(apRect.x - 2, apRect.y - 2, apRect.width + 4, apRect.height + 4),
-            Drawable::Color(20, 15, 10, 180));
+        renderTarget_->draw(ScreenRect(apRect.x - 3, apRect.y - 3, apRect.width + 6, apRect.height + 6),
+            Drawable::Color(20, 15, 10, 200));
+    }
+    {
+        ScreenRect uiRect = m_unitInfoPanel->rect();
+        if (uiRect.width > 0 && uiRect.height > 0) {
+            renderTarget_->draw(ScreenRect(uiRect.x - 3, uiRect.y - 3, uiRect.width + 6, uiRect.height + 6),
+                Drawable::Color(20, 15, 10, 200));
+        }
     }
 #endif
     m_actionPanel->draw();

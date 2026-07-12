@@ -153,7 +153,8 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
 
     switch(victoryConditions.victoryMode) {
     case genie::ScnVictory::Standard:
-        WARN << "TODO handle standard game";
+        DBG << "standard game — treating as conquest";
+        mainVictoryConditions = conquestConditions;
         break;
     case genie::ScnVictory::Conquest:
         DBG << "conquest game (should be handled)";

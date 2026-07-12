@@ -451,7 +451,9 @@ void Engine::drawUi()
         renderTarget_->draw(messageLine.text);
     }
 
+#ifndef ANDROID
     if (m_mouseCursor) m_mouseCursor->render();
+#endif
 }
 
 void Engine::drawEntities(const std::shared_ptr<Map> &map)
@@ -516,16 +518,10 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchBegan:
     case input::Event::TouchMoved:
     case input::Event::TouchEnded:
-#ifdef ANDROID
-        return true; // On Android, SDL emulates mouse from touch — ignore raw touch
-#else
         return handleTouchEvent(event, state);
-#endif
     case input::Event::PinchZoom: {
-        float delta = event.pinch.dDist * PINCH_SENSITIVITY;
-        m_zoomLevel = std::clamp(m_zoomLevel + delta, ZOOM_MIN, ZOOM_MAX);
-        Size screenSize = renderTarget_->getSize();
-        Size viewportSize(screenSize.width / m_zoomLevel, screenSize.height / m_zoomLevel);
+        m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
+        Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
         renderTarget_->camera()->setViewportSize(viewportSize);
         return true;
     }
@@ -574,26 +570,6 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
     const ScreenPos mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     bool handled = false;
 
-#ifdef ANDROID
-    // On Android, drag = scroll camera (like Google Maps)
-    if (m_selecting) {
-        // m_selecting means mouse button is held (SDL emulated from finger drag)
-        ScreenPos delta = m_selectionStart - mousePos;
-        if (std::abs(delta.x) > 5 || std::abs(delta.y) > 5) {
-            ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
-            camScreen.x += delta.x;
-            camScreen.y += delta.y;
-            MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
-            renderTarget_->camera()->setTargetPosition(camMap);
-            m_selectionStart = mousePos;
-        }
-        return true;
-    }
-    if (mousePos.y < m_gameAreaHeight) {
-        state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(mousePos));
-    }
-    return false;
-#endif
 
     if (mousePos.x < MOUSE_MOVE_EDGE_SIZE) {
         m_cameraDeltaX = -1;
@@ -660,69 +636,38 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         m_touchState.lastPos = m_touchState.startPos;
         m_touchState.startTime = currentTimeMs();
         m_touchState.dragging = false;
-
-        input::Event moveEvent;
-        moveEvent.type = input::Event::MouseMoved;
-        moveEvent.mouseMove.x = event.touch.x;
-        moveEvent.mouseMove.y = event.touch.y;
-        handleMouseMove(moveEvent, state);
+        // Notify UnitManager of cursor position for hover
+        state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(m_touchState.startPos));
         return true;
     }
     case input::Event::TouchMoved: {
         ScreenPos pos(event.touch.x, event.touch.y);
-
         if (!m_touchState.dragging) {
-            float dist = m_touchState.startPos.distanceTo(pos);
-            if (dist > TouchState::DRAG_THRESHOLD) {
+            if (m_touchState.startPos.distanceTo(pos) > TouchState::DRAG_THRESHOLD) {
                 m_touchState.dragging = true;
             }
         }
-
         if (m_touchState.dragging) {
-            ScreenPos delta = pos - m_touchState.lastPos;
+            ScreenPos delta = m_touchState.lastPos - pos;
             ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
-            camScreen.x -= delta.x;
-            camScreen.y -= delta.y;
+            camScreen.x += delta.x;
+            camScreen.y += delta.y;
             MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
             renderTarget_->camera()->setTargetPosition(camMap);
         }
-
-        input::Event moveEvent;
-        moveEvent.type = input::Event::MouseMoved;
-        moveEvent.mouseMove.x = event.touch.x;
-        moveEvent.mouseMove.y = event.touch.y;
-        handleMouseMove(moveEvent, state);
-
         m_touchState.lastPos = pos;
         return true;
     }
     case input::Event::TouchEnded: {
         if (!m_touchState.dragging) {
+            ScreenPos pos(event.touch.x, event.touch.y);
             int64_t duration = currentTimeMs() - m_touchState.startTime;
-
-            // Generate mouseMove first so UnitManager knows cursor position
-            input::Event moveEvent;
-            moveEvent.type = input::Event::MouseMoved;
-            moveEvent.mouseMove.x = event.touch.x;
-            moveEvent.mouseMove.y = event.touch.y;
-            handleMouseMove(moveEvent, state);
-
-            input::Event clickEvent;
-            clickEvent.mouseButton.x = event.touch.x;
-            clickEvent.mouseButton.y = event.touch.y;
-
             if (duration >= TouchState::LONG_PRESS_MS) {
-                clickEvent.type = input::Event::MouseButtonPressed;
-                clickEvent.mouseButton.button = input::MouseButton::Right;
-                handleMousePress(clickEvent, state);
-                clickEvent.type = input::Event::MouseButtonReleased;
-                handleMouseRelease(clickEvent, state);
+                // Long press = right click (move/attack command)
+                state->unitManager()->onRightClick(pos, renderTarget_->camera());
             } else {
-                clickEvent.type = input::Event::MouseButtonPressed;
-                clickEvent.mouseButton.button = input::MouseButton::Left;
-                handleMousePress(clickEvent, state);
-                clickEvent.type = input::Event::MouseButtonReleased;
-                handleMouseRelease(clickEvent, state);
+                // Short tap = left click (select unit)
+                state->unitManager()->onLeftClick(pos, renderTarget_->camera());
             }
         }
         m_touchState.active = false;
@@ -758,15 +703,7 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
-#ifdef ANDROID
-        // On Android, m_selecting is used for drag detection
-        // Only select units if it was a tap (small rect), not a drag
-        if (m_selectionRect.width < 10 && m_selectionRect.height < 10) {
-            state->unitManager()->onLeftClick(mousePos, renderTarget_->camera());
-        }
-#else
         state->unitManager()->selectUnits(m_selectionRect, renderTarget_->camera());
-#endif
         m_selectionRect = ScreenRect();
         m_selecting = false;
         return true;
@@ -793,8 +730,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #ifdef ANDROID
     // Force landscape orientation and create fullscreen window
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
-    // SDL emulates mouse from touch by default — we use that for tap/drag
-    // Keep finger events enabled for SDL_MULTIGESTURE (pinch zoom)
+    // Disable touch→mouse emulation — we handle touch via FINGER events only
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
     m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     // Get actual window size after fullscreen
@@ -822,7 +759,6 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_mouseCursor = std::make_unique<MouseCursor>(renderTarget_);
 #ifdef ANDROID
     SDL_ShowCursor(SDL_DISABLE);
-    m_mouseCursor.reset();
 #elif defined(USE_SDL2)
     if (m_mouseCursor->isValid()) {
         SDL_ShowCursor(SDL_DISABLE);
@@ -917,6 +853,7 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     renderWindow_->setSize(uiSize);
 #endif
     renderTarget_->setSize(uiSize);
+    m_baseViewportSize = uiSize;
 
     // Calculate game area height (screen minus UI overlay)
     if (m_uiOverlay && m_uiOverlay->size.isValid()) {
@@ -1014,6 +951,9 @@ bool Engine::updateUi(const std::shared_ptr<GameState> &state)
 
 bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
 {
+#ifdef ANDROID
+    return false; // Camera controlled by touch drag
+#endif
     if (m_cameraDeltaX == 0 && m_cameraDeltaY == 0) {
         return false;
     }

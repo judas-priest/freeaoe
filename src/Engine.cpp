@@ -724,11 +724,11 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         return false; // Let mouse emulation also fire
     }
     case input::Event::TouchEnded: {
-        if (!m_touchState.dragging) {
+        {
             ScreenPos pos(tx, ty);
             int64_t now = currentTimeMs();
 
-            // Handle top bar buttons directly (SDL mouse emulation coords are wrong)
+            // Always check top bar buttons — even during drag (they're small, user intends to tap)
             IconButton::Type clickedButton = IconButton::Invalid;
             for (const std::unique_ptr<IconButton> &button : m_buttons) {
                 if (button->rect().contains(pos) || ScreenPos(button->rect().center()).distanceTo(pos) < 50.f) {
@@ -766,19 +766,22 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
                 return true;
             }
 
-            // Double tap = right click
-            if (m_touchState.hasPendingTap
-                && (now - m_touchState.pendingTapTime < TouchState::DOUBLE_TAP_MS)
-                && m_touchState.pendingTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST) {
-                state->unitManager()->onRightClick(pos, renderTarget_->camera());
-                m_touchState.hasPendingTap = false;
-            } else {
-                // Single tap = select unit
-                ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
-                state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
-                m_touchState.hasPendingTap = true;
-                m_touchState.pendingTapTime = now;
-                m_touchState.pendingTapPos = pos;
+            // Game area taps — only if not dragging
+            if (!m_touchState.dragging) {
+                // Double tap = right click
+                if (m_touchState.hasPendingTap
+                    && (now - m_touchState.pendingTapTime < TouchState::DOUBLE_TAP_MS)
+                    && m_touchState.pendingTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST) {
+                    state->unitManager()->onRightClick(pos, renderTarget_->camera());
+                    m_touchState.hasPendingTap = false;
+                } else {
+                    // Single tap = select unit
+                    ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
+                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                    m_touchState.hasPendingTap = true;
+                    m_touchState.pendingTapTime = now;
+                    m_touchState.pendingTapPos = pos;
+                }
             }
         }
         m_touchState.active = false;

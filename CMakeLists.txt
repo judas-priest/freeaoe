@@ -54,7 +54,8 @@ endif()
 
 option(USE_SDL2 "Use SDL2 backend instead of SFML" OFF)
 
-if(ANDROID)
+if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
+    set(ANDROID TRUE)
     set(USE_SDL2 ON CACHE BOOL "Force SDL2 on Android" FORCE)
     add_definitions(-DANDROID)
 endif()

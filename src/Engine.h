@@ -166,7 +166,7 @@ private:
         int64_t lastTapTime = 0;
         ScreenPos lastTapPos;
         static constexpr float DRAG_THRESHOLD = 25.f;
-        static constexpr int64_t DOUBLE_TAP_MS = 300;
+        static constexpr int64_t DOUBLE_TAP_MS = 500;
         static constexpr float DOUBLE_TAP_DIST = 40.f;
     } m_touchState;
 

@@ -635,10 +635,14 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
+    // Adjust touch coords for render scale (pinch zoom)
+    float tx = event.touch.x / m_zoomLevel;
+    float ty = event.touch.y / m_zoomLevel;
+
     switch (event.type) {
     case input::Event::TouchBegan: {
         m_touchState.active = true;
-        m_touchState.startPos = ScreenPos(event.touch.x, event.touch.y);
+        m_touchState.startPos = ScreenPos(tx, ty);
         m_touchState.lastPos = m_touchState.startPos;
         m_touchState.startTime = currentTimeMs();
         m_touchState.dragging = false;
@@ -648,7 +652,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         return true;
     }
     case input::Event::TouchMoved: {
-        ScreenPos pos(event.touch.x, event.touch.y);
+        ScreenPos pos(tx, ty);
         if (!m_touchState.dragging) {
             if (m_touchState.startPos.distanceTo(pos) > TouchState::DRAG_THRESHOLD) {
                 m_touchState.dragging = true;
@@ -667,7 +671,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
     }
     case input::Event::TouchEnded: {
         if (!m_touchState.dragging) {
-            ScreenPos pos(event.touch.x, event.touch.y);
+            ScreenPos pos(tx, ty);
             int64_t now = currentTimeMs();
 
             // Check double tap

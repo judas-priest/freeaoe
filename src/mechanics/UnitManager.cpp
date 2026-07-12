@@ -29,6 +29,7 @@
 #include "actions/ActionAttack.h"
 #include "actions/ActionFollow.h"
 #include "actions/ActionGuard.h"
+#include "actions/ActionRepair.h"
 #include "actions/ActionMove.h"
 #include "actions/ActionPatrol.h"
 #include "audio/AudioPlayer.h"
@@ -472,6 +473,19 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
             if (unit == targetUnit) continue;
             auto follow = std::make_shared<ActionFollow>(unit, targetUnit);
             unit->actions.setCurrentAction(follow);
+        }
+        break;
+    }
+    case State::SelectingRepairTarget: {
+        Unit::Ptr targetUnit = unitAt(screenPos, camera, NoAlignment);
+        if (!targetUnit) {
+            WARN << "No unit/building at repair target position";
+            break;
+        }
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            auto repair = std::make_shared<ActionRepair>(unit, targetUnit);
+            unit->actions.setCurrentAction(repair);
         }
         break;
     }
@@ -1009,6 +1023,11 @@ void UnitManager::selectGuardTarget()
 void UnitManager::selectFollowTarget()
 {
     m_state = State::SelectingFollowTarget;
+}
+
+void UnitManager::selectRepairTarget()
+{
+    m_state = State::SelectingRepairTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

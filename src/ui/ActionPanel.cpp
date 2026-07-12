@@ -700,6 +700,9 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
         case Command::Follow:
             m_unitManager->selectFollowTarget();
             break;
+        case Command::Repair:
+            m_unitManager->selectRepairTarget();
+            break;
         default:
             WARN << "Unhandled action" << button.action;
             break;

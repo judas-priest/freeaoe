@@ -535,11 +535,11 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchEnded:
         return handleTouchEvent(event, state);
     case input::Event::PinchZoom: {
-#ifdef USE_SDL2
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
-        auto *sdlRT = static_cast<SdlRenderTarget*>(renderTarget_.get());
-        SDL_RenderSetScale(sdlRT->renderer(), m_zoomLevel, m_zoomLevel);
-#endif
+        // Smaller viewport = zoomed in (see less map, things appear bigger)
+        // Only affects camera — HUD draws in screen coords, unaffected
+        Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
+        renderTarget_->camera()->setViewportSize(viewportSize);
         return true;
     }
     default:
@@ -646,9 +646,8 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
-    // Adjust touch coords for render scale (pinch zoom)
-    float tx = event.touch.x / m_zoomLevel;
-    float ty = event.touch.y / m_zoomLevel;
+    float tx = static_cast<float>(event.touch.x);
+    float ty = static_cast<float>(event.touch.y);
 
     switch (event.type) {
     case input::Event::TouchBegan: {

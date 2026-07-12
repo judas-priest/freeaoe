@@ -69,7 +69,9 @@ public:
         DropOff,
         Attack,
         Fly,
-        Garrison
+        Garrison,
+        Patrol,
+        Guard
     };
 
     enum UnitState {

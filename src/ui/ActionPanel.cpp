@@ -691,6 +691,12 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             m_unitManager->selectGarrisonTarget();
             break;
         }
+        case Command::Patrol:
+            m_unitManager->selectPatrolTarget();
+            break;
+        case Command::Guard:
+            m_unitManager->selectGuardTarget();
+            break;
         default:
             WARN << "Unhandled action" << button.action;
             break;

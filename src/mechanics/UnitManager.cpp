@@ -27,7 +27,9 @@
 #include "Farm.h"
 #include "UnitFactory.h"
 #include "actions/ActionAttack.h"
+#include "actions/ActionGuard.h"
 #include "actions/ActionMove.h"
+#include "actions/ActionPatrol.h"
 #include "audio/AudioPlayer.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
@@ -432,6 +434,29 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
             }
             garrison.target = targetUnit;
             IAction::assignTask(garrison, unit, IAction::AssignType::Replace);
+        }
+        break;
+    }
+    case State::SelectingPatrolTarget: {
+        MapPos targetPos = camera->absoluteMapPos(screenPos);
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            auto patrol = std::make_shared<ActionPatrol>(unit, targetPos);
+            unit->actions.setCurrentAction(patrol);
+        }
+        break;
+    }
+    case State::SelectingGuardTarget: {
+        Unit::Ptr targetUnit = unitAt(screenPos, camera, NoAlignment);
+        if (!targetUnit) {
+            WARN << "No unit at guard target position";
+            break;
+        }
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            if (unit == targetUnit) continue;
+            auto guard = std::make_shared<ActionGuard>(unit, targetUnit);
+            unit->actions.setCurrentAction(guard);
         }
         break;
     }
@@ -954,6 +979,16 @@ void UnitManager::selectAttackTarget()
 void UnitManager::selectGarrisonTarget()
 {
     m_state = State::SelectingGarrisonTarget;
+}
+
+void UnitManager::selectPatrolTarget()
+{
+    m_state = State::SelectingPatrolTarget;
+}
+
+void UnitManager::selectGuardTarget()
+{
+    m_state = State::SelectingGuardTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

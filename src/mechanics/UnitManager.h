@@ -142,6 +142,8 @@ public:
         PlacingWall,
         SelectingAttackTarget,
         SelectingGarrisonTarget,
+        SelectingPatrolTarget,
+        SelectingGuardTarget,
         Default
     };
 
@@ -196,6 +198,8 @@ public:
     void moveUnitTo(const Unit::Ptr &unit, const MapPos &targetPos);
     void selectAttackTarget();
     void selectGarrisonTarget();
+    void selectPatrolTarget();
+    void selectGuardTarget();
 
     State state() const { return m_state; }
 

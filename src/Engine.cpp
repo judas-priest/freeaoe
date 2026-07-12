@@ -644,6 +644,7 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
 bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
+    SDL_Log("MOUSE_PRESS x=%.0f y=%.0f button=%d gameArea=%.0f", mousePos.x, mousePos.y, (int)event.mouseButton.button, m_gameAreaHeight);
     bool updated = false;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
         updated = button->onMousePressed(mousePos) || updated;
@@ -745,9 +746,11 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
-        // On tap, selectionCurr may not have been updated (no MouseMoved between down/up)
-        // Use mouse release position and expand rect for touch
         ScreenRect selectRect(m_selectionStart, mousePos);
+        SDL_Log("SELECT start=%.0f,%.0f end=%.0f,%.0f rect=%.0f,%.0f,%.0f,%.0f screenSize=%.0f,%.0f",
+            m_selectionStart.x, m_selectionStart.y, mousePos.x, mousePos.y,
+            selectRect.x, selectRect.y, selectRect.width, selectRect.height,
+            renderTarget_->getSize().width, renderTarget_->getSize().height);
         if (selectRect.width < 15 && selectRect.height < 15) {
             selectRect = ScreenRect(mousePos - ScreenPos(15, 15), mousePos + ScreenPos(15, 15));
         }
@@ -782,9 +785,10 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #ifdef USE_SDL2
 #ifdef ANDROID
     // Force landscape orientation and create fullscreen window
+    // Must be set BEFORE SDL_Init / window creation
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
-    // Keep touch→mouse emulation ON (default) — taps auto-generate mouse clicks
-    // FINGER events used only for camera drag and pinch zoom
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1"); // taps generate mouse clicks
+    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0"); // don't generate touch from mouse
     m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     // Get actual window size after fullscreen
@@ -917,12 +921,17 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     }
 #endif
 
+#ifdef ANDROID
+    // On Android, UI overlay is scaled to fit — game area is ~70% of screen
+    m_gameAreaHeight = uiSize.height * 0.7f;
+#else
     // Calculate game area height (screen minus UI overlay)
     if (m_uiOverlay && m_uiOverlay->size.isValid()) {
         m_gameAreaHeight = uiSize.height - m_uiOverlay->size.height + m_uiOverlayOffset;
     } else {
         m_gameAreaHeight = uiSize.height * 0.75f;
     }
+#endif
 
     m_resultOverlay = renderTarget_->createText(Drawable::Text::UI);
     m_resultOverlay->alignment = Drawable::Text::AlignCenter;

@@ -336,15 +336,40 @@ void GameState::setupScenario()
     ALOG("Total human player units: %d", totalHumanUnits);
 
     MapPos cameraPos;
-    if (scenario_->playerData.player1CameraX >= 0 &&  scenario_->playerData.player1CameraY >= 0) {
-        cameraPos = MapPos(scenario_->playerData.player1CameraX * Constants::TILE_SIZE, scenario_->playerData.player1CameraY * Constants::TILE_SIZE);
-        ALOG("Camera from playerData: %.0f, %.0f (raw: %.1f, %.1f)", cameraPos.x, cameraPos.y,
-             scenario_->playerData.player1CameraX, scenario_->playerData.player1CameraY);
-    } else {
-        cameraPos = MapPos (scenario_->players[humanPlayerId].initCameraX * Constants::TILE_SIZE, map_->pixelHeight() - scenario_->players[humanPlayerId].initCameraY * Constants::TILE_SIZE);
-        ALOG("Camera from players[%d]: %.0f, %.0f", humanPlayerId, cameraPos.x, cameraPos.y);
+    bool cameraSet = false;
+
+    // Try scenario camera position (WARNING: X and Y are swapped in genie format)
+    if (scenario_->playerData.player1CameraX > 0 && scenario_->playerData.player1CameraY > 0) {
+        cameraPos = MapPos(scenario_->playerData.player1CameraY * Constants::TILE_SIZE,
+                           scenario_->playerData.player1CameraX * Constants::TILE_SIZE);
+        cameraSet = true;
+        ALOG("Camera from playerData (swapped): %.0f, %.0f", cameraPos.x, cameraPos.y);
     }
-    renderTarget_->camera()->setTargetPosition(cameraPos);
+
+    // Try per-player camera position
+    if (!cameraSet && humanPlayerId < static_cast<int>(scenario_->players.size())) {
+        float cx = scenario_->players[humanPlayerId].initCameraX;
+        float cy = scenario_->players[humanPlayerId].initCameraY;
+        if (cx > 0 && cy > 0) {
+            cameraPos = MapPos(cy * Constants::TILE_SIZE, cx * Constants::TILE_SIZE);
+            cameraSet = true;
+            ALOG("Camera from players[%d] (swapped): %.0f, %.0f", humanPlayerId, cameraPos.x, cameraPos.y);
+        }
+    }
+
+    // Fall back to first human player unit position
+    if (!cameraSet && humanPlayerId < static_cast<int>(scenario_->playerUnits.size())) {
+        for (const genie::ScnUnit &u : scenario_->playerUnits[humanPlayerId].units) {
+            cameraPos = MapPos(u.positionY * Constants::TILE_SIZE, u.positionX * Constants::TILE_SIZE);
+            cameraSet = true;
+            ALOG("Camera from first unit: %.0f, %.0f", cameraPos.x, cameraPos.y);
+            break;
+        }
+    }
+
+    if (cameraSet) {
+        renderTarget_->camera()->setTargetPosition(cameraPos);
+    }
 
     m_scenarioController->setScenario(scenario_);
 }

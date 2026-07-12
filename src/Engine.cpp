@@ -473,17 +473,30 @@ void Engine::drawUi()
     }
 
 #ifdef ANDROID
-    // Top bar background
-    renderTarget_->draw(ScreenRect(0, 0, renderTarget_->getSize().width, 28),
-        Drawable::Color(30, 20, 10, 220));
+    {
+        Size screenSize = renderTarget_->getSize();
 
-    // Bottom UI overlay — only show when units are selected (saves screen space)
-    if (m_uiOverlay && m_uiOverlay->isValid() && m_actionPanel->hasButtons()) {
-        float scaleX = renderTarget_->getSize().width / m_uiOverlay->size.width;
-        m_uiOverlay->scaleX = scaleX;
-        m_uiOverlay->scaleY = scaleX;
-        float overlayH = m_uiOverlay->size.height * scaleX;
-        renderTarget_->draw(m_uiOverlay, ScreenPos(0, renderTarget_->getSize().height - overlayH));
+        // Top bar background
+        renderTarget_->draw(ScreenRect(0, 0, screenSize.width, 28),
+            Drawable::Color(30, 20, 10, 220));
+
+        // Bottom panel background — always draw
+        float panelH = screenSize.height - m_gameAreaHeight;
+        if (panelH > 0) {
+            renderTarget_->draw(ScreenRect(0, m_gameAreaHeight, screenSize.width, panelH),
+                Drawable::Color(40, 30, 15, 240));
+            renderTarget_->draw(ScreenRect(0, m_gameAreaHeight, screenSize.width, 2),
+                Drawable::Color(80, 60, 30, 255));
+        }
+
+        // Draw SLP overlay on top if available
+        if (m_uiOverlay && m_uiOverlay->isValid()) {
+            float scaleX = screenSize.width / m_uiOverlay->size.width;
+            m_uiOverlay->scaleX = scaleX;
+            m_uiOverlay->scaleY = scaleX;
+            float overlayH = m_uiOverlay->size.height * scaleX;
+            renderTarget_->draw(m_uiOverlay, ScreenPos(0, screenSize.height - overlayH));
+        }
     }
 #else
     renderTarget_->draw(m_uiOverlay, ScreenPos(0, m_uiOverlayOffset));

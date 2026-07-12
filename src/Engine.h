@@ -167,24 +167,10 @@ private:
         int64_t pendingTapTime = 0;
         ScreenPos pendingTapPos;
         bool hasPendingTap = false;
-        bool suppressNextMouseRelease = false;
-        static constexpr float DRAG_THRESHOLD = 25.f;
+        static constexpr float DRAG_THRESHOLD = 50.f;
         static constexpr int64_t DOUBLE_TAP_MS = 500;
         static constexpr float DOUBLE_TAP_DIST = 80.f;
     } m_touchState;
-
-    struct InputState {
-        bool mouseDown = false;
-        bool dragging = false;
-        ScreenPos pressPos;
-        ScreenPos lastMovePos;
-        int64_t pressTime = 0;
-        int64_t lastClickTime = 0;
-        ScreenPos lastClickPos;
-        static constexpr float DRAG_THRESHOLD = 25.f;
-        static constexpr int64_t DOUBLE_CLICK_MS = 500;
-        static constexpr float DOUBLE_CLICK_DIST = 80.f;
-    } m_input;
 
     float m_gameAreaHeight = 800.f;
 #ifdef USE_SDL2

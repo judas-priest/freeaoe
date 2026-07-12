@@ -744,6 +744,9 @@ void SdlRenderTarget::draw(const Drawable::Text::Ptr &text)
             return;
         }
 
+        if (sdlText->cachedTexture) {
+            SDL_DestroyTexture(sdlText->cachedTexture);
+        }
         sdlText->cachedTexture = SDL_CreateTextureFromSurface(m_renderer, surface);
         sdlText->cachedWidth = surface->w;
         sdlText->cachedHeight = surface->h;

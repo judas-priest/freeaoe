@@ -20,9 +20,9 @@
 
 #include "render/Camera.h"
 
-#include "misc/fonts/Alegreya/Alegreya-Bold.latin.h"
+#include "misc/fonts/Alegreya/Alegreya-Bold.ttf.h"
 #include "misc/fonts/BerryRotunda/BerryRotunda.ttf.h"
-#include "misc/fonts/charis/CharisSILEur-R.ttf.h"
+#include "misc/fonts/charis/Charis-Regular.ttf.h"
 
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -65,7 +65,7 @@ struct Font {
 
 const sf::Font &SfmlRenderTarget::uiFont()
 {
-    static Font fontLoader(resource_Alegreya_Bold_latin_data, resource_Alegreya_Bold_latin_size);
+    static Font fontLoader(resource_Alegreya_Bold_ttf_data, resource_Alegreya_Bold_ttf_size);
     return fontLoader.font;
 }
 
@@ -118,7 +118,7 @@ void SfmlWindow::close()
 
 const sf::Font &SfmlRenderTarget::plainFont()
 {
-    static Font fontLoader(resource_CharisSILEur_R_ttf_data, resource_CharisSILEur_R_ttf_size );
+    static Font fontLoader(resource_Charis_Regular_ttf_data, resource_Charis_Regular_ttf_size);
     return fontLoader.font;
 }
 

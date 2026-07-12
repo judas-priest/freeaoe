@@ -20,9 +20,9 @@
 
 #include "render/Camera.h"
 
-#include "misc/fonts/Alegreya/Alegreya-Bold.latin.h"
+#include "misc/fonts/Alegreya/Alegreya-Bold.ttf.h"
 #include "misc/fonts/BerryRotunda/BerryRotunda.ttf.h"
-#include "misc/fonts/charis/CharisSILEur-R.ttf.h"
+#include "misc/fonts/charis/Charis-Regular.ttf.h"
 
 #include <cstring>
 #include <algorithm>
@@ -42,11 +42,11 @@ void SdlRenderTarget::initFonts()
     }
     s_fontsInitialized = true;
 
-    s_plainFont.data = resource_CharisSILEur_R_ttf_data;
-    s_plainFont.dataSize = resource_CharisSILEur_R_ttf_size;
+    s_plainFont.data = resource_Charis_Regular_ttf_data;
+    s_plainFont.dataSize = resource_Charis_Regular_ttf_size;
 
-    s_uiFont.data = resource_Alegreya_Bold_latin_data;
-    s_uiFont.dataSize = resource_Alegreya_Bold_latin_size;
+    s_uiFont.data = resource_Alegreya_Bold_ttf_data;
+    s_uiFont.dataSize = resource_Alegreya_Bold_ttf_size;
 
     s_stylishFont.data = resource_BerryRotunda_ttf_data;
     s_stylishFont.dataSize = resource_BerryRotunda_ttf_size;

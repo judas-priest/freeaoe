@@ -174,8 +174,8 @@ private:
     float m_gameAreaHeight = 800.f;
     Size m_baseViewportSize;
     float m_zoomLevel = 1.0f;
-    static constexpr float ZOOM_MIN = 0.5f;
-    static constexpr float ZOOM_MAX = 3.0f;
-    static constexpr float PINCH_SENSITIVITY = 8.0f;
+    static constexpr float ZOOM_MIN = 0.3f;
+    static constexpr float ZOOM_MAX = 2.0f;
+    static constexpr float PINCH_SENSITIVITY = 3.0f;
 };
 

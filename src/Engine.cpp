@@ -297,6 +297,10 @@ void Engine::start()
             // Clear screen
 #ifdef USE_SDL2
             renderTarget_->clear(Drawable::Black);
+            // Apply zoom scale for game rendering
+            if (m_zoomLevel != 1.0f) {
+                SDL_RenderSetScale(static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(), m_zoomLevel, m_zoomLevel);
+            }
 #else
             renderWindow_->clear(sf::Color::Green);
 #endif
@@ -318,6 +322,12 @@ void Engine::start()
                 renderTarget_->draw(m_resultOverlay);
             }
 
+#ifdef USE_SDL2
+            // Reset scale for HUD — HUD renders at native resolution
+            if (m_zoomLevel != 1.0f) {
+                SDL_RenderSetScale(static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(), 1.0f, 1.0f);
+            }
+#endif
             drawUi();
 
             const int renderTime = Engine::currentTimeMs() - renderStart;
@@ -535,10 +545,8 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchEnded:
         return handleTouchEvent(event, state);
     case input::Event::PinchZoom: {
-        SDL_Log("ENGINE PinchZoom dDist=%f zoom=%f", event.pinch.dDist, m_zoomLevel);
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
-        // Smaller viewport = zoomed in (see less map, things appear bigger)
-        // Only affects camera — HUD draws in screen coords, unaffected
+        // Adjust camera viewport so it knows which map area is visible at this zoom
         Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
         renderTarget_->camera()->setViewportSize(viewportSize);
         return true;
@@ -673,7 +681,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             ScreenPos delta = m_touchState.lastPos - pos;
             ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
             camScreen.x += delta.x;
-            camScreen.y += delta.y;
+            camScreen.y -= delta.y;
             MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
             renderTarget_->camera()->setTargetPosition(camMap);
         }

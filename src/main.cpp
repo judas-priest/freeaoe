@@ -265,6 +265,7 @@ try
     }
     // Force Russian language on Android
     config.setValue(Config::Language, "ru");
+    SDL_Log("ANDROID: gamePath=%s lang=%s", config.getValue(Config::GamePath).c_str(), config.getValue(Config::Language).c_str());
 #endif
 
     while (true) {

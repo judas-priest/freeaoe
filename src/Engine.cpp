@@ -727,14 +727,55 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         if (!m_touchState.dragging) {
             ScreenPos pos(tx, ty);
             int64_t now = currentTimeMs();
+
+            // Handle top bar buttons directly (SDL mouse emulation coords are wrong)
+            IconButton::Type clickedButton = IconButton::Invalid;
+            for (const std::unique_ptr<IconButton> &button : m_buttons) {
+                if (button->rect().contains(pos) || ScreenPos(button->rect().center()).distanceTo(pos) < 50.f) {
+                    button->onMousePressed(pos);
+                    if (button->onMouseReleased(pos)) {
+                        clickedButton = button->type();
+                    }
+                }
+            }
+            if (clickedButton == IconButton::GameMenu) {
+                showMenu();
+            }
+            if (clickedButton != IconButton::Invalid) {
+                m_touchState.active = false;
+                m_touchState.dragging = false;
+                m_touchState.pinching = false;
+                return true;
+            }
+
+            // Handle action panel buttons
+            if (m_actionPanel->handleEvent(input::Event{input::Event::MouseButtonPressed, {}, {input::MouseButton::Left, (int)tx, (int)ty}})) {
+                m_actionPanel->handleEvent(input::Event{input::Event::MouseButtonReleased, {}, {input::MouseButton::Left, (int)tx, (int)ty}});
+                m_touchState.active = false;
+                m_touchState.dragging = false;
+                m_touchState.pinching = false;
+                return true;
+            }
+
+            // Handle minimap tap
+            if (m_minimap->handleEvent(input::Event{input::Event::MouseButtonPressed, {}, {input::MouseButton::Left, (int)tx, (int)ty}})) {
+                m_minimap->handleEvent(input::Event{input::Event::MouseButtonReleased, {}, {input::MouseButton::Left, (int)tx, (int)ty}});
+                m_touchState.active = false;
+                m_touchState.dragging = false;
+                m_touchState.pinching = false;
+                return true;
+            }
+
+            // Double tap = right click
             if (m_touchState.hasPendingTap
                 && (now - m_touchState.pendingTapTime < TouchState::DOUBLE_TAP_MS)
                 && m_touchState.pendingTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST) {
-                // Double tap = right click
                 state->unitManager()->onRightClick(pos, renderTarget_->camera());
                 m_touchState.hasPendingTap = false;
-                m_touchState.suppressNextMouseRelease = true; // Don't let SDL mouse release undo this
             } else {
+                // Single tap = select unit
+                ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
+                state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
                 m_touchState.hasPendingTap = true;
                 m_touchState.pendingTapTime = now;
                 m_touchState.pendingTapPos = pos;
@@ -743,7 +784,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         m_touchState.active = false;
         m_touchState.dragging = false;
         m_touchState.pinching = false;
-        return false; // Let mouse emulation handle click
+        return true; // We handle everything in touch, don't let mouse emulation interfere
     }
     default:
         return false;

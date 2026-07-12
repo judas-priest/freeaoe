@@ -13,3 +13,6 @@
 [submodule "src/extern/SDL2"]
 	path = src/extern/SDL2
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "src/extern/SDL2_ttf"]
+	path = src/extern/SDL2_ttf
+	url = https://github.com/libsdl-org/SDL_ttf.git

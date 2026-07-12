@@ -144,6 +144,7 @@ public:
         SelectingGarrisonTarget,
         SelectingPatrolTarget,
         SelectingGuardTarget,
+        SelectingFollowTarget,
         Default
     };
 
@@ -200,6 +201,7 @@ public:
     void selectGarrisonTarget();
     void selectPatrolTarget();
     void selectGuardTarget();
+    void selectFollowTarget();
 
     State state() const { return m_state; }
 

@@ -27,6 +27,7 @@
 #include "Farm.h"
 #include "UnitFactory.h"
 #include "actions/ActionAttack.h"
+#include "actions/ActionFollow.h"
 #include "actions/ActionGuard.h"
 #include "actions/ActionMove.h"
 #include "actions/ActionPatrol.h"
@@ -457,6 +458,20 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
             if (unit == targetUnit) continue;
             auto guard = std::make_shared<ActionGuard>(unit, targetUnit);
             unit->actions.setCurrentAction(guard);
+        }
+        break;
+    }
+    case State::SelectingFollowTarget: {
+        Unit::Ptr targetUnit = unitAt(screenPos, camera, NoAlignment);
+        if (!targetUnit) {
+            WARN << "No unit at follow target position";
+            break;
+        }
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            if (unit == targetUnit) continue;
+            auto follow = std::make_shared<ActionFollow>(unit, targetUnit);
+            unit->actions.setCurrentAction(follow);
         }
         break;
     }
@@ -989,6 +1004,11 @@ void UnitManager::selectPatrolTarget()
 void UnitManager::selectGuardTarget()
 {
     m_state = State::SelectingGuardTarget;
+}
+
+void UnitManager::selectFollowTarget()
+{
+    m_state = State::SelectingFollowTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

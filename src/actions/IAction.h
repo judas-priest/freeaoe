@@ -71,7 +71,9 @@ public:
         Fly,
         Garrison,
         Patrol,
-        Guard
+        Guard,
+        Follow,
+        Repair
     };
 
     enum UnitState {

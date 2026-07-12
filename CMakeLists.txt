@@ -116,10 +116,16 @@ else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O2")
     set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} -O2")
 
-    set(EXTRA_LIBS pthread dl)
+    if(NOT ANDROID)
+        set(EXTRA_LIBS pthread dl)
+    else()
+        set(EXTRA_LIBS)
+    endif()
 
-    # Somehow need this because otherwise the SFML config gets fucked
-    find_package(ZLIB)
+    if(NOT ANDROID)
+        # Somehow need this because otherwise the SFML config gets fucked
+        find_package(ZLIB)
+    endif()
 endif()
 
 if(USE_SDL2)
@@ -135,6 +141,12 @@ if(USE_SDL2)
         add_subdirectory(src/extern/SDL2_ttf)
 
         set(SDL2_LIBS SDL2 SDL2_ttf)
+
+        # Create SDL2/ include path wrappers so #include <SDL2/SDL.h> works with bundled sources
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/SDL2)
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/SDL2/SDL.h "#include \"${CMAKE_CURRENT_SOURCE_DIR}/src/extern/SDL2/include/SDL.h\"")
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/SDL2/SDL_ttf.h "#include \"${CMAKE_CURRENT_SOURCE_DIR}/src/extern/SDL2_ttf/SDL_ttf.h\"")
+        include_directories(${CMAKE_CURRENT_BINARY_DIR})
     else()
         # Desktop: use system SDL2
         find_package(SDL2 REQUIRED)
@@ -440,15 +452,14 @@ endif()
 add_library(freeaoe_common OBJECT ${ENGINE_SRC})
 target_link_libraries(freeaoe_common ${ALL_LIBRARIES})
 
-#add_executable(freeaoe src/main.cpp ${ENGINE_SRC})
-add_executable(freeaoe src/main.cpp $<TARGET_OBJECTS:freeaoe_common>)
-target_link_libraries(freeaoe ${ALL_LIBRARIES})
-install(TARGETS freeaoe DESTINATION bin)
-
 if(ANDROID)
     # On Android, build as shared library loaded by SDLActivity
     add_library(freeaoe SHARED src/main.cpp $<TARGET_OBJECTS:freeaoe_common>)
+    target_link_libraries(freeaoe ${ALL_LIBRARIES} log android)
+else()
+    add_executable(freeaoe src/main.cpp $<TARGET_OBJECTS:freeaoe_common>)
     target_link_libraries(freeaoe ${ALL_LIBRARIES})
+    install(TARGETS freeaoe DESTINATION bin)
 endif()
 
 if (BUILD_TESTS)

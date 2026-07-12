@@ -18,6 +18,7 @@
 
 
 #include "Engine.h"
+#include "audio/AudioPlayer.h"
 
 #include "core/Logger.h"
 #include "core/ResourceMap.h"
@@ -266,6 +267,8 @@ void Engine::start()
                 }
             }
         }
+
+        AudioPlayer::instance().tick(); // Drain queued dialogue streams
 
         if (!m_currentDialog && state->result == GameState::Result::Running) {
             updated = state->update(Engine::currentTimeMs()) || updated;
@@ -894,6 +897,7 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #endif
     // Non-owning shared_ptr — SdlWindow owns the render target lifetime
     renderTarget_ = std::shared_ptr<IRenderTarget>(m_sdlWindow->renderTarget.get(), [](IRenderTarget*){});
+    m_mainScreen->setRenderTarget(renderTarget_);
     m_mainScreen->init();
 #else
     renderWindow_ = std::make_unique<sf::RenderWindow>(sf::VideoMode(1280, 1024), "freeaoe", sf::Style::None);

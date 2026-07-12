@@ -102,9 +102,11 @@ void AudioPlayer::mp3StopCallback(const int id, sts_mixer_sample_t *sample, void
         if (it->second == id) {
             DBG << it->first << "stopped";
             instance().m_activeStreams.erase(it);
+            instance().m_dialoguePlaying = false;
             return;
         }
     }
+    instance().m_dialoguePlaying = false;
     WARN << "Failed to find" << id << "in active streams";
 }
 
@@ -465,12 +467,28 @@ inline std::string maErrorString(const ma_result result)
     }
 }
 
+void AudioPlayer::tick()
+{
+    if (!m_dialoguePlaying && !m_streamQueue.empty()) {
+        std::string next = m_streamQueue.front();
+        m_streamQueue.pop_front();
+        playStream(next);
+    }
+}
+
 bool AudioPlayer::playStream(const std::string &filename)
 {
     // Don't play the same stream if it's already active
     if (m_activeStreams.count(filename)) {
         return true;
     }
+
+    // Queue if another dialogue stream is playing
+    if (m_dialoguePlaying) {
+        m_streamQueue.push_back(filename);
+        return true;
+    }
+    m_dialoguePlaying = true;
 
     std::string filePath = AssetManager::Inst()->locateStreamFile(filename);
     if (filePath.empty()) {

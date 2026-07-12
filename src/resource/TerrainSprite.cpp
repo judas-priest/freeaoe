@@ -92,10 +92,14 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
     }
 #endif
 
-    if (!m_slp && !m_isPng) {
+    if (m_isPng) {
+        m_tileSquareCount = data->TerrainDimensions.first;
+        if (m_tileSquareCount <= 0) m_tileSquareCount = 10;
+        return;
+    }
+    if (!m_slp) {
         WARN << "Failed to get slp for" << data->SLP;
-        m_slp = AssetManager::Inst()->getSlp(15000); // TODO Loading grass if -1
-
+        m_slp = AssetManager::Inst()->getSlp(15000);
         return;
     }
     m_tileSquareCount = sqrt(m_slp->getFrameCount());

@@ -1,5 +1,6 @@
 #include "ScenarioController.h"
 
+#include "resource/LanguageManager.h"
 #include <genie/dat/Unit.h>
 #include <genie/dat/ResourceUsage.h>
 #include <genie/script/ScnFile.h>
@@ -363,14 +364,23 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
 
         ///////////////
         // Chat stuff
-    case genie::TriggerEffect::DisplayInstructions:
+    case genie::TriggerEffect::DisplayInstructions: {
         AudioPlayer::instance().playStream("scenario/" + effect.soundFile + ".mp3");
+        std::string msg = effect.message;
+        // Use localized string from language files when available
+        if (effect.stringTableID >= 0) {
+            std::string localized = LanguageManager::getString(effect.stringTableID);
+            if (!localized.empty()) {
+                msg = localized;
+            }
+        }
         if (m_engine) {
-            m_engine->addMessage(effect.message);
+            m_engine->addMessage(msg);
         } else {
-            WARN << "missing engine" << effect.message << effect.soundFile;
+            WARN << "missing engine" << msg << effect.soundFile;
         }
         break;
+    }
     case genie::TriggerEffect::SendChat:
         // Source player? But that is what aokts seems to use
         EventManager::sendChatMessage(-1, effect.sourcePlayer, effect.message);

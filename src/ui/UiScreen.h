@@ -48,7 +48,9 @@ public:
     virtual bool handleMouseEvent(const input::Event &event) { (void)event; return false; }
     virtual void handleKeyEvent(const input::Event &) {}
 
-#ifndef USE_SDL2
+#ifdef USE_SDL2
+    void setRenderTarget(const std::shared_ptr<IRenderTarget> &renderTarget);
+#else
     void setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWindow);
 #endif
 

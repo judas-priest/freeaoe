@@ -183,8 +183,13 @@ const std::string &AssetManager_HD::assetsPath() const
 
 std::string AssetManager_HD::locateStreamFile(const std::string &filename)
 {
-    static const std::vector<std::string> possibleFolders = {
+    const std::string lang = Config::Inst().getValue(Config::Language);
+    const std::vector<std::string> possibleFolders = {
         "resources/_common/sound/stream/",
+        "resources/" + lang + "/sound/",
+        "resources/" + lang + "/campaign/sound/",
+        "resources/" + lang + "/sound/scenario/",
+        "resources/" + lang + "/sound/taunt/",
         "resources/en/sound/",
         "resources-dlc2/_common/sound/stream/",
         "resources/_common/sound/civ/",
@@ -193,7 +198,6 @@ std::string AssetManager_HD::locateStreamFile(const std::string &filename)
         "resources/en/campaign/sound/",
         "resources/en/sound/scenario/",
         "resources/en/sound/taunt/",
-         // TODO: other languages?
     };
 
     const std::string gamePath = Config::Inst().getValue(Config::GamePath);

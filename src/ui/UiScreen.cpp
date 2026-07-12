@@ -279,7 +279,12 @@ bool UiScreen::init()
     return true;
 }
 
-#ifndef USE_SDL2
+#ifdef USE_SDL2
+void UiScreen::setRenderTarget(const std::shared_ptr<IRenderTarget> &renderTarget)
+{
+    m_renderTarget = renderTarget;
+}
+#else
 void UiScreen::setRenderWindow(const std::shared_ptr<sf::RenderWindow> &renderWindow)
 {
     m_renderWindow = renderWindow;

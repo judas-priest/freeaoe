@@ -3,8 +3,11 @@
 #include "core/SignalEmitter.h"
 
 #include <stdint.h>
+#include <atomic>
+#include <deque>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 struct ma_device;
@@ -27,6 +30,7 @@ public:
     bool playStream(const std::string &filename);
     void playMidi(const std::string &filename);
     void stopStream(const std::string &filename);
+    void tick(); // Call from game loop — drains queued streams
 
     static AudioPlayer &instance();
 
@@ -45,6 +49,8 @@ private:
     std::unique_ptr<sts_mixer_t> m_mixer;
     std::unique_ptr<ma_device> m_device;
     std::unordered_map<std::string, int> m_activeStreams;
+    std::deque<std::string> m_streamQueue;
+    std::atomic<bool> m_dialoguePlaying{false};
     std::mutex m_mutex;
 };
 

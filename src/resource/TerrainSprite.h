@@ -52,8 +52,7 @@ public:
             return -1;
         }
         if (m_isPng) {
-            const int tileSquareCount = sqrt(4 * 4); // IDK, HD is fucked anyways
-            return (y % tileSquareCount) + (x % tileSquareCount) * tileSquareCount;
+            return (y % m_tileSquareCount) + (x % m_tileSquareCount) * m_tileSquareCount;
         } else {
             const int tileSquareCount = m_tileSquareCount;
             return (y % tileSquareCount) + (x % tileSquareCount) * tileSquareCount;

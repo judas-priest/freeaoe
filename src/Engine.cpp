@@ -281,7 +281,7 @@ void Engine::start()
         if (updated) {
             // Clear screen
 #ifdef USE_SDL2
-            renderTarget_->clear(Drawable::Color(0, 255, 0));
+            renderTarget_->clear(Drawable::Black);
 #else
             renderWindow_->clear(sf::Color::Green);
 #endif
@@ -754,7 +754,15 @@ Engine::~Engine() { } // NOLINT
 bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 {
 #ifdef USE_SDL2
+#ifdef ANDROID
+    // On Android, use fullscreen at native resolution
+    SDL_DisplayMode dm;
+    SDL_GetCurrentDisplayMode(0, &dm);
+    m_sdlWindow = std::make_unique<SdlWindow>(Size(dm.w, dm.h), "freeaoe");
+    SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+#else
     m_sdlWindow = std::make_unique<SdlWindow>(Size(1280, 1024), "freeaoe");
+#endif
     // Non-owning shared_ptr — SdlWindow owns the render target lifetime
     renderTarget_ = std::shared_ptr<IRenderTarget>(m_sdlWindow->renderTarget.get(), [](IRenderTarget*){});
     m_mainScreen->init();
@@ -844,7 +852,12 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
         uiSize = Size(640, 480);
     }
 
-#ifdef USE_SDL2
+#ifdef ANDROID
+    // On Android, keep fullscreen size, don't resize to UI overlay
+    int screenW, screenH;
+    SDL_GetWindowSize(m_sdlWindow->sdlWindow, &screenW, &screenH);
+    uiSize = Size(screenW, screenH);
+#elif defined(USE_SDL2)
     SDL_SetWindowSize(m_sdlWindow->sdlWindow, uiSize.width, uiSize.height);
 #else
     renderWindow_->setSize(uiSize);

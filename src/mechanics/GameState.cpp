@@ -17,6 +17,12 @@
 */
 
 #include "GameState.h"
+#ifdef ANDROID
+#include <android/log.h>
+#define ALOG(...) __android_log_print(ANDROID_LOG_INFO, "FreeAoE", __VA_ARGS__)
+#else
+#define ALOG(...)
+#endif
 
 #include "UnitFactory.h"
 #include "ScenarioController.h"
@@ -298,11 +304,14 @@ void GameState::setupScenario()
         WARN << "no human player defined, setting to 1. player";
         m_humanPlayer = m_players[1];
     }
+    ALOG("Human player ID: %d, total players: %zu", m_humanPlayer->playerId, m_players.size());
     m_unitManager->setPlayers(m_players);
     m_unitManager->setHumanPlayer(m_humanPlayer);
 
+    int totalHumanUnits = 0;
     for (size_t playerNum = 0; playerNum < scenario_->enabledPlayerCount + 1; playerNum++) { // +1 for gaia
         const Player::Ptr &player = m_players[playerNum];
+        ALOG("Player %zu units: %zu", playerNum, scenario_->playerUnits[playerNum].units.size());
 
         for (const genie::ScnUnit &scnunit : scenario_->playerUnits[playerNum].units) {
             MapPos unitPos((scnunit.positionY) * Constants::TILE_SIZE, (scnunit.positionX) * Constants::TILE_SIZE, scnunit.positionZ * DataManager::Inst().terrainBlock().ElevHeight);
@@ -321,14 +330,19 @@ void GameState::setupScenario()
             } else {
 //                WARN << "invalid graphics";
             }
+            if (player == m_humanPlayer) totalHumanUnits++;
         }
     }
+    ALOG("Total human player units: %d", totalHumanUnits);
 
     MapPos cameraPos;
     if (scenario_->playerData.player1CameraX >= 0 &&  scenario_->playerData.player1CameraY >= 0) {
         cameraPos = MapPos(scenario_->playerData.player1CameraX * Constants::TILE_SIZE, scenario_->playerData.player1CameraY * Constants::TILE_SIZE);
+        ALOG("Camera from playerData: %.0f, %.0f (raw: %.1f, %.1f)", cameraPos.x, cameraPos.y,
+             scenario_->playerData.player1CameraX, scenario_->playerData.player1CameraY);
     } else {
         cameraPos = MapPos (scenario_->players[humanPlayerId].initCameraX * Constants::TILE_SIZE, map_->pixelHeight() - scenario_->players[humanPlayerId].initCameraY * Constants::TILE_SIZE);
+        ALOG("Camera from players[%d]: %.0f, %.0f", humanPlayerId, cameraPos.x, cameraPos.y);
     }
     renderTarget_->camera()->setTargetPosition(cameraPos);
 

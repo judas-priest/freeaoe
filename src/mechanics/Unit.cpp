@@ -17,6 +17,9 @@
 */
 
 #include "Unit.h"
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 #include <genie/dat/Unit.h>
 #include <genie/dat/ResourceUsage.h>
@@ -452,6 +455,15 @@ void Unit::setPosition(const MapPos &pos, const bool initial)
     }
 
     std::unordered_set<std::pair<int, int>> newVisibleTiles;
+#ifdef ANDROID
+    static int posLog = 0;
+    if (initial && posLog++ < 5) {
+        __android_log_print(ANDROID_LOG_INFO, "FreeAoE",
+            "setPosition initial: unit=%s owner=%d LOS=%d switchedTile=%d pos=(%.0f,%.0f)",
+            debugName.c_str(), owner->playerId, m_lineOfSight, switchedTile,
+            pos.x, pos.y);
+    }
+#endif
     if (switchedTile) {
         // Now we can update it with the current data, we have collected what we saw last time
         m_lineOfSight = data()->LineOfSight;

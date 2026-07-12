@@ -168,8 +168,8 @@ private:
         ScreenPos pendingTapPos;
         bool hasPendingTap = false;
         static constexpr float DRAG_THRESHOLD = 25.f;
-        static constexpr int64_t DOUBLE_TAP_MS = 300;
-        static constexpr float DOUBLE_TAP_DIST = 40.f;
+        static constexpr int64_t DOUBLE_TAP_MS = 500;
+        static constexpr float DOUBLE_TAP_DIST = 80.f;
     } m_touchState;
 
     float m_gameAreaHeight = 800.f;

@@ -263,6 +263,10 @@ try
             config.setValue(Config::GamePath, gamePath);
         }
     }
+    // Force Russian language on Android
+    if (!config.isOptionSet(Config::Language)) {
+        config.setValue(Config::Language, "ru");
+    }
 #endif
 
     while (true) {

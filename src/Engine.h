@@ -172,6 +172,9 @@ private:
     } m_touchState;
 
     float m_gameAreaHeight = 800.f;
+#ifdef USE_SDL2
+    struct SDL_Texture *m_gameTexture = nullptr;
+#endif
     Size m_baseViewportSize;
     float m_zoomLevel = 1.0f;
     static constexpr float ZOOM_MIN = 0.3f;

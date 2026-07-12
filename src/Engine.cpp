@@ -220,20 +220,6 @@ void Engine::start()
             updated = true;
         }
 
-        // Execute pending tap if double-tap window expired
-        if (m_touchState.hasPendingTap && !m_touchState.active) {
-            int64_t elapsed = currentTimeMs() - m_touchState.pendingTapTime;
-            if (elapsed >= TouchState::DOUBLE_TAP_MS) {
-                ScreenPos pp = m_touchState.pendingTapPos;
-                SDL_Log("PENDING TAP fired at %.0f,%.0f", pp.x, pp.y);
-                if (!state->unitManager()->onLeftClick(pp, renderTarget_->camera())) {
-                    ScreenRect tapRect(pp - ScreenPos(5, 5), pp + ScreenPos(5, 5));
-                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
-                }
-                m_touchState.hasPendingTap = false;
-                updated = true;
-            }
-        }
 #else
         sf::Event sfEvent;
         while (renderWindow_->pollEvent(sfEvent)) {
@@ -296,11 +282,13 @@ void Engine::start()
         if (updated) {
             // Clear screen
 #ifdef USE_SDL2
-            renderTarget_->clear(Drawable::Black);
-            // Apply zoom scale for game rendering
-            if (m_zoomLevel != 1.0f) {
-                SDL_RenderSetScale(static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(), m_zoomLevel, m_zoomLevel);
-            }
+            auto *sdlRT = static_cast<SdlRenderTarget*>(renderTarget_.get());
+            SDL_Renderer *ren = sdlRT->renderer();
+
+            // Render game world to off-screen texture
+            SDL_SetRenderTarget(ren, m_gameTexture);
+            SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+            SDL_RenderClear(ren);
 #else
             renderWindow_->clear(sf::Color::Green);
 #endif
@@ -323,11 +311,23 @@ void Engine::start()
             }
 
 #ifdef USE_SDL2
-            // Reset scale for HUD — HUD renders at native resolution
-            if (m_zoomLevel != 1.0f) {
-                SDL_RenderSetScale(static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(), 1.0f, 1.0f);
-            }
+            // Switch to screen, blit game texture with zoom
+            SDL_SetRenderTarget(ren, NULL);
+            SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+            SDL_RenderClear(ren);
+
+            int texW = static_cast<int>(m_baseViewportSize.width);
+            int texH = static_cast<int>(m_baseViewportSize.height);
+            // Zoom: smaller srcrect = magnified view
+            int srcW = static_cast<int>(texW / m_zoomLevel);
+            int srcH = static_cast<int>(texH / m_zoomLevel);
+            int srcX = (texW - srcW) / 2;
+            int srcY = (texH - srcH) / 2;
+            SDL_Rect src = {srcX, srcY, srcW, srcH};
+            SDL_Rect dst = {0, 0, texW, texH};
+            SDL_RenderCopy(ren, m_gameTexture, &src, &dst);
 #endif
+            // HUD at 1:1 on top
             drawUi();
 
             const int renderTime = Engine::currentTimeMs() - renderStart;
@@ -450,7 +450,17 @@ void Engine::drawUi()
         renderTarget_->draw(m_selectionRect, Drawable::Transparent, Drawable::White);
     }
 
+#ifdef ANDROID
+    if (m_uiOverlay && m_uiOverlay->isValid()) {
+        float scaleX = renderTarget_->getSize().width / m_uiOverlay->size.width;
+        m_uiOverlay->scaleX = scaleX;
+        m_uiOverlay->scaleY = scaleX;
+        float overlayH = m_uiOverlay->size.height * scaleX;
+        renderTarget_->draw(m_uiOverlay, ScreenPos(0, renderTarget_->getSize().height - overlayH));
+    }
+#else
     renderTarget_->draw(m_uiOverlay, ScreenPos(0, m_uiOverlayOffset));
+#endif
 
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
         button->render();
@@ -659,17 +669,13 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
     float ty = static_cast<float>(event.touch.y);
 
     switch (event.type) {
-    case input::Event::TouchBegan: {
+    case input::Event::TouchBegan:
         m_touchState.active = true;
         m_touchState.startPos = ScreenPos(tx, ty);
         m_touchState.lastPos = m_touchState.startPos;
         m_touchState.startTime = currentTimeMs();
         m_touchState.dragging = false;
-        SDL_Log("TouchBegan x=%d y=%d finger=%d", event.touch.x, event.touch.y, event.touch.finger);
-        // Notify UnitManager of cursor position for hover
-        state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(m_touchState.startPos));
-        return true;
-    }
+        return false; // Let mouse emulation handle tap
     case input::Event::TouchMoved: {
         ScreenPos pos(tx, ty);
         if (!m_touchState.dragging) {
@@ -686,32 +692,19 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             renderTarget_->camera()->setTargetPosition(camMap);
         }
         m_touchState.lastPos = pos;
-        return true;
+        return false; // Let mouse emulation also fire
     }
     case input::Event::TouchEnded: {
         if (!m_touchState.dragging) {
             ScreenPos pos(tx, ty);
             int64_t now = currentTimeMs();
-
-            // Check double tap — second tap arrived before pending tap executed
             if (m_touchState.hasPendingTap
                 && (now - m_touchState.pendingTapTime < TouchState::DOUBLE_TAP_MS)
                 && m_touchState.pendingTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST) {
-                // Double tap = right click, cancel pending single tap
-                SDL_Log("DOUBLE TAP -> onRightClick at %.0f,%.0f", pos.x, pos.y);
+                // Double tap = right click
                 state->unitManager()->onRightClick(pos, renderTarget_->camera());
                 m_touchState.hasPendingTap = false;
             } else {
-                // Execute any previous pending tap first
-                if (m_touchState.hasPendingTap) {
-                    ScreenPos pp = m_touchState.pendingTapPos;
-                    SDL_Log("DEFERRED TAP -> selectUnits at %.0f,%.0f", pp.x, pp.y);
-                    if (!state->unitManager()->onLeftClick(pp, renderTarget_->camera())) {
-                        ScreenRect tapRect(pp - ScreenPos(5, 5), pp + ScreenPos(5, 5));
-                        state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
-                    }
-                }
-                // Queue this tap as pending
                 m_touchState.hasPendingTap = true;
                 m_touchState.pendingTapTime = now;
                 m_touchState.pendingTapPos = pos;
@@ -719,7 +712,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         }
         m_touchState.active = false;
         m_touchState.dragging = false;
-        return true;
+        return false; // Let mouse emulation handle click
     }
     default:
         return false;
@@ -769,7 +762,12 @@ Engine::Engine()
 }
 
 // Just to make the crappy gcc unique_ptr implementation work, we can't use = default
-Engine::~Engine() { } // NOLINT
+Engine::~Engine()
+{
+#ifdef USE_SDL2
+    if (m_gameTexture) { SDL_DestroyTexture(m_gameTexture); m_gameTexture = nullptr; }
+#endif
+}
 
 bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 {
@@ -777,8 +775,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #ifdef ANDROID
     // Force landscape orientation and create fullscreen window
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
-    // Disable touch→mouse emulation — we handle touch via FINGER events only
-    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+    // Keep touch→mouse emulation ON (default) — taps auto-generate mouse clicks
+    // FINGER events used only for camera drag and pinch zoom
     m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     // Get actual window size after fullscreen
@@ -901,6 +899,15 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #endif
     renderTarget_->setSize(uiSize);
     m_baseViewportSize = uiSize;
+
+#ifdef USE_SDL2
+    {
+        auto *sdlRT = static_cast<SdlRenderTarget*>(renderTarget_.get());
+        m_gameTexture = SDL_CreateTexture(sdlRT->renderer(),
+            SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+            static_cast<int>(uiSize.width), static_cast<int>(uiSize.height));
+    }
+#endif
 
     // Calculate game area height (screen minus UI overlay)
     if (m_uiOverlay && m_uiOverlay->size.isValid()) {

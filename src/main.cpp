@@ -306,6 +306,32 @@ try
             WARN << "Failed to load scenario" << config.getValue(Config::ScenarioFile) << ":" << error.what();
         }
     }
+
+    // Try loading a campaign if no scenario and not single-player
+    if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
+        std::string campaignsDir = AssetManager::Inst()->campaignsPath();
+        DBG << "Looking for campaigns in" << campaignsDir;
+
+        // Scan for .cpn/.cpx files recursively
+        try {
+            for (const auto &entry : std::filesystem::recursive_directory_iterator(campaignsDir)) {
+                std::string ext = entry.path().extension().string();
+                if (ext == ".cpn" || ext == ".cpx") {
+                    DBG << "Found campaign:" << entry.path().string();
+                    genie::CpxFile cpxFile;
+                    cpxFile.setFileName(entry.path().string());
+                    cpxFile.load();
+                    scenarioFile = cpxFile.getScnFile(0);
+                    if (scenarioFile) {
+                        DBG << "Loaded first scenario from" << entry.path().string();
+                        break;
+                    }
+                }
+            }
+        } catch (const std::exception &e) {
+            WARN << "Campaign scan failed:" << e.what();
+        }
+    }
 #endif
 
     Engine engine;

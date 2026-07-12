@@ -745,6 +745,11 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
+        // On touch, selection rect is 0-size (tap). Expand to catch units.
+        if (m_selectionRect.width < 10 && m_selectionRect.height < 10) {
+            ScreenPos center = m_selectionRect.center();
+            m_selectionRect = ScreenRect(center - ScreenPos(15, 15), center + ScreenPos(15, 15));
+        }
         state->unitManager()->selectUnits(m_selectionRect, renderTarget_->camera());
         m_selectionRect = ScreenRect();
         m_selecting = false;

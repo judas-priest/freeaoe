@@ -1,0 +1,1 @@
+#include "/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/SDL_ttf.h"

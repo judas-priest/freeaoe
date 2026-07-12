@@ -1,0 +1,301 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						4,
+						5
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						4,
+						5
+					]
+				},
+				{
+					"build" : "src/extern/SDL2",
+					"jsonFile" : "directory-src.extern.SDL2-Debug-00b5c31e93c0d303b9a4.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "src/extern/SDL2",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						3,
+						9,
+						10
+					]
+				},
+				{
+					"build" : "src/extern/SDL2_ttf",
+					"childIndexes" : 
+					[
+						3
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-src.extern.SDL2_ttf-Debug-98ef77d829130ef3d5c7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "src/extern/SDL2_ttf",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "src/extern/SDL2_ttf/external/freetype",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-src.extern.SDL2_ttf.external.freetype-Debug-2e39f104a4cfb05fbb19.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 3,
+					"source" : "src/extern/SDL2_ttf/external/freetype",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "src/extern/genieutils",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-src.extern.genieutils-Debug-06979631779ab3930c47.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.13"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 4,
+					"source" : "src/extern/genieutils",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "src/tools/resgen",
+					"jsonFile" : "directory-src.tools.resgen-Debug-00e3cd56904a464bddb7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.0"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 5,
+					"source" : "src/tools/resgen",
+					"targetIndexes" : 
+					[
+						8
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						4,
+						5
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "freeaoe",
+					"targetIndexes" : 
+					[
+						4,
+						5
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "SDL2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						3,
+						9,
+						10
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						3
+					],
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "SDL2_ttf",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "freetype",
+					"parentIndex" : 2,
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "genieutils",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "resgen",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						8
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "SDL2::@dbc52835d041c2a9ec18",
+					"jsonFile" : "target-SDL2-Debug-d1f47f253d0b46f452a7.json",
+					"name" : "SDL2",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "SDL2_test::@dbc52835d041c2a9ec18",
+					"jsonFile" : "target-SDL2_test-Debug-59f3983254b3682bb52e.json",
+					"name" : "SDL2_test",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "SDL2_ttf::@4a0a5d567c52b6a14603",
+					"jsonFile" : "target-SDL2_ttf-Debug-8095e14ca471c2710324.json",
+					"name" : "SDL2_ttf",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "SDL2main::@dbc52835d041c2a9ec18",
+					"jsonFile" : "target-SDL2main-Debug-e8347f1ce5675cae7fdb.json",
+					"name" : "SDL2main",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "freeaoe::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-freeaoe-Debug-8b158c78640ded4e7bd7.json",
+					"name" : "freeaoe",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "freeaoe_common::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-freeaoe_common-Debug-eae30afc985179e17565.json",
+					"name" : "freeaoe_common",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "freetype::@f8fc046fe8aa7fd25cb0",
+					"jsonFile" : "target-freetype-Debug-41b971325fffc3b669e0.json",
+					"name" : "freetype",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "genieutils::@4856fa85517841698fd2",
+					"jsonFile" : "target-genieutils-Debug-1e2024c63f1632ad99ae.json",
+					"name" : "genieutils",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "resgen::@168fa83499f8bb99635a",
+					"jsonFile" : "target-resgen-Debug-bd42ba300042beb04272.json",
+					"name" : "resgen",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "sdl_headers_copy::@dbc52835d041c2a9ec18",
+					"jsonFile" : "target-sdl_headers_copy-Debug-1f9c71fbaf628ad05278.json",
+					"name" : "sdl_headers_copy",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "uninstall::@dbc52835d041c2a9ec18",
+					"jsonFile" : "target-uninstall-Debug-315ae2fcb080412edea7.json",
+					"name" : "uninstall",
+					"projectIndex" : 1
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a",
+		"source" : "/home/dima/Projects/freeaoe"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

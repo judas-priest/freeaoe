@@ -1,0 +1,16 @@
+/home/dima/Projects/freeaoe/CMakeLists.txt
+/home/dima/Projects/freeaoe/src/extern/SDL2/CMakeLists.txt
+/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/CheckCPUArchitecture.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/macros.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/sdlchecks.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/sdlfind.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/sdlplatform.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2/cmake_uninstall.cmake.in
+/home/dima/Projects/freeaoe/src/extern/SDL2/include/SDL_config.h.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2/include/SDL_revision.h.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/CMakeLists.txt
+/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/cmake/PrivateSdlFunctions.cmake
+/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/external/freetype/CMakeLists.txt
+/home/dima/Projects/freeaoe/src/extern/genieutils/CMakeLists.txt
+/home/dima/Projects/freeaoe/src/extern/genieutils/cmake/FindIconv.cmake
+/home/dima/Projects/freeaoe/src/tools/resgen/CMakeLists.txt

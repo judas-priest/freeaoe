@@ -1,0 +1,1 @@
+/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a

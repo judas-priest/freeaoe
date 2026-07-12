@@ -1,0 +1,141 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"src/extern/SDL2_ttf/external/freetype/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 576,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 584,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 638,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 649,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 657,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 662,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "headers",
+			"destination" : "include/freetype2",
+			"paths" : 
+			[
+				{
+					"from" : "src/extern/SDL2_ttf/external/freetype/include",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "headers",
+			"destination" : "include/freetype2/freetype/config",
+			"paths" : 
+			[
+				"android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2_ttf/external/freetype/include/freetype/config/ftconfig.h",
+				"android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2_ttf/external/freetype/include/freetype/config/ftoption.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "pkgconfig",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2_ttf/external/freetype/freetype2.pc"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"src/extern/SDL2_ttf/external/freetype/libfreetyped.a"
+			],
+			"targetId" : "freetype::@f8fc046fe8aa7fd25cb0",
+			"targetIndex" : 6,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "headers",
+			"destination" : "lib/cmake/freetype",
+			"exportName" : "freetype-targets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "freetype::@f8fc046fe8aa7fd25cb0",
+					"index" : 6
+				},
+				{
+					"id" : "freetype-interface::@f8fc046fe8aa7fd25cb0",
+					"index" : 0
+				}
+			],
+			"paths" : 
+			[
+				"src/extern/SDL2_ttf/external/freetype/CMakeFiles/Export/lib/cmake/freetype/freetype-config.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "headers",
+			"destination" : "lib/cmake/freetype",
+			"paths" : 
+			[
+				"android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2_ttf/external/freetype/freetype-config-version.cmake"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "src/extern/SDL2_ttf/external/freetype",
+		"source" : "src/extern/SDL2_ttf/external/freetype"
+	}
+}

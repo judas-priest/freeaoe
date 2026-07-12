@@ -1,0 +1,121 @@
+{
+  "buildFiles": [
+    "/home/dima/Projects/freeaoe/CMakeLists.txt",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/CMakeLists.txt",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/CheckCPUArchitecture.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/macros.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/sdlchecks.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/sdlfind.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/cmake/sdlplatform.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/cmake_uninstall.cmake.in",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/include/SDL_config.h.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2/include/SDL_revision.h.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/CMakeLists.txt",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/cmake/PrivateSdlFunctions.cmake",
+    "/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/external/freetype/CMakeLists.txt",
+    "/home/dima/Projects/freeaoe/src/extern/genieutils/CMakeLists.txt",
+    "/home/dima/Projects/freeaoe/src/extern/genieutils/cmake/FindIconv.cmake",
+    "/home/dima/Projects/freeaoe/src/tools/resgen/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/dima/.local/opt/android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/dima/.local/opt/android-sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "SDL2::@dbc52835d041c2a9ec18": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "SDL2",
+      "output": "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libSDL2.so",
+      "runtimeFiles": []
+    },
+    "SDL2_test::@dbc52835d041c2a9ec18": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "SDL2_test",
+      "output": "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2/libSDL2_test.a"
+    },
+    "SDL2_ttf::@4a0a5d567c52b6a14603": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "SDL2_ttf",
+      "output": "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libSDL2_ttf.so",
+      "runtimeFiles": [
+        "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libSDL2.so"
+      ]
+    },
+    "SDL2main::@dbc52835d041c2a9ec18": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "SDL2main",
+      "output": "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2/libSDL2main.a"
+    },
+    "freeaoe::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "freeaoe",
+      "output": "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so",
+      "runtimeFiles": [
+        "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libSDL2_ttf.so",
+        "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libSDL2.so"
+      ]
+    },
+    "freeaoe_common::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "freeaoe_common"
+    },
+    "freetype::@f8fc046fe8aa7fd25cb0": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "freetype",
+      "output": "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2_ttf/external/freetype/libfreetyped.a"
+    },
+    "genieutils::@4856fa85517841698fd2": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "genieutils",
+      "output": "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/genieutils/libgenieutils.a"
+    },
+    "resgen::@168fa83499f8bb99635a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "resgen",
+      "output": "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/resgen",
+      "runtimeFiles": []
+    },
+    "sdl_headers_copy::@dbc52835d041c2a9ec18": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "sdl_headers_copy"
+    },
+    "uninstall::@dbc52835d041c2a9ec18": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "uninstall"
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/home/dima/.local/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/home/dima/.local/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [
+    "c"
+  ],
+  "cppFileExtensions": [
+    "cpp",
+    "cc"
+  ]
+}

@@ -1,7 +1,7 @@
 project(resgen)
 add_executable(resgen main.cpp)
 
-if(NOT MSVC)
+if(NOT MSVC AND NOT ANDROID)
     target_link_libraries(resgen stdc++fs)
 endif()
 

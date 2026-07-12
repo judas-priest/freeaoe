@@ -1,0 +1,1 @@
+#include "/home/dima/Projects/freeaoe/src/extern/SDL2/include/SDL.h"

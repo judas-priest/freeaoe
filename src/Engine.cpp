@@ -991,8 +991,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 
     loadUiOverlay();
 
-    Size uiSize = m_uiOverlay->size;
-    if (m_uiOverlay->size.isValid()) {
+    Size uiSize = (m_uiOverlay && m_uiOverlay->isValid()) ? m_uiOverlay->size : Size(1280, 1024);
+    if (m_uiOverlay && m_uiOverlay->size.isValid()) {
         switch(int(uiSize.width)) {
         case 1600:
             uiSize.height = 1200;

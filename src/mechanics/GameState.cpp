@@ -346,10 +346,11 @@ void GameState::setupScenario()
         ALOG("Camera from playerData (swapped): %.0f, %.0f", cameraPos.x, cameraPos.y);
     }
 
-    // Try per-player camera position
-    if (!cameraSet && humanPlayerId < static_cast<int>(scenario_->players.size())) {
-        float cx = scenario_->players[humanPlayerId].initCameraX;
-        float cy = scenario_->players[humanPlayerId].initCameraY;
+    // Try per-player camera position (players[] is 0-indexed, humanPlayerId is 1-based)
+    int playerIdx = humanPlayerId - 1;
+    if (!cameraSet && playerIdx >= 0 && playerIdx < static_cast<int>(scenario_->players.size())) {
+        float cx = scenario_->players[playerIdx].initCameraX;
+        float cy = scenario_->players[playerIdx].initCameraY;
         if (cx > 0 && cy > 0) {
             cameraPos = MapPos(cy * Constants::TILE_SIZE, cx * Constants::TILE_SIZE);
             cameraSet = true;

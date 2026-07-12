@@ -755,11 +755,16 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 {
 #ifdef USE_SDL2
 #ifdef ANDROID
-    // On Android, use fullscreen at native resolution
-    SDL_DisplayMode dm;
-    SDL_GetCurrentDisplayMode(0, &dm);
-    m_sdlWindow = std::make_unique<SdlWindow>(Size(dm.w, dm.h), "freeaoe");
+    // Force landscape orientation and create fullscreen window
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+    m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    // Get actual window size after fullscreen
+    int screenW, screenH;
+    SDL_GetWindowSize(m_sdlWindow->sdlWindow, &screenW, &screenH);
+    // Ensure landscape (swap if portrait)
+    if (screenH > screenW) { std::swap(screenW, screenH); }
+    SDL_SetWindowSize(m_sdlWindow->sdlWindow, screenW, screenH);
 #else
     m_sdlWindow = std::make_unique<SdlWindow>(Size(1280, 1024), "freeaoe");
 #endif
@@ -854,9 +859,11 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 
 #ifdef ANDROID
     // On Android, keep fullscreen size, don't resize to UI overlay
-    int screenW, screenH;
-    SDL_GetWindowSize(m_sdlWindow->sdlWindow, &screenW, &screenH);
-    uiSize = Size(screenW, screenH);
+    {
+        int sw, sh;
+        SDL_GetWindowSize(m_sdlWindow->sdlWindow, &sw, &sh);
+        uiSize = Size(sw, sh);
+    }
 #elif defined(USE_SDL2)
     SDL_SetWindowSize(m_sdlWindow->sdlWindow, uiSize.width, uiSize.height);
 #else

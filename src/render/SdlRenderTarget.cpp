@@ -828,13 +828,19 @@ SdlWindow::SdlWindow(const Size size, const std::string &title)
         }
     }
 
+    Uint32 flags = SDL_WINDOW_SHOWN;
+#ifdef ANDROID
+    flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#else
+    flags |= SDL_WINDOW_RESIZABLE;
+#endif
     sdlWindow = SDL_CreateWindow(
         title.c_str(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        static_cast<int>(size.width),
-        static_cast<int>(size.height),
-        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+        static_cast<int>(size.width ? size.width : 1280),
+        static_cast<int>(size.height ? size.height : 1024),
+        flags
     );
 
     if (!sdlWindow) {

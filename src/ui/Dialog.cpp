@@ -29,6 +29,11 @@ void Dialog::render(const std::shared_ptr<IRenderTarget> &renderTarget)
     Size textureSize(295, 300);
     const ScreenPos windowCenter(windowSize.width / 2, windowSize.height / 2);
     ScreenPos position(windowCenter.x - textureSize.width/2, windowCenter.y - textureSize.height/2);
+
+    // Semi-transparent overlay behind dialog
+    renderTarget->draw(ScreenRect(0, 0, windowSize.width, windowSize.height),
+                       Drawable::Color(0, 0, 0, 128));
+
     if (background) {
         renderTarget->draw(background, position);
     }
@@ -56,6 +61,9 @@ void Dialog::render(std::shared_ptr<sf::RenderWindow> &renderTarget)
     int y = windowCenter.y - allButtonsHeight / 2.f;
 
     for (int i=0; i<ChoicesCount; i++) {
+#ifdef USE_SDL2
+        m_buttons[i].setRenderTarget(renderTarget);
+#endif
         m_buttons[i].rect.x = x;
         m_buttons[i].rect.y = y;
 
@@ -69,36 +77,43 @@ void Dialog::render(std::shared_ptr<sf::RenderWindow> &renderTarget)
 
 Dialog::Choice Dialog::handleEvent(const input::Event &event)
 {
-    if (event.type == input::Event::MouseButtonReleased) {
-        const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
-        Choice choice = Invalid;
-        for (int i=0; i<ChoicesCount; i++) {
-            m_buttons[i].pressed = false;
+    ScreenPos pos;
+    bool isPress = false;
 
-            if (m_buttons[i].rect.contains(mousePos)) {
-                choice = Choice(i);
-            }
-        }
-
-        if (choice != m_pressedButton) {
-            m_pressedButton = Invalid;
-
-        }
-
-        return m_pressedButton;
-    }
-    if (event.type != input::Event::MouseButtonPressed) {
+    if (event.type == input::Event::MouseButtonPressed) {
+        pos = ScreenPos(event.mouseButton.x, event.mouseButton.y);
+        isPress = true;
+    } else if (event.type == input::Event::MouseButtonReleased) {
+        pos = ScreenPos(event.mouseButton.x, event.mouseButton.y);
+    } else if (event.type == input::Event::TouchBegan) {
+        pos = ScreenPos(event.touch.x, event.touch.y);
+        isPress = true;
+    } else if (event.type == input::Event::TouchEnded) {
+        pos = ScreenPos(event.touch.x, event.touch.y);
+    } else {
         return Invalid;
     }
-    const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
-    for (int i=0; i<ChoicesCount; i++) {
-        if (m_buttons[i].rect.contains(mousePos)) {
-            m_pressedButton = Choice(i);
-            m_buttons[i].pressed = true;
-        } else {
-            m_buttons[i].pressed = false;
+
+    if (isPress) {
+        for (int i=0; i<ChoicesCount; i++) {
+            m_buttons[i].pressed = m_buttons[i].rect.contains(pos);
+            if (m_buttons[i].pressed) {
+                m_pressedButton = Choice(i);
+            }
         }
+        return Invalid;
     }
 
-    return Invalid;
+    // Release
+    Choice choice = Invalid;
+    for (int i=0; i<ChoicesCount; i++) {
+        m_buttons[i].pressed = false;
+        if (m_buttons[i].rect.contains(pos)) {
+            choice = Choice(i);
+        }
+    }
+    if (choice != m_pressedButton) {
+        m_pressedButton = Invalid;
+    }
+    return m_pressedButton;
 }

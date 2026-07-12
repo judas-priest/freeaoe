@@ -24,6 +24,7 @@
 #include <string>
 
 #include "core/Types.h"
+#include "render/IRenderTarget.h"
 
 class UiScreen;
 
@@ -37,8 +38,13 @@ struct TextButton
 
     void render(UiScreen *screen);
 
+#ifdef USE_SDL2
+    void setRenderTarget(const std::shared_ptr<IRenderTarget> &rt);
 private:
-#ifndef USE_SDL2
+    std::shared_ptr<IRenderTarget> m_renderTarget;
+    Drawable::Text::Ptr m_text;
+#else
+private:
     static void drawLine(const ScreenPos &from, const ScreenPos &to, const sf::Color &color, UiScreen *screen);
     sf::Text m_text;
 #endif

@@ -160,10 +160,11 @@ private:
     struct TouchState {
         bool active = false;
         ScreenPos startPos;
+        ScreenPos lastPos;
         int64_t startTime = 0;
-        bool moved = false;
-        static constexpr float MOVE_THRESHOLD = 10.f;
-        static constexpr int64_t LONG_PRESS_MS = 500;
+        bool dragging = false;
+        static constexpr float DRAG_THRESHOLD = 15.f;
+        static constexpr int64_t LONG_PRESS_MS = 400;
     } m_touchState;
 };
 

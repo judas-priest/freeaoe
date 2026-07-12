@@ -562,6 +562,19 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
     const ScreenPos mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     bool handled = false;
 
+#ifdef ANDROID
+    // On Android, camera is controlled by touch drag, not edge scroll
+    if (mousePos.y < 800) {
+        if (m_selecting) {
+            m_selectionCurr = mousePos;
+            return true;
+        } else {
+            state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(mousePos));
+        }
+    }
+    return false;
+#endif
+
     if (mousePos.x < MOUSE_MOVE_EDGE_SIZE) {
         m_cameraDeltaX = -1;
         handled = true;
@@ -624,44 +637,59 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
     case input::Event::TouchBegan: {
         m_touchState.active = true;
         m_touchState.startPos = ScreenPos(event.touch.x, event.touch.y);
+        m_touchState.lastPos = m_touchState.startPos;
         m_touchState.startTime = currentTimeMs();
-        m_touchState.moved = false;
+        m_touchState.dragging = false;
+
+        input::Event moveEvent;
+        moveEvent.type = input::Event::MouseMoved;
+        moveEvent.mouseMove.x = event.touch.x;
+        moveEvent.mouseMove.y = event.touch.y;
+        handleMouseMove(moveEvent, state);
         return true;
     }
     case input::Event::TouchMoved: {
         ScreenPos pos(event.touch.x, event.touch.y);
-        float dist = m_touchState.startPos.distanceTo(pos);
-        if (dist > TouchState::MOVE_THRESHOLD) {
-            m_touchState.moved = true;
+
+        if (!m_touchState.dragging) {
+            float dist = m_touchState.startPos.distanceTo(pos);
+            if (dist > TouchState::DRAG_THRESHOLD) {
+                m_touchState.dragging = true;
+            }
         }
-        if (m_touchState.moved) {
-            // Camera scroll: move camera opposite to finger direction
-            ScreenPos delta = m_touchState.startPos - pos;
+
+        if (m_touchState.dragging) {
+            ScreenPos delta = m_touchState.lastPos - pos;
             ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
             camScreen.x += delta.x;
-            camScreen.y -= delta.y;
+            camScreen.y += delta.y;
             MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
             renderTarget_->camera()->setTargetPosition(camMap);
-            m_touchState.startPos = pos;
         }
+
+        input::Event moveEvent;
+        moveEvent.type = input::Event::MouseMoved;
+        moveEvent.mouseMove.x = event.touch.x;
+        moveEvent.mouseMove.y = event.touch.y;
+        handleMouseMove(moveEvent, state);
+
+        m_touchState.lastPos = pos;
         return true;
     }
     case input::Event::TouchEnded: {
-        if (!m_touchState.moved) {
+        if (!m_touchState.dragging) {
             int64_t duration = currentTimeMs() - m_touchState.startTime;
             input::Event clickEvent;
             clickEvent.mouseButton.x = event.touch.x;
             clickEvent.mouseButton.y = event.touch.y;
 
             if (duration >= TouchState::LONG_PRESS_MS) {
-                // Long press = right click
                 clickEvent.type = input::Event::MouseButtonPressed;
                 clickEvent.mouseButton.button = input::MouseButton::Right;
                 handleMousePress(clickEvent, state);
                 clickEvent.type = input::Event::MouseButtonReleased;
                 handleMouseRelease(clickEvent, state);
             } else {
-                // Tap = left click
                 clickEvent.type = input::Event::MouseButtonPressed;
                 clickEvent.mouseButton.button = input::MouseButton::Left;
                 handleMousePress(clickEvent, state);
@@ -670,6 +698,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             }
         }
         m_touchState.active = false;
+        m_touchState.dragging = false;
         return true;
     }
     default:

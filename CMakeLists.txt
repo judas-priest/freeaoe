@@ -190,18 +190,28 @@ include_directories(
   )
 
 
-# Because we want to support msvc we can't use the standard funny linker or incbin tricks
-add_subdirectory(src/tools/resgen)
+if(ANDROID)
+    # On Android, use pre-generated resource files (resgen can't cross-compile)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
+    set(FONT_ALEGREYA ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/misc/fonts/Alegreya/Alegreya-Bold.latin.c)
+    set(FONT_BERRYROTUNDA ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/misc/fonts/BerryRotunda/BerryRotunda.ttf.c)
+    set(FONT_CHARIS ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/misc/fonts/charis/CharisSILEur-R.ttf.c)
+    set(IMAGE_PARCHMENT ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/misc/images/parchment.jpg.c)
+    set(SOUNDFONT_WT_181K_G ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/misc/soundfont/wt_181k_g/wt_181k_G.sf2.c)
+else()
+    # Because we want to support msvc we can't use the standard funny linker or incbin tricks
+    add_subdirectory(src/tools/resgen)
 
-# Fonts
-add_resource(FONT_ALEGREYA misc/fonts/Alegreya/Alegreya-Bold.latin)
-add_resource(FONT_BERRYROTUNDA misc/fonts/BerryRotunda/BerryRotunda.ttf)
-add_resource(FONT_CHARIS misc/fonts/charis/CharisSILEur-R.ttf)
-# Images
-add_resource(IMAGE_PARCHMENT misc/images/parchment.jpg)
+    # Fonts
+    add_resource(FONT_ALEGREYA misc/fonts/Alegreya/Alegreya-Bold.latin)
+    add_resource(FONT_BERRYROTUNDA misc/fonts/BerryRotunda/BerryRotunda.ttf)
+    add_resource(FONT_CHARIS misc/fonts/charis/CharisSILEur-R.ttf)
+    # Images
+    add_resource(IMAGE_PARCHMENT misc/images/parchment.jpg)
 
-# Soundfont (for midi playback)
-add_resource(SOUNDFONT_WT_181K_G misc/soundfont/wt_181k_g/wt_181k_G.sf2)
+    # Soundfont (for midi playback)
+    add_resource(SOUNDFONT_WT_181K_G misc/soundfont/wt_181k_g/wt_181k_G.sf2)
+endif()
 
 set(AI_SRC
     src/ai/grammar.gen.tab.cpp

@@ -14,8 +14,7 @@
     "/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/cmake/PrivateSdlFunctions.cmake",
     "/home/dima/Projects/freeaoe/src/extern/SDL2_ttf/external/freetype/CMakeLists.txt",
     "/home/dima/Projects/freeaoe/src/extern/genieutils/CMakeLists.txt",
-    "/home/dima/Projects/freeaoe/src/extern/genieutils/cmake/FindIconv.cmake",
-    "/home/dima/Projects/freeaoe/src/tools/resgen/CMakeLists.txt"
+    "/home/dima/Projects/freeaoe/src/extern/genieutils/cmake/FindIconv.cmake"
   ],
   "cleanCommandsComponents": [
     [
@@ -36,12 +35,6 @@
       "artifactName": "SDL2_test",
       "abi": "arm64-v8a",
       "output": "/home/dima/Projects/freeaoe/android/app/.cxx/Debug/3n3d4t57/arm64-v8a/src/extern/SDL2/libSDL2_test.a",
-      "runtimeFiles": []
-    },
-    "resgen::@168fa83499f8bb99635a": {
-      "artifactName": "resgen",
-      "abi": "arm64-v8a",
-      "output": "/home/dima/Projects/freeaoe/android/app/build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/resgen",
       "runtimeFiles": []
     },
     "SDL2_ttf::@4a0a5d567c52b6a14603": {

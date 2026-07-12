@@ -74,7 +74,9 @@ static std::string getRegistryString(const char *regGroup, const char *key)
 }
 #else
 
+#ifndef __ANDROID__
 #include <wordexp.h>
+#endif
 
 // Resolves ~ etc.
 static std::string resolvePath(const char *path)
@@ -83,12 +85,16 @@ static std::string resolvePath(const char *path)
         return {};
     }
 
+#ifdef __ANDROID__
+    return std::string(path);
+#else
     wordexp_t expanded;
     wordexp(path, &expanded, 0);
     std::string resolved(expanded.we_wordv[0]);
     wordfree(&expanded);
 
     return resolved;
+#endif
 }
 
 static std::string locateSteamVersion()

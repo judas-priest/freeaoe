@@ -13,4 +13,3 @@
 /home/dima/Projects/freeaoe/src/extern/SDL2_ttf/external/freetype/CMakeLists.txt
 /home/dima/Projects/freeaoe/src/extern/genieutils/CMakeLists.txt
 /home/dima/Projects/freeaoe/src/extern/genieutils/cmake/FindIconv.cmake
-/home/dima/Projects/freeaoe/src/tools/resgen/CMakeLists.txt

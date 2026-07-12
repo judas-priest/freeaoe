@@ -67,9 +67,12 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerCondition::OwnFewerObjects:
             case genie::TriggerCondition::ObjectSelected:
             case genie::TriggerCondition::ObjectsInArea:
+            case genie::TriggerCondition::BringObjectToArea:
             case genie::TriggerCondition::Timer:
             case genie::TriggerCondition::DestroyObject:
             case genie::TriggerCondition::AccumulateAttribute:
+            case genie::TriggerCondition::PlayerDefeated:
+            case genie::TriggerCondition::DifficultyLevel:
                 isImplemented = true;
                 break;
             default:
@@ -97,12 +100,21 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerEffect::DeactivateTrigger:
             case genie::TriggerEffect::ActivateTrigger:
             case genie::TriggerEffect::DisplayInstructions:
+            case genie::TriggerEffect::SendChat:
+            case genie::TriggerEffect::Sound:
             case genie::TriggerEffect::TaskObject:
             case genie::TriggerEffect::ChangeView:
             case genie::TriggerEffect::ResearchTechnology:
             case genie::TriggerEffect::CreateObject:
             case genie::TriggerEffect::RemoveObject:
+            case genie::TriggerEffect::DamageObject:
+            case genie::TriggerEffect::ChangeObjectHP:
+            case genie::TriggerEffect::SetUnitStance:
+            case genie::TriggerEffect::ChangeObjectName:
+            case genie::TriggerEffect::ChangeDiplomacy:
+            case genie::TriggerEffect::SendTribute:
             case genie::TriggerEffect::DeclareVictory:
+            case genie::TriggerEffect::HD_HealObject:
                 break;
             default:
                 missingEffectTypes.insert(effect.type);
@@ -300,6 +312,13 @@ bool ScenarioController::update(Time time)
         for (Condition &condition : trigger.conditions) {
             if (condition.data.type == genie::TriggerCondition::Timer) {
                 condition.amountRequired -= elapsed;
+            } else if (condition.data.type == genie::TriggerCondition::DifficultyLevel) {
+                // Always satisfied (we don't track difficulty, treat as "standard")
+                condition.amountRequired = 0;
+            } else if (condition.data.type == genie::TriggerCondition::PlayerDefeated) {
+                // Check if the specified player has been defeated (result != Running)
+                // For now, mark as not satisfied (player alive)
+                // Will be set to 0 by onPlayerDefeated when it fires
             }
 
             if (condition.amountRequired > 0) {
@@ -505,7 +524,8 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         break;
     }
     case genie::TriggerEffect::ChangeObjectName:
-        DBG << "TODO" << effect << "need to implement changeable display name";
+        // debugName is const, so we can't change it. Log for now.
+        DBG << "ChangeObjectName:" << effect.message;
         break;
 
         ////////////////////

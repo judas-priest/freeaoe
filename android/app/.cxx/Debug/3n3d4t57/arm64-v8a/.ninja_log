@@ -593,3 +593,7 @@
 8908	9124	1783824956552015399	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431
 24	6511	1783825123294329435	CMakeFiles/freeaoe_common.dir/src/Engine.cpp.o	f51e4503247b7362
 6512	6739	1783825123539325481	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431
+24	3404	1783825219587773920	CMakeFiles/freeaoe_common.dir/src/render/SdlRenderTarget.cpp.o	aedbfb73a474bc5e
+3404	3640	1783825219805770396	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431
+22	7113	1783825396539909168	CMakeFiles/freeaoe_common.dir/src/Engine.cpp.o	f51e4503247b7362
+7113	7342	1783825396798904971	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431

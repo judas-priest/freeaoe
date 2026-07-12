@@ -1018,6 +1018,7 @@ bool SdlWindow::pollEvent(input::Event &event)
     }
 
     case SDL_MULTIGESTURE: {
+        SDL_Log("MULTIGESTURE fingers=%d dDist=%f", sdlEvent.mgesture.numFingers, sdlEvent.mgesture.dDist);
         if (sdlEvent.mgesture.numFingers == 2) {
             event.type = input::Event::PinchZoom;
             event.pinch.dDist = sdlEvent.mgesture.dDist;

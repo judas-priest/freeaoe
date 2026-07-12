@@ -535,6 +535,7 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchEnded:
         return handleTouchEvent(event, state);
     case input::Event::PinchZoom: {
+        SDL_Log("ENGINE PinchZoom dDist=%f zoom=%f", event.pinch.dDist, m_zoomLevel);
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
         // Smaller viewport = zoomed in (see less map, things appear bigger)
         // Only affects camera — HUD draws in screen coords, unaffected

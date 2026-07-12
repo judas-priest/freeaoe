@@ -284,11 +284,12 @@ void Engine::start()
 #ifdef USE_SDL2
             auto *sdlRT = static_cast<SdlRenderTarget*>(renderTarget_.get());
             SDL_Renderer *ren = sdlRT->renderer();
+            bool useZoomTexture = (m_zoomLevel != 1.0f) && m_gameTexture;
 
-            // Render game world to off-screen texture
-            SDL_SetRenderTarget(ren, m_gameTexture);
-            SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
-            SDL_RenderClear(ren);
+            if (useZoomTexture) {
+                SDL_SetRenderTarget(ren, m_gameTexture);
+            }
+            renderTarget_->clear(Drawable::Black);
 #else
             renderWindow_->clear(sf::Color::Green);
 #endif
@@ -311,21 +312,22 @@ void Engine::start()
             }
 
 #ifdef USE_SDL2
-            // Switch to screen, blit game texture with zoom
-            SDL_SetRenderTarget(ren, NULL);
-            SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
-            SDL_RenderClear(ren);
+            if (useZoomTexture) {
+                // Switch to screen, blit game texture with zoom
+                SDL_SetRenderTarget(ren, NULL);
+                SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+                SDL_RenderClear(ren);
 
-            int texW = static_cast<int>(m_baseViewportSize.width);
-            int texH = static_cast<int>(m_baseViewportSize.height);
-            // Zoom: smaller srcrect = magnified view
-            int srcW = static_cast<int>(texW / m_zoomLevel);
-            int srcH = static_cast<int>(texH / m_zoomLevel);
-            int srcX = (texW - srcW) / 2;
-            int srcY = (texH - srcH) / 2;
-            SDL_Rect src = {srcX, srcY, srcW, srcH};
-            SDL_Rect dst = {0, 0, texW, texH};
-            SDL_RenderCopy(ren, m_gameTexture, &src, &dst);
+                int texW = static_cast<int>(m_baseViewportSize.width);
+                int texH = static_cast<int>(m_baseViewportSize.height);
+                int srcW = static_cast<int>(texW / m_zoomLevel);
+                int srcH = static_cast<int>(texH / m_zoomLevel);
+                int srcX = (texW - srcW) / 2;
+                int srcY = (texH - srcH) / 2;
+                SDL_Rect src = {srcX, srcY, srcW, srcH};
+                SDL_Rect dst = {0, 0, texW, texH};
+                SDL_RenderCopy(ren, m_gameTexture, &src, &dst);
+            }
 #endif
             // HUD at 1:1 on top
             drawUi();

@@ -270,8 +270,14 @@ void Engine::start()
 
         AudioPlayer::instance().tick(); // Drain queued dialogue streams
 
-        if (!m_currentDialog && state->result == GameState::Result::Running) {
-            updated = state->update(Engine::currentTimeMs()) || updated;
+        if (!m_currentDialog && !m_paused && state->result == GameState::Result::Running) {
+            // Scale game time by speed (currentTimeMs is real time, we need game time)
+            static Time lastRealTime = Engine::currentTimeMs();
+            static Time gameTime = 0;
+            Time nowReal = Engine::currentTimeMs();
+            gameTime += static_cast<Time>((nowReal - lastRealTime) * m_gameSpeed);
+            lastRealTime = nowReal;
+            updated = state->update(gameTime) || updated;
 
             if (state->result != GameState::Result::Running) {
                 if (state->result == GameState::Result::Won) {
@@ -536,6 +542,12 @@ void Engine::drawUi()
     m_stoneLabel->render();
     m_populationLabel->render();
 
+    // Game speed / pause indicator
+    if (m_paused) {
+        fps_label_->string = "PAUSED";
+    } else if (m_gameSpeed != 1.0f) {
+        fps_label_->string += " " + std::to_string(m_gameSpeed).substr(0, 3) + "x";
+    }
     renderTarget_->draw(fps_label_);
 
     const Time currentTime = Engine::currentTimeMs();
@@ -636,27 +648,43 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
     case input::Key::Left:
         cameraScreenPos.x -= 20;
         break;
-
     case input::Key::Right:
         cameraScreenPos.x += 20;
         break;
-
     case input::Key::Down:
         cameraScreenPos.y -= 20;
         break;
-
     case input::Key::Up:
         cameraScreenPos.y += 20;
         break;
+
+    // Game speed
+    case input::Key::F3:
+        m_paused = !m_paused;
+        addMessage(m_paused ? "Game Paused" : "Game Resumed");
+        return true;
+
+    // Unit commands
+    case input::Key::S: // Stop
+        for (const Unit::Ptr &unit : state->unitManager()->selected()) {
+            unit->actions.clearActionQueue();
+        }
+        return true;
+    case input::Key::Delete: // Delete selected units
+        for (const Unit::Ptr &unit : state->unitManager()->selected()) {
+            unit->kill();
+        }
+        return true;
+    case input::Key::Escape:
+        showMenu();
+        return true;
 
     default:
         return false;
     }
 
     MapPos cameraMapPos = cameraScreenPos.toMap().clamped(state->map()->pixelSize());
-
     renderTarget_->camera()->setTargetPosition(cameraMapPos);
-
     return true;
 
 }

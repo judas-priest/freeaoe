@@ -176,6 +176,8 @@ private:
         static constexpr float DOUBLE_TAP_DIST = 100.f;
     } m_touchState;
 
+    float m_gameSpeed = 1.0f;
+    bool m_paused = false;
     float m_gameAreaHeight = 800.f;
 #ifdef USE_SDL2
     struct SDL_Texture *m_gameTexture = nullptr;

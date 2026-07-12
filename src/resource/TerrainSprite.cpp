@@ -17,6 +17,9 @@
 */
 
 #include "TerrainSprite.h"
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 #include "Sprite.h"
 #include "DataManager.h"
@@ -68,13 +71,19 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
 
 #if PNG_TERRAIN_TEXTURES
     if (!m_slp) {
-        DBG << data->Name2;
         const std::string pngFolder = AssetManager::Inst()->assetsPath() + "/terrain/textures/";
-
+        const std::string pngName = data->Name2 + "_00_color.png";
+#ifdef ANDROID
+        __android_log_print(ANDROID_LOG_INFO, "FreeAoE", "Terrain %d: SLP %d not found, trying PNG '%s' in '%s'",
+            id_, data->SLP, pngName.c_str(), pngFolder.c_str());
+#endif
         // Resolves case because windows is retard case insensitive
-        m_pngPath = AssetManager::findFile(data->Name2 + "_00_color.png", pngFolder);
+        m_pngPath = AssetManager::findFile(pngName, pngFolder);
         if (m_pngPath.empty()) {
             DBG << "failed to find terrain SLP by ID and failed to find PNG texture" << data->Name << data->Name << data->Enabled;
+#ifdef ANDROID
+            __android_log_print(ANDROID_LOG_WARN, "FreeAoE", "Terrain %d: PNG not found either!", id_);
+#endif
             return;
         }
         DBG << "Found PNG file" << m_pngPath;
@@ -83,7 +92,7 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
     }
 #endif
 
-    if (!m_slp) {
+    if (!m_slp && !m_isPng) {
         WARN << "Failed to get slp for" << data->SLP;
         m_slp = AssetManager::Inst()->getSlp(15000); // TODO Loading grass if -1
 

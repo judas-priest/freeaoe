@@ -83,9 +83,8 @@ void AudioPlayer::mp3Callback(sts_mixer_sample_t *sample, void *userdata)
 
     const uint64_t framesRead = ma_decoder_read_pcm_frames(decoder, sample->audiodata, DRMP3_MIN_DATA_CHUNK_SIZE);
 
-    if (framesRead < DRMP3_MIN_DATA_CHUNK_SIZE) {
-        ma_decoder_seek_to_pcm_frame(decoder, 0);
-    }
+    // Don't loop — let the stream finish naturally.
+    // The old code seeked back to 0, causing infinite loops.
 
     sample->length = framesRead * 2; // 2 channels
 }
@@ -468,6 +467,11 @@ inline std::string maErrorString(const ma_result result)
 
 bool AudioPlayer::playStream(const std::string &filename)
 {
+    // Don't play the same stream if it's already active
+    if (m_activeStreams.count(filename)) {
+        return true;
+    }
+
     std::string filePath = AssetManager::Inst()->locateStreamFile(filename);
     if (filePath.empty()) {
         WARN << "Unable to find" << filename;

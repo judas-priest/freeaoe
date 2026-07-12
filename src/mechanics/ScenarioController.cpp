@@ -314,6 +314,11 @@ bool ScenarioController::update(Time time)
 
         if (!trigger.looping) {
             trigger.enabled = false;
+        } else {
+            // Reset timer conditions so looping triggers don't fire every frame
+            for (Condition &condition : trigger.conditions) {
+                condition.amountRequired = condition.originalAmount;
+            }
         }
 
         for (const genie::TriggerEffect &effect : trigger.effects) {

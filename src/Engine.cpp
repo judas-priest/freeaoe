@@ -590,8 +590,8 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::PinchZoom: {
         m_touchState.pinching = true;
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
-        Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
-        renderTarget_->camera()->setViewportSize(viewportSize);
+        // Don't change camera viewport — SDL_RenderCopy crop handles visual zoom.
+        // Changing viewport shifts absoluteScreenPos center, mismatching the crop center.
         return true;
     }
     default:

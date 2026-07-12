@@ -22,6 +22,7 @@ class ScenarioController : public EventListener
         /// For boolean triggers just 0 or 1
         /// For timers, milliseconds elapsed
         float amountRequired = 0;
+        float originalAmount = 0; // for resetting looping triggers
 
         Condition(const genie::TriggerCondition &d) : data(d) {
             if (d.type == genie::TriggerCondition::Timer) {
@@ -31,6 +32,7 @@ class ScenarioController : public EventListener
             } else {
                 amountRequired = 1;
             }
+            originalAmount = amountRequired;
         }
         const genie::TriggerCondition data;
 

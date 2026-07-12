@@ -153,6 +153,9 @@ bool AssetManager_HD::initialize(const genie::GameVersion gameVersion)
          "slp",
          "drs/gamedata_x1", // the expansion stuff at the end, they override
          "drs/gamedata_x2",
+         // Some HD editions store terrain outside drs/
+         "terrain",
+         "terrain/textures",
     };
 
     for (const std::string &subfolder : folders) {

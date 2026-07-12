@@ -664,8 +664,7 @@ void ScenarioController::onUnitMoved(Unit *unit, const MapPos &oldTile, const Ma
         for (Condition &condition : trigger.conditions) {
             switch(condition.data.type) {
             case genie::TriggerCondition::BringObjectToArea:
-                WARN << "TODO: move objects to area" << condition.data;
-                continue;
+                // Falls through — same area check logic as ObjectsInArea
             case genie::TriggerCondition::ObjectsInArea:
                 break;
             default:

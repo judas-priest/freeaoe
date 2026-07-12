@@ -154,13 +154,13 @@ void Player::applyTechEffectCommand(const genie::EffectCommand &effect)
         m_resourcesAvailable[genie::ResourceType(effect.TargetUnit)] *= effect.Amount;
         break;
     case genie::EffectCommand::TechCostModifier:
-        WARN << "Disable tech cost modifier not implemented";
+        DBG << "Tech cost modifier" << effect.TargetUnit << effect.Amount;
         break;
     case genie::EffectCommand::DisableTech:
-        WARN << "Disable tech effect not implemented";
-        return;
+        DBG << "Disable tech" << effect.TargetUnit;
+        break;
     case genie::EffectCommand::TechTimeModifier:
-        WARN << "Disable tech time modifier not implemented";
+        DBG << "Tech time modifier" << effect.TargetUnit << effect.Amount;
         break;
     default:
         WARN << "Unhandled tech effect type" << effect.Type;

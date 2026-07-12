@@ -745,12 +745,13 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
-        // On touch, selection rect is 0-size (tap). Expand to catch units.
-        if (m_selectionRect.width < 10 && m_selectionRect.height < 10) {
-            ScreenPos center = m_selectionRect.center();
-            m_selectionRect = ScreenRect(center - ScreenPos(15, 15), center + ScreenPos(15, 15));
+        // On tap, selectionCurr may not have been updated (no MouseMoved between down/up)
+        // Use mouse release position and expand rect for touch
+        ScreenRect selectRect(m_selectionStart, mousePos);
+        if (selectRect.width < 15 && selectRect.height < 15) {
+            selectRect = ScreenRect(mousePos - ScreenPos(15, 15), mousePos + ScreenPos(15, 15));
         }
-        state->unitManager()->selectUnits(m_selectionRect, renderTarget_->camera());
+        state->unitManager()->selectUnits(selectRect, renderTarget_->camera());
         m_selectionRect = ScreenRect();
         m_selecting = false;
         return true;

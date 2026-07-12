@@ -163,8 +163,14 @@ private:
         ScreenPos lastPos;
         int64_t startTime = 0;
         bool dragging = false;
-        static constexpr float DRAG_THRESHOLD = 15.f;
-        static constexpr int64_t LONG_PRESS_MS = 400;
+        static constexpr float DRAG_THRESHOLD = 25.f;
+        static constexpr int64_t LONG_PRESS_MS = 350;
     } m_touchState;
+
+    float m_gameAreaHeight = 800.f;
+    float m_zoomLevel = 1.0f;
+    static constexpr float ZOOM_MIN = 0.5f;
+    static constexpr float ZOOM_MAX = 3.0f;
+    static constexpr float PINCH_SENSITIVITY = 8.0f;
 };
 

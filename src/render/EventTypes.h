@@ -33,6 +33,7 @@ struct Event {
         TouchBegan,
         TouchMoved,
         TouchEnded,
+        PinchZoom,
     } type;
 
     struct KeyEvent {
@@ -69,12 +70,17 @@ struct Event {
         int y = 0;
     };
 
+    struct PinchEvent {
+        float dDist = 0;
+    };
+
     KeyEvent key;
     MouseButtonEvent mouseButton;
     MouseMoveEvent mouseMove;
     MouseWheelEvent mouseWheel;
     TextEvent text;
     TouchEvent touch;
+    PinchEvent pinch;
 };
 
 } // namespace input

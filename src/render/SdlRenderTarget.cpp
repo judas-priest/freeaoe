@@ -1005,6 +1005,15 @@ bool SdlWindow::pollEvent(input::Event &event)
         return true;
     }
 
+    case SDL_MULTIGESTURE: {
+        if (sdlEvent.mgesture.numFingers == 2) {
+            event.type = input::Event::PinchZoom;
+            event.pinch.dDist = sdlEvent.mgesture.dDist;
+            return true;
+        }
+        return false;
+    }
+
     case SDL_TEXTINPUT: {
         event.type = input::Event::TextEntered;
         // Decode first UTF-8 character to a Unicode code point

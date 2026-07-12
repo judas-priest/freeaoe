@@ -265,7 +265,7 @@ void Engine::start()
             }
         }
 
-        updated = m_mouseCursor->setPosition(mousePos) || updated;
+        if (m_mouseCursor) updated = m_mouseCursor->setPosition(mousePos) || updated;
         updated = updateUi(state) || updated;
 
 
@@ -451,7 +451,7 @@ void Engine::drawUi()
         renderTarget_->draw(messageLine.text);
     }
 
-    m_mouseCursor->render();
+    if (m_mouseCursor) m_mouseCursor->render();
 }
 
 void Engine::drawEntities(const std::shared_ptr<Map> &map)
@@ -517,6 +517,14 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchMoved:
     case input::Event::TouchEnded:
         return handleTouchEvent(event, state);
+    case input::Event::PinchZoom: {
+        float delta = event.pinch.dDist * PINCH_SENSITIVITY;
+        m_zoomLevel = std::clamp(m_zoomLevel + delta, ZOOM_MIN, ZOOM_MAX);
+        Size screenSize = renderTarget_->getSize();
+        Size viewportSize(screenSize.width / m_zoomLevel, screenSize.height / m_zoomLevel);
+        renderTarget_->camera()->setViewportSize(viewportSize);
+        return true;
+    }
     default:
         break;
     }
@@ -564,7 +572,7 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
 
 #ifdef ANDROID
     // On Android, camera is controlled by touch drag, not edge scroll
-    if (mousePos.y < 800) {
+    if (mousePos.y < m_gameAreaHeight) {
         if (m_selecting) {
             m_selectionCurr = mousePos;
             return true;
@@ -595,7 +603,7 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
         m_cameraDeltaY = 0;
     }
 
-    if (mousePos.y < 800) {
+    if (mousePos.y < m_gameAreaHeight) {
         if (m_selecting) {
             m_selectionCurr = mousePos;
             handled = true;
@@ -618,14 +626,16 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
         return true;
     }
 
-    if (mousePos.y < 800 && event.mouseButton.button == input::MouseButton::Left) {
+    if (mousePos.y < m_gameAreaHeight && event.mouseButton.button == input::MouseButton::Left) {
         if (state->unitManager()->onLeftClick(ScreenPos(event.mouseButton.x, event.mouseButton.y), renderTarget_->camera())) {
             return true;
         }
 
+#ifndef ANDROID
         m_selectionStart = mousePos;
         m_selectionCurr = mousePos + ScreenPos(1, 1);
         m_selecting = true;
+#endif
     }
 
     return true;
@@ -633,6 +643,10 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
+    if (event.touch.finger > 0) {
+        return true; // ignore non-primary fingers (pinch handled via PinchZoom)
+    }
+
     switch (event.type) {
     case input::Event::TouchBegan: {
         m_touchState.active = true;
@@ -679,6 +693,14 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
     case input::Event::TouchEnded: {
         if (!m_touchState.dragging) {
             int64_t duration = currentTimeMs() - m_touchState.startTime;
+
+            // Generate mouseMove first so UnitManager knows cursor position
+            input::Event moveEvent;
+            moveEvent.type = input::Event::MouseMoved;
+            moveEvent.mouseMove.x = event.touch.x;
+            moveEvent.mouseMove.y = event.touch.y;
+            handleMouseMove(moveEvent, state);
+
             input::Event clickEvent;
             clickEvent.mouseButton.x = event.touch.x;
             clickEvent.mouseButton.y = event.touch.y;
@@ -710,7 +732,7 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
 
-    if (mousePos.y < 800 && event.mouseButton.button == input::MouseButton::Left) {
+    if (mousePos.y < m_gameAreaHeight && event.mouseButton.button == input::MouseButton::Left) {
         if (state->unitManager()->onMouseRelease()) {
             return true;
         }
@@ -782,7 +804,10 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #endif
 
     m_mouseCursor = std::make_unique<MouseCursor>(renderTarget_);
-#ifdef USE_SDL2
+#ifdef ANDROID
+    SDL_ShowCursor(SDL_DISABLE);
+    m_mouseCursor.reset();
+#elif defined(USE_SDL2)
     if (m_mouseCursor->isValid()) {
         SDL_ShowCursor(SDL_DISABLE);
     }
@@ -858,18 +883,25 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     }
 
 #ifdef ANDROID
-    // On Android, keep fullscreen size, don't resize to UI overlay
-    {
-        int sw, sh;
-        SDL_GetWindowSize(m_sdlWindow->sdlWindow, &sw, &sh);
-        uiSize = Size(sw, sh);
-    }
+    // Set logical render size — SDL scales 1280x720 to fill phone screen
+    SDL_RenderSetLogicalSize(
+        static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(),
+        1280, 720
+    );
+    uiSize = Size(1280, 720);
 #elif defined(USE_SDL2)
     SDL_SetWindowSize(m_sdlWindow->sdlWindow, uiSize.width, uiSize.height);
 #else
     renderWindow_->setSize(uiSize);
 #endif
     renderTarget_->setSize(uiSize);
+
+    // Calculate game area height (screen minus UI overlay)
+    if (m_uiOverlay && m_uiOverlay->size.isValid()) {
+        m_gameAreaHeight = uiSize.height - m_uiOverlay->size.height + m_uiOverlayOffset;
+    } else {
+        m_gameAreaHeight = uiSize.height * 0.75f;
+    }
 
     m_resultOverlay = renderTarget_->createText(Drawable::Text::UI);
     m_resultOverlay->alignment = Drawable::Text::AlignCenter;
@@ -944,7 +976,7 @@ bool Engine::updateUi(const std::shared_ptr<GameState> &state)
     updated = m_populationLabel->setValue(humanPlayer->resourcesUsed(genie::ResourceType::PopulationHeadroom)) || updated;
     updated = m_populationLabel->setMaxValue(humanPlayer->resourcesAvailable(genie::ResourceType::PopulationHeadroom)) || updated;
 
-    updated = m_mouseCursor->update(state->unitManager()) || updated;
+    if (m_mouseCursor) updated = m_mouseCursor->update(state->unitManager()) || updated;
 
     updated = m_mapRenderer->update(Engine::currentTimeMs()) || updated;
 

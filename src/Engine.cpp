@@ -649,7 +649,6 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
 bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
-    SDL_Log("MOUSE_PRESS x=%.0f y=%.0f button=%d gameArea=%.0f", mousePos.x, mousePos.y, (int)event.mouseButton.button, m_gameAreaHeight);
     bool updated = false;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
         updated = button->onMousePressed(mousePos) || updated;
@@ -752,10 +751,6 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
         ScreenRect selectRect(m_selectionStart, mousePos);
-        SDL_Log("SELECT start=%.0f,%.0f end=%.0f,%.0f rect=%.0f,%.0f,%.0f,%.0f screenSize=%.0f,%.0f",
-            m_selectionStart.x, m_selectionStart.y, mousePos.x, mousePos.y,
-            selectRect.x, selectRect.y, selectRect.width, selectRect.height,
-            renderTarget_->getSize().width, renderTarget_->getSize().height);
         if (selectRect.width < 15 && selectRect.height < 15) {
             selectRect = ScreenRect(mousePos - ScreenPos(15, 15), mousePos + ScreenPos(15, 15));
         }

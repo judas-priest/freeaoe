@@ -520,6 +520,7 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchEnded:
         return handleTouchEvent(event, state);
     case input::Event::PinchZoom: {
+        SDL_Log("PinchZoom dDist=%f zoom=%f", event.pinch.dDist, m_zoomLevel);
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
         Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
         renderTarget_->camera()->setViewportSize(viewportSize);
@@ -636,6 +637,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         m_touchState.lastPos = m_touchState.startPos;
         m_touchState.startTime = currentTimeMs();
         m_touchState.dragging = false;
+        SDL_Log("TouchBegan x=%d y=%d finger=%d", event.touch.x, event.touch.y, event.touch.finger);
         // Notify UnitManager of cursor position for hover
         state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(m_touchState.startPos));
         return true;
@@ -662,12 +664,16 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         if (!m_touchState.dragging) {
             ScreenPos pos(event.touch.x, event.touch.y);
             int64_t duration = currentTimeMs() - m_touchState.startTime;
+            SDL_Log("TouchEnded TAP duration=%lld x=%.0f y=%.0f", (long long)duration, pos.x, pos.y);
             if (duration >= TouchState::LONG_PRESS_MS) {
-                // Long press = right click (move/attack command)
+                SDL_Log("LONG PRESS -> onRightClick");
                 state->unitManager()->onRightClick(pos, renderTarget_->camera());
             } else {
-                // Short tap = left click (select unit)
-                state->unitManager()->onLeftClick(pos, renderTarget_->camera());
+                SDL_Log("SHORT TAP -> selectUnits at %.0f,%.0f", pos.x, pos.y);
+                if (!state->unitManager()->onLeftClick(pos, renderTarget_->camera())) {
+                    ScreenRect tapRect(pos - ScreenPos(5, 5), pos + ScreenPos(5, 5));
+                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                }
             }
         }
         m_touchState.active = false;

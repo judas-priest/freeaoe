@@ -296,6 +296,18 @@ try
     }
 #endif
 
+#ifdef USE_SDL2
+    // Load scenario file if specified
+    if (config.isOptionSet(Config::ScenarioFile)) {
+        try {
+            scenarioFile = std::make_shared<genie::ScnFile>();
+            scenarioFile->load(config.getValue(Config::ScenarioFile));
+        } catch (const std::exception &error) {
+            WARN << "Failed to load scenario" << config.getValue(Config::ScenarioFile) << ":" << error.what();
+        }
+    }
+#endif
+
     Engine engine;
     if (!engine.setup(scenarioFile)) {
         return 1;

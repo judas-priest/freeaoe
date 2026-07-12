@@ -624,6 +624,32 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
     const ScreenPos mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     bool handled = false;
 
+#ifdef ANDROID
+    if (m_input.mouseDown) {
+        if (!m_input.dragging) {
+            if (m_input.pressPos.distanceTo(mousePos) > InputState::DRAG_THRESHOLD) {
+                m_input.dragging = true;
+                m_selecting = false;
+                m_selectionRect = ScreenRect();
+            }
+        }
+        if (m_input.dragging) {
+            ScreenPos delta = m_input.lastMovePos - mousePos;
+            ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
+            camScreen.x += delta.x;
+            camScreen.y -= delta.y;
+            MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
+            renderTarget_->camera()->setTargetPosition(camMap);
+            m_input.lastMovePos = mousePos;
+            return true;
+        }
+    }
+    m_input.lastMovePos = mousePos;
+    if (mousePos.y < m_gameAreaHeight) {
+        state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(mousePos));
+    }
+    return false;
+#endif
 
     if (mousePos.x < MOUSE_MOVE_EDGE_SIZE) {
         m_cameraDeltaX = -1;
@@ -660,12 +686,15 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
 bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
-    SDL_Log("PRESS x=%.0f y=%.0f btn=%d gameH=%.0f nButtons=%d", mousePos.x, mousePos.y, (int)event.mouseButton.button, m_gameAreaHeight, (int)m_buttons.size());
+#ifdef ANDROID
+    m_input.mouseDown = true;
+    m_input.pressPos = mousePos;
+    m_input.lastMovePos = mousePos;
+    m_input.pressTime = currentTimeMs();
+    m_input.dragging = false;
+#endif
     bool updated = false;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
-        SDL_Log("  BTN type=%d rect=%.0f,%.0f,%.0f,%.0f contains=%d",
-            (int)button->type(), button->rect().x, button->rect().y, button->rect().width, button->rect().height,
-            button->rect().contains(mousePos));
         updated = button->onMousePressed(mousePos) || updated;
     }
     if (updated) {
@@ -728,7 +757,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             ScreenPos pos(tx, ty);
             int64_t now = currentTimeMs();
 
-            // Always check top bar buttons — even during drag (they're small, user intends to tap)
+            // Always check top bar buttons
             IconButton::Type clickedButton = IconButton::Invalid;
             for (const std::unique_ptr<IconButton> &button : m_buttons) {
                 if (button->rect().contains(pos) || ScreenPos(button->rect().center()).distanceTo(pos) < 50.f) {
@@ -796,20 +825,32 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
-    if (m_touchState.suppressNextMouseRelease) {
-        m_touchState.suppressNextMouseRelease = false;
+    const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
+
+#ifdef ANDROID
+    m_input.mouseDown = false;
+
+    // If was dragging, just cancel and return
+    if (m_input.dragging) {
+        m_input.dragging = false;
         m_selecting = false;
         m_selectionRect = ScreenRect();
         return true;
     }
-    const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
 
-    if (mousePos.y < m_gameAreaHeight && event.mouseButton.button == input::MouseButton::Left) {
-        if (state->unitManager()->onMouseRelease()) {
-            return true;
-        }
+    // Double-click → right click (move/attack command)
+    int64_t now = currentTimeMs();
+    if ((now - m_input.lastClickTime) < InputState::DOUBLE_CLICK_MS
+        && m_input.lastClickPos.distanceTo(mousePos) < InputState::DOUBLE_CLICK_DIST) {
+        state->unitManager()->onRightClick(mousePos, renderTarget_->camera());
+        m_input.lastClickTime = 0;
+        return true;
     }
+    m_input.lastClickTime = now;
+    m_input.lastClickPos = mousePos;
+#endif
 
+    // Check top bar buttons FIRST — before game area logic
     IconButton::Type clickedButton = IconButton::Invalid;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
         if (button->onMouseReleased(mousePos)) {
@@ -821,6 +862,13 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
     if (clickedButton != IconButton::Invalid) {
         return true;
+    }
+
+    // Game area release
+    if (mousePos.y < m_gameAreaHeight && event.mouseButton.button == input::MouseButton::Left) {
+        if (state->unitManager()->onMouseRelease()) {
+            return true;
+        }
     }
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {

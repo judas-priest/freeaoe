@@ -264,9 +264,7 @@ try
         }
     }
     // Force Russian language on Android
-    if (!config.isOptionSet(Config::Language)) {
-        config.setValue(Config::Language, "ru");
-    }
+    config.setValue(Config::Language, "ru");
 #endif
 
     while (true) {
@@ -311,29 +309,7 @@ try
         }
     }
 
-    // Load tutorial campaign on Android if no scenario specified and not single-player
-    if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
-        try {
-            std::string campaignFile;
-            if (DataManager::Inst().isHd()) {
-                campaignFile = config.getValue(Config::GamePath) + "/resources/_common/drs/retail-campaigns/dlc0/kings/cam8.cpn";
-            } else {
-                campaignFile = config.getValue(Config::GamePath) + "/Campaign/cam8.cpx";
-            }
-            campaignFile = genie::util::resolvePathCaseInsensitive(campaignFile);
-            if (!campaignFile.empty()) {
-                genie::CpxFile cpxFile;
-                cpxFile.setFileName(campaignFile);
-                cpxFile.load();
-                scenarioFile = cpxFile.getScnFile(0);
-                DBG << "Loaded tutorial campaign:" << campaignFile;
-            }
-        } catch (const std::exception &e) {
-            WARN << "Campaign load failed:" << e.what();
-        }
-    }
-
-    // Fallback: if nothing loaded, use single-player test map
+    // On Android, default to single-player test map if nothing specified
     if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
         config.setValue(Config::SinglePlayer, "1");
     }

@@ -660,8 +660,12 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
 bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
+    SDL_Log("PRESS x=%.0f y=%.0f btn=%d gameH=%.0f nButtons=%d", mousePos.x, mousePos.y, (int)event.mouseButton.button, m_gameAreaHeight, (int)m_buttons.size());
     bool updated = false;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
+        SDL_Log("  BTN type=%d rect=%.0f,%.0f,%.0f,%.0f contains=%d",
+            (int)button->type(), button->rect().x, button->rect().y, button->rect().width, button->rect().height,
+            button->rect().contains(mousePos));
         updated = button->onMousePressed(mousePos) || updated;
     }
     if (updated) {
@@ -729,6 +733,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
                 // Double tap = right click
                 state->unitManager()->onRightClick(pos, renderTarget_->camera());
                 m_touchState.hasPendingTap = false;
+                m_touchState.suppressNextMouseRelease = true; // Don't let SDL mouse release undo this
             } else {
                 m_touchState.hasPendingTap = true;
                 m_touchState.pendingTapTime = now;
@@ -747,6 +752,12 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
+    if (m_touchState.suppressNextMouseRelease) {
+        m_touchState.suppressNextMouseRelease = false;
+        m_selecting = false;
+        m_selectionRect = ScreenRect();
+        return true;
+    }
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
 
     if (mousePos.y < m_gameAreaHeight && event.mouseButton.button == input::MouseButton::Left) {

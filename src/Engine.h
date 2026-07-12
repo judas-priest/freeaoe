@@ -167,6 +167,7 @@ private:
         int64_t pendingTapTime = 0;
         ScreenPos pendingTapPos;
         bool hasPendingTap = false;
+        bool suppressNextMouseRelease = false;
         static constexpr float DRAG_THRESHOLD = 25.f;
         static constexpr int64_t DOUBLE_TAP_MS = 500;
         static constexpr float DOUBLE_TAP_DIST = 80.f;

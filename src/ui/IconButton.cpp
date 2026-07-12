@@ -86,9 +86,13 @@ bool IconButton::onMousePressed(const ScreenPos &mousePosition)
 
 bool IconButton::onMouseReleased(const ScreenPos &mousePosition)
 {
-    if (m_pressed && m_rect.contains(mousePosition)) {
-        setPressed(false);
-        return true;
+    if (m_pressed) {
+        // Accept release if still on button OR if finger moved slightly (touch tolerance)
+        float dist = ScreenPos(m_rect.center()).distanceTo(mousePosition);
+        if (m_rect.contains(mousePosition) || dist < 50.f) {
+            setPressed(false);
+            return true;
+        }
     }
 
     setPressed(false);

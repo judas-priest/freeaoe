@@ -562,8 +562,8 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchEnded:
         return handleTouchEvent(event, state);
     case input::Event::PinchZoom: {
+        m_touchState.pinching = true;
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
-        // Adjust camera viewport so it knows which map area is visible at this zoom
         Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
         renderTarget_->camera()->setViewportSize(viewportSize);
         return true;
@@ -685,10 +685,14 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         return false; // Let mouse emulation handle tap
     case input::Event::TouchMoved: {
         ScreenPos pos(tx, ty);
+        if (m_touchState.pinching) {
+            // Don't process drag while pinching — let PinchZoom handle it
+            m_touchState.lastPos = pos;
+            return false;
+        }
         if (!m_touchState.dragging) {
             if (m_touchState.startPos.distanceTo(pos) > TouchState::DRAG_THRESHOLD) {
                 m_touchState.dragging = true;
-                // Cancel any in-progress mouse selection to prevent drag-selecting everything
                 m_selecting = false;
                 m_selectionRect = ScreenRect();
             }
@@ -722,6 +726,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         }
         m_touchState.active = false;
         m_touchState.dragging = false;
+        m_touchState.pinching = false;
         return false; // Let mouse emulation handle click
     }
     default:

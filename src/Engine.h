@@ -159,6 +159,7 @@ private:
 
     struct TouchState {
         bool active = false;
+        bool pinching = false;
         ScreenPos startPos;
         ScreenPos lastPos;
         int64_t startTime = 0;

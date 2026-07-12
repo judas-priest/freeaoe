@@ -326,6 +326,10 @@ void Engine::start()
             }
 
             if (state->result != GameState::Result::Running) {
+                // Semi-transparent overlay
+                Size ws = renderTarget_->getSize();
+                renderTarget_->draw(ScreenRect(0, 0, ws.width, ws.height),
+                                    Drawable::Color(0, 0, 0, 160));
                 renderTarget_->draw(m_resultOverlay);
             }
 

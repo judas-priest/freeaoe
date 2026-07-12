@@ -174,8 +174,15 @@ IAction::UpdateResult ActionAttack::update(Time time)
         spawnMissiles(unit, unit->data()->Combat.ProjectileUnitID, targetUnit);
     } else if (targetUnit) {
         // Not firing missiles, deal damage directly
+        // Elevation damage multiplier: +25% high ground, -25% low ground
+        float elevMult = 1.0f;
+        if (unit->position().z > targetUnit->position().z) {
+            elevMult = 1.25f;
+        } else if (unit->position().z < targetUnit->position().z) {
+            elevMult = 0.75f;
+        }
         for (const genie::unit::AttackOrArmor &attack : unit->data()->Combat.Attacks) {
-            targetUnit->receiveAttack(attack, 1.); // todo: damage multiplier from elevation
+            targetUnit->receiveAttack(attack, elevMult);
         }
     } else {
         WARN << "No target unit, and not firing missiles";

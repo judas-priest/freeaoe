@@ -21,9 +21,12 @@
 #endif
 #ifdef ANDROID
 #include <android/log.h>
+#include <unistd.h>
+#include <thread>
 #endif
 
 #include <genie/script/ScnFile.h>
+#include "ui/ScenarioBrowser.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -240,6 +243,29 @@ try
 #ifdef _WIN32
     fixWindowsConsole();
 #endif
+#ifdef ANDROID
+    // Redirect stdout/stderr to Android logcat
+    // SDL2 on Android does this automatically via SDL_AndroidLogMessage,
+    // but only if SDL is initialized. Force it via __android_log_write in a thread.
+    {
+        int pfd[2];
+        pipe(pfd);
+        dup2(pfd[1], STDOUT_FILENO);
+        dup2(pfd[1], STDERR_FILENO);
+        std::thread([fd = pfd[0]]() {
+            char buf[512];
+            while (true) {
+                ssize_t n = read(fd, buf, sizeof(buf) - 1);
+                if (n <= 0) break;
+                buf[n] = '\0';
+                __android_log_write(ANDROID_LOG_INFO, "FreeAoE", buf);
+            }
+        }).detach();
+    }
+    __android_log_print(ANDROID_LOG_INFO, "FreeAoE", "=== freeaoe starting ===");
+    LogPrinter::enableAllDebug = true;
+    genie::Logger::setLogLevel(genie::Logger::L_INFO);
+#endif
     for (int i=1; i<argc; i++) {
         if (std::string(argv[i]) == "--debug") {
             LogPrinter::enableAllDebug = true;
@@ -339,7 +365,15 @@ try
         }
     }
 
-    // On Android, default to single-player test map if nothing specified
+#ifdef ANDROID
+    // Show scenario browser if no scenario specified
+    if (!scenarioFile) {
+        std::string camPath = AssetManager::Inst()->campaignsPath();
+        scenarioFile = ScenarioBrowser::show(camPath);
+    }
+#endif
+
+    // Fall back to single-player test map if nothing selected
     if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
         config.setValue(Config::SinglePlayer, "1");
     }

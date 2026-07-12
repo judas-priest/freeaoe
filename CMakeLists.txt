@@ -388,6 +388,7 @@ set (UI_SRC
     src/ui/ActionPanel.cpp
     src/ui/ActionPanel.h
     src/ui/FileDialog.cpp
+    src/ui/ScenarioBrowser.cpp
     src/ui/FileDialog.h
     src/ui/UnitInfoPanel.cpp
     src/ui/UnitInfoPanel.h

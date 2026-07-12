@@ -457,8 +457,8 @@ void Engine::drawUi()
     renderTarget_->draw(ScreenRect(0, 0, renderTarget_->getSize().width, 28),
         Drawable::Color(30, 20, 10, 220));
 
-    // Bottom UI overlay
-    if (m_uiOverlay && m_uiOverlay->isValid()) {
+    // Bottom UI overlay — only show when units are selected (saves screen space)
+    if (m_uiOverlay && m_uiOverlay->isValid() && m_actionPanel->hasButtons()) {
         float scaleX = renderTarget_->getSize().width / m_uiOverlay->size.width;
         m_uiOverlay->scaleX = scaleX;
         m_uiOverlay->scaleY = scaleX;

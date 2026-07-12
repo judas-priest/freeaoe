@@ -259,6 +259,7 @@ public:
     void setHumanPlayer(const PlayerPtr &player);
 
     ScreenRect rect() const;
+    bool hasButtons() const { return !currentButtons.empty(); }
 
     void releaseButtons();
 //    void setAttackStance(const Unit::Stance stance) const;

@@ -1047,8 +1047,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #endif
 
 #ifdef ANDROID
-    // On Android, UI overlay is scaled to fit — game area is ~70% of screen
-    m_gameAreaHeight = uiSize.height * 0.7f;
+    // On Android, bottom ~35% for UI (action panel 120px + unit info + minimap)
+    m_gameAreaHeight = uiSize.height * 0.65f;
 #else
     // Calculate game area height (screen minus UI overlay)
     if (m_uiOverlay && m_uiOverlay->size.isValid()) {

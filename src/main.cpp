@@ -307,30 +307,31 @@ try
         }
     }
 
-    // Try loading a campaign if no scenario and not single-player
+    // Load tutorial campaign on Android if no scenario specified and not single-player
     if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
-        std::string campaignsDir = AssetManager::Inst()->campaignsPath();
-        DBG << "Looking for campaigns in" << campaignsDir;
-
-        // Scan for .cpn/.cpx files recursively
         try {
-            for (const auto &entry : std::filesystem::recursive_directory_iterator(campaignsDir)) {
-                std::string ext = entry.path().extension().string();
-                if (ext == ".cpn" || ext == ".cpx") {
-                    DBG << "Found campaign:" << entry.path().string();
-                    genie::CpxFile cpxFile;
-                    cpxFile.setFileName(entry.path().string());
-                    cpxFile.load();
-                    scenarioFile = cpxFile.getScnFile(0);
-                    if (scenarioFile) {
-                        DBG << "Loaded first scenario from" << entry.path().string();
-                        break;
-                    }
-                }
+            std::string campaignFile;
+            if (DataManager::Inst().isHd()) {
+                campaignFile = config.getValue(Config::GamePath) + "/resources/_common/drs/retail-campaigns/dlc0/kings/cam8.cpn";
+            } else {
+                campaignFile = config.getValue(Config::GamePath) + "/Campaign/cam8.cpx";
+            }
+            campaignFile = genie::util::resolvePathCaseInsensitive(campaignFile);
+            if (!campaignFile.empty()) {
+                genie::CpxFile cpxFile;
+                cpxFile.setFileName(campaignFile);
+                cpxFile.load();
+                scenarioFile = cpxFile.getScnFile(0);
+                DBG << "Loaded tutorial campaign:" << campaignFile;
             }
         } catch (const std::exception &e) {
-            WARN << "Campaign scan failed:" << e.what();
+            WARN << "Campaign load failed:" << e.what();
         }
+    }
+
+    // Fallback: if nothing loaded, use single-player test map
+    if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
+        config.setValue(Config::SinglePlayer, "1");
     }
 #endif
 

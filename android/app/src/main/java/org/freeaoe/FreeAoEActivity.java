@@ -36,6 +36,9 @@ public class FreeAoEActivity extends SDLActivity {
         File dataDir = new File(Environment.getExternalStorageDirectory(),
             "Download/aoe2data");
         android.util.Log.i("FreeAoE", "Data dir: " + dataDir.getAbsolutePath() + " exists: " + dataDir.exists());
-        return new String[]{"--game-path=" + dataDir.getAbsolutePath(), "--single-player", "--language=ru"};
+        return new String[]{
+            "--game-path=" + dataDir.getAbsolutePath(),
+            "--language=ru"
+        };
     }
 }

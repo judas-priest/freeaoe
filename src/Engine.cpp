@@ -219,6 +219,21 @@ void Engine::start()
 
             updated = true;
         }
+
+        // Execute pending tap if double-tap window expired
+        if (m_touchState.hasPendingTap && !m_touchState.active) {
+            int64_t elapsed = currentTimeMs() - m_touchState.pendingTapTime;
+            if (elapsed >= TouchState::DOUBLE_TAP_MS) {
+                ScreenPos pp = m_touchState.pendingTapPos;
+                SDL_Log("PENDING TAP fired at %.0f,%.0f", pp.x, pp.y);
+                if (!state->unitManager()->onLeftClick(pp, renderTarget_->camera())) {
+                    ScreenRect tapRect(pp - ScreenPos(5, 5), pp + ScreenPos(5, 5));
+                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                }
+                m_touchState.hasPendingTap = false;
+                updated = true;
+            }
+        }
 #else
         sf::Event sfEvent;
         while (renderWindow_->pollEvent(sfEvent)) {
@@ -522,12 +537,8 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::PinchZoom: {
 #ifdef USE_SDL2
         m_zoomLevel = std::clamp(m_zoomLevel + event.pinch.dDist * PINCH_SENSITIVITY, ZOOM_MIN, ZOOM_MAX);
-        SDL_Log("PinchZoom dDist=%f zoom=%f", event.pinch.dDist, m_zoomLevel);
         auto *sdlRT = static_cast<SdlRenderTarget*>(renderTarget_.get());
         SDL_RenderSetScale(sdlRT->renderer(), m_zoomLevel, m_zoomLevel);
-        // Adjust viewport to match scaled render
-        Size viewportSize(m_baseViewportSize.width / m_zoomLevel, m_baseViewportSize.height / m_zoomLevel);
-        renderTarget_->camera()->setViewportSize(viewportSize);
 #endif
         return true;
     }
@@ -674,22 +685,28 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             ScreenPos pos(tx, ty);
             int64_t now = currentTimeMs();
 
-            // Check double tap
-            bool isDoubleTap = (now - m_touchState.lastTapTime < TouchState::DOUBLE_TAP_MS)
-                && m_touchState.lastTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST;
-
-            if (isDoubleTap) {
+            // Check double tap — second tap arrived before pending tap executed
+            if (m_touchState.hasPendingTap
+                && (now - m_touchState.pendingTapTime < TouchState::DOUBLE_TAP_MS)
+                && m_touchState.pendingTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST) {
+                // Double tap = right click, cancel pending single tap
                 SDL_Log("DOUBLE TAP -> onRightClick at %.0f,%.0f", pos.x, pos.y);
                 state->unitManager()->onRightClick(pos, renderTarget_->camera());
-                m_touchState.lastTapTime = 0; // reset so triple tap doesn't trigger
+                m_touchState.hasPendingTap = false;
             } else {
-                SDL_Log("TAP -> selectUnits at %.0f,%.0f", pos.x, pos.y);
-                if (!state->unitManager()->onLeftClick(pos, renderTarget_->camera())) {
-                    ScreenRect tapRect(pos - ScreenPos(5, 5), pos + ScreenPos(5, 5));
-                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                // Execute any previous pending tap first
+                if (m_touchState.hasPendingTap) {
+                    ScreenPos pp = m_touchState.pendingTapPos;
+                    SDL_Log("DEFERRED TAP -> selectUnits at %.0f,%.0f", pp.x, pp.y);
+                    if (!state->unitManager()->onLeftClick(pp, renderTarget_->camera())) {
+                        ScreenRect tapRect(pp - ScreenPos(5, 5), pp + ScreenPos(5, 5));
+                        state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                    }
                 }
-                m_touchState.lastTapTime = now;
-                m_touchState.lastTapPos = pos;
+                // Queue this tap as pending
+                m_touchState.hasPendingTap = true;
+                m_touchState.pendingTapTime = now;
+                m_touchState.pendingTapPos = pos;
             }
         }
         m_touchState.active = false;

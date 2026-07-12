@@ -516,7 +516,11 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     case input::Event::TouchBegan:
     case input::Event::TouchMoved:
     case input::Event::TouchEnded:
+#ifdef ANDROID
+        return true; // On Android, SDL emulates mouse from touch — ignore raw touch
+#else
         return handleTouchEvent(event, state);
+#endif
     case input::Event::PinchZoom: {
         float delta = event.pinch.dDist * PINCH_SENSITIVITY;
         m_zoomLevel = std::clamp(m_zoomLevel + delta, ZOOM_MIN, ZOOM_MAX);
@@ -571,14 +575,22 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
     bool handled = false;
 
 #ifdef ANDROID
-    // On Android, camera is controlled by touch drag, not edge scroll
-    if (mousePos.y < m_gameAreaHeight) {
-        if (m_selecting) {
-            m_selectionCurr = mousePos;
-            return true;
-        } else {
-            state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(mousePos));
+    // On Android, drag = scroll camera (like Google Maps)
+    if (m_selecting) {
+        // m_selecting means mouse button is held (SDL emulated from finger drag)
+        ScreenPos delta = m_selectionStart - mousePos;
+        if (std::abs(delta.x) > 5 || std::abs(delta.y) > 5) {
+            ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
+            camScreen.x += delta.x;
+            camScreen.y += delta.y;
+            MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
+            renderTarget_->camera()->setTargetPosition(camMap);
+            m_selectionStart = mousePos;
         }
+        return true;
+    }
+    if (mousePos.y < m_gameAreaHeight) {
+        state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(mousePos));
     }
     return false;
 #endif
@@ -631,11 +643,9 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
             return true;
         }
 
-#ifndef ANDROID
         m_selectionStart = mousePos;
         m_selectionCurr = mousePos + ScreenPos(1, 1);
         m_selecting = true;
-#endif
     }
 
     return true;
@@ -748,7 +758,15 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
 
     if (event.mouseButton.button == input::MouseButton::Left && m_selecting) {
+#ifdef ANDROID
+        // On Android, m_selecting is used for drag detection
+        // Only select units if it was a tap (small rect), not a drag
+        if (m_selectionRect.width < 10 && m_selectionRect.height < 10) {
+            state->unitManager()->onLeftClick(mousePos, renderTarget_->camera());
+        }
+#else
         state->unitManager()->selectUnits(m_selectionRect, renderTarget_->camera());
+#endif
         m_selectionRect = ScreenRect();
         m_selecting = false;
         return true;
@@ -775,6 +793,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #ifdef ANDROID
     // Force landscape orientation and create fullscreen window
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+    // SDL emulates mouse from touch by default — we use that for tap/drag
+    // Keep finger events enabled for SDL_MULTIGESTURE (pinch zoom)
     m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     // Get actual window size after fullscreen

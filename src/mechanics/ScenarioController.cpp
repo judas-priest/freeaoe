@@ -739,8 +739,16 @@ void ScenarioController::onUnitDeselected(const Unit *unit)
 
 void ScenarioController::onPlayerDefeated(Player *player)
 {
-    (void)player;
-    // TODO
+    if (!m_gameState) return;
+
+    Player::Ptr human = m_gameState->humanPlayer();
+    if (!human) return;
+
+    if (player->playerId == human->playerId) {
+        m_gameState->result = GameState::Result::Lost;
+    } else {
+        DBG << "Player" << player->playerId << "defeated";
+    }
 }
 
 void ScenarioController::onAttributeChanged(Player *player, int attributeId, float newValue)

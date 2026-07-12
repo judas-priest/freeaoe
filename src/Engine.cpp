@@ -767,6 +767,14 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         }
         if (clickedButton == IconButton::GameMenu) {
             showMenu();
+        } else if (clickedButton == IconButton::Diplo) {
+            addMessage("Diplomacy: not yet implemented");
+        } else if (clickedButton == IconButton::Chat) {
+            addMessage("Chat: not yet implemented");
+        } else if (clickedButton == IconButton::TechTree) {
+            addMessage("Tech Tree: not yet implemented");
+        } else if (clickedButton == IconButton::Settings) {
+            addMessage("Settings: not yet implemented");
         }
         if (clickedButton != IconButton::Invalid) {
             m_touchState.phase = TouchState::Phase::Idle;
@@ -832,6 +840,14 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     }
     if (clickedButton == IconButton::GameMenu) {
         showMenu();
+    } else if (clickedButton == IconButton::Diplo) {
+        addMessage("Diplomacy: not yet implemented");
+    } else if (clickedButton == IconButton::Chat) {
+        addMessage("Chat: not yet implemented");
+    } else if (clickedButton == IconButton::TechTree) {
+        addMessage("Tech Tree: not yet implemented");
+    } else if (clickedButton == IconButton::Settings) {
+        addMessage("Settings: not yet implemented");
     }
     if (clickedButton != IconButton::Invalid) {
         return true;

@@ -14,10 +14,10 @@ Dialog::Dialog(UiScreen *screen) :
     m_screen(screen)
 {
     m_buttons[Quit].text = "Quit";
-    m_buttons[Achievements].text = "Achivements (TODO)";
-    m_buttons[Save].text = "Save (TODO)";
-    m_buttons[Options].text = "Options (TODO)";
-    m_buttons[About].text = "About (TODO)";
+    m_buttons[Achievements].text = "Stats";
+    m_buttons[Save].text = "Save";
+    m_buttons[Options].text = "Options";
+    m_buttons[About].text = "About";
     m_buttons[Cancel].text = "Cancel";
 
 }

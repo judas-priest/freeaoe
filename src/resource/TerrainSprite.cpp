@@ -17,9 +17,6 @@
 */
 
 #include "TerrainSprite.h"
-#ifdef ANDROID
-#include <android/log.h>
-#endif
 
 #include "Sprite.h"
 #include "DataManager.h"
@@ -73,17 +70,9 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
     if (!m_slp) {
         const std::string pngFolder = AssetManager::Inst()->assetsPath() + "/terrain/textures/";
         const std::string pngName = data->Name2 + "_00_color.png";
-#ifdef ANDROID
-        __android_log_print(ANDROID_LOG_INFO, "FreeAoE", "Terrain %d: SLP %d not found, trying PNG '%s' in '%s'",
-            id_, data->SLP, pngName.c_str(), pngFolder.c_str());
-#endif
-        // Resolves case because windows is retard case insensitive
         m_pngPath = AssetManager::findFile(pngName, pngFolder);
         if (m_pngPath.empty()) {
-            DBG << "failed to find terrain SLP by ID and failed to find PNG texture" << data->Name << data->Name << data->Enabled;
-#ifdef ANDROID
-            __android_log_print(ANDROID_LOG_WARN, "FreeAoE", "Terrain %d: PNG not found either!", id_);
-#endif
+            DBG << "failed to find terrain SLP by ID and failed to find PNG texture" << data->Name << data->Enabled;
             return;
         }
         DBG << "Found PNG file" << m_pngPath;

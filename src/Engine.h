@@ -163,8 +163,11 @@ private:
         ScreenPos lastPos;
         int64_t startTime = 0;
         bool dragging = false;
+        int64_t lastTapTime = 0;
+        ScreenPos lastTapPos;
         static constexpr float DRAG_THRESHOLD = 25.f;
-        static constexpr int64_t LONG_PRESS_MS = 350;
+        static constexpr int64_t DOUBLE_TAP_MS = 300;
+        static constexpr float DOUBLE_TAP_DIST = 40.f;
     } m_touchState;
 
     float m_gameAreaHeight = 800.f;

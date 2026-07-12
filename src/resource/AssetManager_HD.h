@@ -261,6 +261,11 @@ bool AssetManager_HD::missingData() const
 
 std::string AssetManager_HD::campaignsPath() const
 {
+    // Try HD retail-campaigns path first, fall back to classic
+    std::string hdPath = genie::util::resolvePathCaseInsensitive("/drs/retail-campaigns/", m_hdAssetPath);
+    if (std::filesystem::exists(hdPath)) {
+        return hdPath;
+    }
     return genie::util::resolvePathCaseInsensitive("/campaign/", m_hdAssetPath);
 }
 

@@ -1097,12 +1097,14 @@ void Engine::showMenu()
     genie::UIFilePtr uiFile = AssetManager::Inst()->getUIFile("dlg_men.sin");
     if (!uiFile) {
         WARN << "failed to load ui file for menu";
+        addMessage("Menu: dlg_men.sin not found");
         return;
     }
 
     genie::SlpFilePtr backgroundSlp = AssetManager::Inst()->getSlp(uiFile->backgroundSmall.fileId);
     if (!backgroundSlp) {
         WARN << "Failed to load menu background";
+        addMessage("Menu: background image not found");
         return;
     }
     auto frame = backgroundSlp->getFrame(0);

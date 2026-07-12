@@ -31,16 +31,18 @@ bool LanguageManager::initialize()
 
         const std::string language = Config::Inst().getValue(Config::Language);
         std::vector<std::string> extraStringFiles;
-        extraStringFiles.push_back("/resources/" + language + "/strings/history/history-utf8.txt");
-        extraStringFiles.push_back("/resources/" + language  + "/strings/key-value/key-value-modded-strings-utf8.txt");
-        extraStringFiles.push_back("/resources/" + language + "/strings/key-value/key-value-strings-utf8.txt");
 
         if (language != "en") {
-            // Always load the english as a fallback
+            // English first as fallback base
             extraStringFiles.emplace_back("/resources/en/strings/history/history-utf8.txt");
             extraStringFiles.emplace_back("/resources/en/strings/key-value/key-value-strings-utf8.txt");
             extraStringFiles.emplace_back("/resources/en/strings/key-value/key-value-modded-strings-utf8.txt");
-        };
+        }
+
+        // Target language on top — overwrites English for overlapping IDs
+        extraStringFiles.push_back("/resources/" + language + "/strings/history/history-utf8.txt");
+        extraStringFiles.push_back("/resources/" + language + "/strings/key-value/key-value-strings-utf8.txt");
+        extraStringFiles.push_back("/resources/" + language + "/strings/key-value/key-value-modded-strings-utf8.txt");
 
 
         for (const std::string &extra : extraStringFiles) {

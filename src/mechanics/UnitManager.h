@@ -170,6 +170,7 @@ public:
     bool onMouseRelease();
 
     void selectUnits(const ScreenRect &selectionRect, const CameraPtr &camera);
+    Unit::Ptr unitAt(const ScreenPos &pos, const CameraPtr &camera, const PlayerAlignment alignment) const;
     void setMap(const MapPtr &map);
     const MapPtr &map() { return m_map; }
 
@@ -216,7 +217,6 @@ private:
     void placeBuilding(const UnplacedBuilding &building);
     void updateAvailableActions();
 
-    Unit::Ptr unitAt(const ScreenPos &pos, const CameraPtr &camera, const PlayerAlignment alignment) const;
     void forEachUnitAt(const ScreenPos &position, const CameraPtr camera, const std::function<bool(const Unit::Ptr&)> &action);
 
     void playSound(const Unit::Ptr &unit);

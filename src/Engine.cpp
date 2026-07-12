@@ -252,6 +252,21 @@ void Engine::start()
         }
 #endif
 
+        // Deferred deselect: if first tap expired without second tap, deselect
+        if (m_touchState.phase == TouchState::Phase::WaitSecondTap) {
+            int64_t elapsed = currentTimeMs() - m_touchState.tapTime;
+            if (elapsed >= TouchState::DOUBLE_TAP_MS) {
+                m_touchState.phase = TouchState::Phase::Idle;
+                // Tap on empty ground with no follow-up → deselect
+                if (!state->unitManager()->selected().isEmpty()) {
+                    ScreenRect tapRect(m_touchState.tapPos - ScreenPos(15, 15),
+                                       m_touchState.tapPos + ScreenPos(15, 15));
+                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                    updated = true;
+                }
+            }
+        }
+
         if (!m_currentDialog && state->result == GameState::Result::Running) {
             updated = state->update(Engine::currentTimeMs()) || updated;
 
@@ -624,32 +639,7 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
     const ScreenPos mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     bool handled = false;
 
-#ifdef ANDROID
-    if (m_input.mouseDown) {
-        if (!m_input.dragging) {
-            if (m_input.pressPos.distanceTo(mousePos) > InputState::DRAG_THRESHOLD) {
-                m_input.dragging = true;
-                m_selecting = false;
-                m_selectionRect = ScreenRect();
-            }
-        }
-        if (m_input.dragging) {
-            ScreenPos delta = m_input.lastMovePos - mousePos;
-            ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
-            camScreen.x += delta.x;
-            camScreen.y -= delta.y;
-            MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
-            renderTarget_->camera()->setTargetPosition(camMap);
-            m_input.lastMovePos = mousePos;
-            return true;
-        }
-    }
-    m_input.lastMovePos = mousePos;
-    if (mousePos.y < m_gameAreaHeight) {
-        state->unitManager()->onMouseMove(renderTarget_->camera()->absoluteMapPos(mousePos));
-    }
-    return false;
-#endif
+    // On Android, touch state machine handles drag/scroll — mouse events don't fire
 
     if (mousePos.x < MOUSE_MOVE_EDGE_SIZE) {
         m_cameraDeltaX = -1;
@@ -686,13 +676,6 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
 bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
-#ifdef ANDROID
-    m_input.mouseDown = true;
-    m_input.pressPos = mousePos;
-    m_input.lastMovePos = mousePos;
-    m_input.pressTime = currentTimeMs();
-    m_input.dragging = false;
-#endif
     bool updated = false;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
         updated = button->onMousePressed(mousePos) || updated;
@@ -716,32 +699,35 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
-    float tx = static_cast<float>(event.touch.x);
-    float ty = static_cast<float>(event.touch.y);
+    const ScreenPos pos(static_cast<float>(event.touch.x), static_cast<float>(event.touch.y));
 
     switch (event.type) {
-    case input::Event::TouchBegan:
-        m_touchState.active = true;
-        m_touchState.startPos = ScreenPos(tx, ty);
-        m_touchState.lastPos = m_touchState.startPos;
+
+    case input::Event::TouchBegan: {
+        m_touchState.startPos = pos;
+        m_touchState.lastPos = pos;
         m_touchState.startTime = currentTimeMs();
-        m_touchState.dragging = false;
-        return false; // Let mouse emulation handle tap
-    case input::Event::TouchMoved: {
-        ScreenPos pos(tx, ty);
-        if (m_touchState.pinching) {
-            // Don't process drag while pinching — let PinchZoom handle it
-            m_touchState.lastPos = pos;
-            return false;
+        m_touchState.pinching = false;
+
+        if (m_touchState.phase == TouchState::Phase::WaitSecondTap) {
+            // Second finger down within double-tap window — stay in WaitSecondTap,
+            // will be resolved in TouchEnded
         }
-        if (!m_touchState.dragging) {
+        m_touchState.phase = TouchState::Phase::Pending;
+        return true;
+    }
+
+    case input::Event::TouchMoved: {
+        if (m_touchState.pinching) {
+            m_touchState.lastPos = pos;
+            return true;
+        }
+        if (m_touchState.phase == TouchState::Phase::Pending) {
             if (m_touchState.startPos.distanceTo(pos) > TouchState::DRAG_THRESHOLD) {
-                m_touchState.dragging = true;
-                m_selecting = false;
-                m_selectionRect = ScreenRect();
+                m_touchState.phase = TouchState::Phase::Dragging;
             }
         }
-        if (m_touchState.dragging) {
+        if (m_touchState.phase == TouchState::Phase::Dragging) {
             ScreenPos delta = m_touchState.lastPos - pos;
             ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
             camScreen.x += delta.x;
@@ -750,74 +736,81 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             renderTarget_->camera()->setTargetPosition(camMap);
         }
         m_touchState.lastPos = pos;
-        return false; // Let mouse emulation also fire
+        return true;
     }
+
     case input::Event::TouchEnded: {
-        {
-            ScreenPos pos(tx, ty);
-            int64_t now = currentTimeMs();
+        if (m_touchState.phase == TouchState::Phase::Dragging) {
+            m_touchState.phase = TouchState::Phase::Idle;
+            m_touchState.pinching = false;
+            return true;
+        }
 
-            // Always check top bar buttons
-            IconButton::Type clickedButton = IconButton::Invalid;
-            for (const std::unique_ptr<IconButton> &button : m_buttons) {
-                if (button->rect().contains(pos) || ScreenPos(button->rect().center()).distanceTo(pos) < 50.f) {
-                    button->onMousePressed(pos);
-                    if (button->onMouseReleased(pos)) {
-                        clickedButton = button->type();
-                    }
-                }
-            }
-            if (clickedButton == IconButton::GameMenu) {
-                showMenu();
-            }
-            if (clickedButton != IconButton::Invalid) {
-                m_touchState.active = false;
-                m_touchState.dragging = false;
-                m_touchState.pinching = false;
-                return true;
-            }
+        // It was a tap (Pending, not dragged)
+        m_touchState.pinching = false;
+        int64_t now = currentTimeMs();
 
-            // Handle action panel buttons
-            if (m_actionPanel->handleEvent(input::Event{input::Event::MouseButtonPressed, {}, {input::MouseButton::Left, (int)tx, (int)ty}})) {
-                m_actionPanel->handleEvent(input::Event{input::Event::MouseButtonReleased, {}, {input::MouseButton::Left, (int)tx, (int)ty}});
-                m_touchState.active = false;
-                m_touchState.dragging = false;
-                m_touchState.pinching = false;
-                return true;
-            }
+        // --- UI elements first ---
 
-            // Handle minimap tap
-            if (m_minimap->handleEvent(input::Event{input::Event::MouseButtonPressed, {}, {input::MouseButton::Left, (int)tx, (int)ty}})) {
-                m_minimap->handleEvent(input::Event{input::Event::MouseButtonReleased, {}, {input::MouseButton::Left, (int)tx, (int)ty}});
-                m_touchState.active = false;
-                m_touchState.dragging = false;
-                m_touchState.pinching = false;
-                return true;
-            }
-
-            // Game area taps — only if not dragging
-            if (!m_touchState.dragging) {
-                // Double tap = right click
-                if (m_touchState.hasPendingTap
-                    && (now - m_touchState.pendingTapTime < TouchState::DOUBLE_TAP_MS)
-                    && m_touchState.pendingTapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST) {
-                    state->unitManager()->onRightClick(pos, renderTarget_->camera());
-                    m_touchState.hasPendingTap = false;
-                } else {
-                    // Single tap = select unit
-                    ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
-                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
-                    m_touchState.hasPendingTap = true;
-                    m_touchState.pendingTapTime = now;
-                    m_touchState.pendingTapPos = pos;
+        // Top bar buttons
+        IconButton::Type clickedButton = IconButton::Invalid;
+        for (const std::unique_ptr<IconButton> &button : m_buttons) {
+            if (button->rect().contains(pos) || ScreenPos(button->rect().center()).distanceTo(pos) < 50.f) {
+                button->onMousePressed(pos);
+                if (button->onMouseReleased(pos)) {
+                    clickedButton = button->type();
                 }
             }
         }
-        m_touchState.active = false;
-        m_touchState.dragging = false;
-        m_touchState.pinching = false;
-        return true; // We handle everything in touch, don't let mouse emulation interfere
+        if (clickedButton == IconButton::GameMenu) {
+            showMenu();
+        }
+        if (clickedButton != IconButton::Invalid) {
+            m_touchState.phase = TouchState::Phase::Idle;
+            return true;
+        }
+
+        // Action panel
+        if (m_actionPanel->handleEvent(input::Event{input::Event::MouseButtonPressed, {}, {input::MouseButton::Left, (int)pos.x, (int)pos.y}})) {
+            m_actionPanel->handleEvent(input::Event{input::Event::MouseButtonReleased, {}, {input::MouseButton::Left, (int)pos.x, (int)pos.y}});
+            m_touchState.phase = TouchState::Phase::Idle;
+            return true;
+        }
+
+        // Minimap
+        if (m_minimap->handleEvent(input::Event{input::Event::MouseButtonPressed, {}, {input::MouseButton::Left, (int)pos.x, (int)pos.y}})) {
+            m_minimap->handleEvent(input::Event{input::Event::MouseButtonReleased, {}, {input::MouseButton::Left, (int)pos.x, (int)pos.y}});
+            m_touchState.phase = TouchState::Phase::Idle;
+            return true;
+        }
+
+        // --- Game area tap ---
+
+        // Double-tap detection: was WaitSecondTap and second tap is close enough?
+        bool isDoubleTap = (m_touchState.tapTime > 0)
+            && (now - m_touchState.tapTime < TouchState::DOUBLE_TAP_MS)
+            && (m_touchState.tapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST);
+
+        if (isDoubleTap) {
+            // Double-tap = right click (move/attack command)
+            state->unitManager()->onRightClick(pos, renderTarget_->camera());
+            m_touchState.phase = TouchState::Phase::Idle;
+            m_touchState.tapTime = 0;
+            return true;
+        }
+
+        // Single tap — try to select unit, then wait for potential second tap
+        bool hasUnitAtTap = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment) != nullptr;
+        if (hasUnitAtTap || state->unitManager()->selected().isEmpty()) {
+            ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
+            state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+        }
+        m_touchState.tapPos = pos;
+        m_touchState.tapTime = now;
+        m_touchState.phase = TouchState::Phase::WaitSecondTap;
+        return true;
     }
+
     default:
         return false;
     }
@@ -826,31 +819,8 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
 bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     const ScreenPos mousePos(event.mouseButton.x, event.mouseButton.y);
-
-#ifdef ANDROID
-    m_input.mouseDown = false;
-
-    // If was dragging, just cancel and return
-    if (m_input.dragging) {
-        m_input.dragging = false;
-        m_selecting = false;
-        m_selectionRect = ScreenRect();
-        return true;
-    }
-
-    // Double-click → right click (move/attack command)
-    int64_t now = currentTimeMs();
-    if ((now - m_input.lastClickTime) < InputState::DOUBLE_CLICK_MS
-        && m_input.lastClickPos.distanceTo(mousePos) < InputState::DOUBLE_CLICK_DIST) {
-        state->unitManager()->onRightClick(mousePos, renderTarget_->camera());
-        m_input.lastClickTime = 0;
-        return true;
-    }
-    m_input.lastClickTime = now;
-    m_input.lastClickPos = mousePos;
-#endif
-
-    // Check top bar buttons FIRST — before game area logic
+    // On Android, touch state machine handles all input — mouse events don't fire
+    // Buttons handled on desktop only
     IconButton::Type clickedButton = IconButton::Invalid;
     for (const std::unique_ptr<IconButton> &button : m_buttons) {
         if (button->onMouseReleased(mousePos)) {
@@ -909,7 +879,7 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     // Force landscape orientation and create fullscreen window
     // Must be set BEFORE SDL_Init / window creation
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
-    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1"); // taps generate mouse clicks
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0"); // handle touch via state machine, no mouse synthesis
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0"); // don't generate touch from mouse
     m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);

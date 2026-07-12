@@ -157,34 +157,24 @@ private:
     ScreenRect m_selectionRect;
     bool m_selecting = false;
 
+    // Touch input state machine (Android only)
+    // States: Idle → Pending → { Dragging | tap → WaitSecondTap → { double-tap | timeout } }
     struct TouchState {
-        bool active = false;
+        enum class Phase { Idle, Pending, Dragging, WaitSecondTap };
+        Phase phase = Phase::Idle;
         bool pinching = false;
-        ScreenPos startPos;
-        ScreenPos lastPos;
-        int64_t startTime = 0;
-        bool dragging = false;
-        int64_t pendingTapTime = 0;
-        ScreenPos pendingTapPos;
-        bool hasPendingTap = false;
-        bool suppressNextMouseRelease = false;
-        static constexpr float DRAG_THRESHOLD = 25.f;
-        static constexpr int64_t DOUBLE_TAP_MS = 500;
-        static constexpr float DOUBLE_TAP_DIST = 80.f;
-    } m_touchState;
 
-    struct InputState {
-        bool mouseDown = false;
-        bool dragging = false;
-        ScreenPos pressPos;
-        ScreenPos lastMovePos;
-        int64_t pressTime = 0;
-        int64_t lastClickTime = 0;
-        ScreenPos lastClickPos;
-        static constexpr float DRAG_THRESHOLD = 25.f;
-        static constexpr int64_t DOUBLE_CLICK_MS = 500;
-        static constexpr float DOUBLE_CLICK_DIST = 80.f;
-    } m_input;
+        ScreenPos startPos;        // where finger went down
+        ScreenPos lastPos;         // last position during drag
+        int64_t startTime = 0;     // when finger went down
+
+        ScreenPos tapPos;          // position of first tap (for double-tap detection)
+        int64_t tapTime = 0;       // time of first tap
+
+        static constexpr float DRAG_THRESHOLD = 50.f;
+        static constexpr int64_t DOUBLE_TAP_MS = 700;
+        static constexpr float DOUBLE_TAP_DIST = 100.f;
+    } m_touchState;
 
     float m_gameAreaHeight = 800.f;
 #ifdef USE_SDL2

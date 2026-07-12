@@ -386,8 +386,10 @@ void Engine::showStartScreen()
                                     AssetManager::Inst()->getPalette(uiFile->paletteFile.id)
                                     );
 
-    loadingScreen->scaleX = renderTarget_->getSize().width / float(loadingScreen->size.width);
-    loadingScreen->scaleY = renderTarget_->getSize().height / float(loadingScreen->size.height);
+    if (loadingScreen->size.width > 0 && loadingScreen->size.height > 0) {
+        loadingScreen->scaleX = renderTarget_->getSize().width / float(loadingScreen->size.width);
+        loadingScreen->scaleY = renderTarget_->getSize().height / float(loadingScreen->size.height);
+    }
 
     renderTarget_->draw(loadingScreen, ScreenPos(0, 0));
 #ifdef USE_SDL2
@@ -991,10 +993,12 @@ void Engine::showMenu()
         WARN << "Failed to load menu background";
         return;
     }
-    Resource::RawImage menuBg = Resource::convertFrameToImage(backgroundSlp->getFrame(0));
-
+    auto frame = backgroundSlp->getFrame(0);
     m_currentDialog = std::make_unique<Dialog>(m_mainScreen.get());
-    m_currentDialog->background = renderTarget_->createImage(Size(menuBg.width, menuBg.height), menuBg.pixels.data());
+    if (frame) {
+        Resource::RawImage menuBg = Resource::convertFrameToImage(frame);
+        m_currentDialog->background = renderTarget_->createImage(Size(menuBg.width, menuBg.height), menuBg.pixels.data());
+    }
     DBG << "showing menu";
 
 }

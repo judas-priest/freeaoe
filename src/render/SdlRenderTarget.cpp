@@ -977,8 +977,10 @@ bool SdlWindow::pollEvent(input::Event &event)
 
     case SDL_FINGERDOWN: {
         event.type = input::Event::TouchBegan;
+        // Use logical size if set, otherwise window size
         int w, h;
-        SDL_GetWindowSize(sdlWindow, &w, &h);
+        SDL_RenderGetLogicalSize(sdlRenderer, &w, &h);
+        if (w == 0 || h == 0) SDL_GetWindowSize(sdlWindow, &w, &h);
         event.touch.finger = static_cast<int>(sdlEvent.tfinger.fingerId);
         event.touch.x = static_cast<int>(sdlEvent.tfinger.x * w);
         event.touch.y = static_cast<int>(sdlEvent.tfinger.y * h);
@@ -988,7 +990,8 @@ bool SdlWindow::pollEvent(input::Event &event)
     case SDL_FINGERUP: {
         event.type = input::Event::TouchEnded;
         int w, h;
-        SDL_GetWindowSize(sdlWindow, &w, &h);
+        SDL_RenderGetLogicalSize(sdlRenderer, &w, &h);
+        if (w == 0 || h == 0) SDL_GetWindowSize(sdlWindow, &w, &h);
         event.touch.finger = static_cast<int>(sdlEvent.tfinger.fingerId);
         event.touch.x = static_cast<int>(sdlEvent.tfinger.x * w);
         event.touch.y = static_cast<int>(sdlEvent.tfinger.y * h);
@@ -998,7 +1001,8 @@ bool SdlWindow::pollEvent(input::Event &event)
     case SDL_FINGERMOTION: {
         event.type = input::Event::TouchMoved;
         int w, h;
-        SDL_GetWindowSize(sdlWindow, &w, &h);
+        SDL_RenderGetLogicalSize(sdlRenderer, &w, &h);
+        if (w == 0 || h == 0) SDL_GetWindowSize(sdlWindow, &w, &h);
         event.touch.finger = static_cast<int>(sdlEvent.tfinger.fingerId);
         event.touch.x = static_cast<int>(sdlEvent.tfinger.x * w);
         event.touch.y = static_cast<int>(sdlEvent.tfinger.y * h);

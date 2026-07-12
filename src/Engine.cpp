@@ -643,10 +643,6 @@ bool Engine::handleMousePress(const input::Event &event, const std::shared_ptr<G
 
 bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
-    if (event.touch.finger > 0) {
-        return true; // ignore non-primary fingers (pinch handled via PinchZoom)
-    }
-
     switch (event.type) {
     case input::Event::TouchBegan: {
         m_touchState.active = true;
@@ -673,10 +669,10 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         }
 
         if (m_touchState.dragging) {
-            ScreenPos delta = m_touchState.lastPos - pos;
+            ScreenPos delta = pos - m_touchState.lastPos;
             ScreenPos camScreen = renderTarget_->camera()->targetPosition().toScreen();
-            camScreen.x += delta.x;
-            camScreen.y += delta.y;
+            camScreen.x -= delta.x;
+            camScreen.y -= delta.y;
             MapPos camMap = camScreen.toMap().clamped(state->map()->pixelSize());
             renderTarget_->camera()->setTargetPosition(camMap);
         }
@@ -883,12 +879,18 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     }
 
 #ifdef ANDROID
-    // Set logical render size — SDL scales 1280x720 to fill phone screen
-    SDL_RenderSetLogicalSize(
-        static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(),
-        1280, 720
-    );
-    uiSize = Size(1280, 720);
+    // Set logical render size matching phone aspect ratio — fills entire screen
+    {
+        int sw, sh;
+        SDL_GetWindowSize(m_sdlWindow->sdlWindow, &sw, &sh);
+        // Keep width 1280, calculate height to match screen aspect ratio
+        int logicalH = 1280 * sh / sw;
+        SDL_RenderSetLogicalSize(
+            static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(),
+            1280, logicalH
+        );
+        uiSize = Size(1280, logicalH);
+    }
 #elif defined(USE_SDL2)
     SDL_SetWindowSize(m_sdlWindow->sdlWindow, uiSize.width, uiSize.height);
 #else

@@ -548,3 +548,8 @@
 65	15324	1783821822716216083	CMakeFiles/freeaoe_common.dir/src/ui/ActionPanel.cpp.o	b178628c0227b02f
 64	16341	1783821823743199179	CMakeFiles/freeaoe_common.dir/src/mechanics/ScenarioController.cpp.o	d23cb243aa9374b6
 16342	16568	1783821823995195032	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431
+24	8259	1783822027382939409	CMakeFiles/freeaoe_common.dir/src/Engine.cpp.o	f51e4503247b7362
+8259	8622	1783822027755933669	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431
+23	3785	1783822105891724848	CMakeFiles/freeaoe_common.dir/src/render/SdlRenderTarget.cpp.o	aedbfb73a474bc5e
+22	6285	1783822108385686068	CMakeFiles/freeaoe_common.dir/src/Engine.cpp.o	f51e4503247b7362
+6286	6451	1783822108552683471	../../../../build/intermediates/cxx/Debug/3n3d4t57/obj/arm64-v8a/libfreeaoe.so	7b9158995f71a431

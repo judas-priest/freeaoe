@@ -64,6 +64,17 @@ bool Building::ungarrison(const std::shared_ptr<Unit> &unit)
     return false;
 }
 
+void Building::ungarrisonAll()
+{
+    for (auto &weakUnit : garrisonedUnits) {
+        Unit::Ptr unit = weakUnit.lock();
+        if (unit) {
+            unit->garrisonedIn.reset();
+        }
+    }
+    garrisonedUnits.clear();
+}
+
 std::shared_ptr<Building> Building::fromUnit(const Unit::Ptr &unit) noexcept
 {
     if (!unit) {

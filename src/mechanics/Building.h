@@ -29,6 +29,7 @@ struct Building : public Unit
     int constructors = 0;
 
     bool ungarrison(const std::shared_ptr<Unit> &unit);
+    void ungarrisonAll();
 
     static std::shared_ptr<Building> fromUnit(const Unit::Ptr &unit) noexcept;
     static std::shared_ptr<Building> fromUnit(const std::weak_ptr<Unit> &unit) noexcept;

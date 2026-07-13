@@ -1,4 +1,5 @@
 #include "ActionPanel.h"
+#include "mechanics/Building.h"
 
 #ifndef USE_SDL2
 #ifndef USE_SDL2
@@ -767,6 +768,16 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
                     player->resourcesAvailable(genie::ResourceType::GoldStorage) - 130);
                 player->setAvailableResource(genie::ResourceType::StoneStorage,
                     player->resourcesAvailable(genie::ResourceType::StoneStorage) + 100);
+            }
+            break;
+        }
+        case Command::Ungarrison: {
+            // Eject all garrisoned units from selected buildings
+            for (const Unit::Ptr &unit : m_selectedUnits) {
+                auto building = std::dynamic_pointer_cast<Building>(unit);
+                if (building) {
+                    building->ungarrisonAll();
+                }
             }
             break;
         }

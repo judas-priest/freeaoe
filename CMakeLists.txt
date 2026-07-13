@@ -326,6 +326,8 @@ set(ACTIONS_SRC
     src/actions/ActionGuard.cpp
     src/actions/ActionFollow.cpp
     src/actions/ActionRepair.cpp
+    src/actions/ActionConvert.cpp
+    src/actions/ActionHeal.cpp
     src/actions/ActionGarrison.h
     )
 

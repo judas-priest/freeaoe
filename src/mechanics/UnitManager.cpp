@@ -27,8 +27,10 @@
 #include "Farm.h"
 #include "UnitFactory.h"
 #include "actions/ActionAttack.h"
+#include "actions/ActionConvert.h"
 #include "actions/ActionFollow.h"
 #include "actions/ActionGuard.h"
+#include "actions/ActionHeal.h"
 #include "actions/ActionRepair.h"
 #include "actions/ActionMove.h"
 #include "actions/ActionPatrol.h"
@@ -486,6 +488,32 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
             if (unit->playerId() != humanPlayer->playerId) continue;
             auto repair = std::make_shared<ActionRepair>(unit, targetUnit);
             unit->actions.setCurrentAction(repair);
+        }
+        break;
+    }
+    case State::SelectingConvertTarget: {
+        Unit::Ptr targetUnit = unitAt(screenPos, camera, Enemy);
+        if (!targetUnit) {
+            WARN << "No enemy unit at convert target position";
+            break;
+        }
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            auto convert = std::make_shared<ActionConvert>(unit, targetUnit);
+            unit->actions.setCurrentAction(convert);
+        }
+        break;
+    }
+    case State::SelectingHealTarget: {
+        Unit::Ptr targetUnit = unitAt(screenPos, camera, Allied);
+        if (!targetUnit) {
+            WARN << "No allied unit at heal target position";
+            break;
+        }
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            auto heal = std::make_shared<ActionHeal>(unit, targetUnit);
+            unit->actions.setCurrentAction(heal);
         }
         break;
     }
@@ -1028,6 +1056,16 @@ void UnitManager::selectFollowTarget()
 void UnitManager::selectRepairTarget()
 {
     m_state = State::SelectingRepairTarget;
+}
+
+void UnitManager::selectConvertTarget()
+{
+    m_state = State::SelectingConvertTarget;
+}
+
+void UnitManager::selectHealTarget()
+{
+    m_state = State::SelectingHealTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

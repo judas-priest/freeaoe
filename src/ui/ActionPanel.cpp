@@ -708,6 +708,12 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
         case Command::Repair:
             m_unitManager->selectRepairTarget();
             break;
+        case Command::Convert:
+            m_unitManager->selectConvertTarget();
+            break;
+        case Command::Heal:
+            m_unitManager->selectHealTarget();
+            break;
         default:
             WARN << "Unhandled action" << button.action;
             break;

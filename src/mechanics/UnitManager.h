@@ -146,6 +146,8 @@ public:
         SelectingGuardTarget,
         SelectingFollowTarget,
         SelectingRepairTarget,
+        SelectingConvertTarget,
+        SelectingHealTarget,
         Default
     };
 
@@ -204,6 +206,8 @@ public:
     void selectGuardTarget();
     void selectFollowTarget();
     void selectRepairTarget();
+    void selectConvertTarget();
+    void selectHealTarget();
 
     State state() const { return m_state; }
 

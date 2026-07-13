@@ -73,7 +73,9 @@ public:
         Patrol,
         Guard,
         Follow,
-        Repair
+        Repair,
+        Convert,
+        Heal
     };
 
     enum UnitState {

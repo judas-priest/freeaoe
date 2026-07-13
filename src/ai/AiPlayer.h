@@ -6,6 +6,7 @@
 #include <memory>
 
 namespace ai { struct AiScript; }
+class BasicAI;
 
 struct AiPlayer : public Player
 {
@@ -15,6 +16,7 @@ struct AiPlayer : public Player
 
     ai::DifficultyLevel difficultyLevel = ai::DifficultyLevel::Moderate;
     std::shared_ptr<ai::AiScript> m_aiScript;
+    std::shared_ptr<BasicAI> m_basicAI;
 
     // Held in escrow
     ResourceMap m_reserves;

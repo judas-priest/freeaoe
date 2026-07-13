@@ -19,6 +19,7 @@
 #include "GameState.h"
 #include "ai/AiPlayer.h"
 #include "ai/AiScript.h"
+#include "ai/BasicAI.h"
 #include "RandomMapGenerator.h"
 #ifdef ANDROID
 #include <android/log.h>
@@ -176,12 +177,18 @@ bool GameState::update(Time time)
         updated = m_scenarioController->update(time) || updated;
     }
 
-    // Update AI players — evaluate rules every 2 seconds (not every frame)
+    // Update AI players
     static Time lastAiUpdate = 0;
     if (time - lastAiUpdate > 2000) {
         lastAiUpdate = time;
         for (const auto &aiPlayer : m_aiPlayers) {
-            if (aiPlayer && aiPlayer->alive && aiPlayer->m_aiScript) {
+            if (!aiPlayer || !aiPlayer->alive) continue;
+            // Run hardcoded BasicAI (trains villagers, builds houses, trains military)
+            if (aiPlayer->m_basicAI) {
+                aiPlayer->m_basicAI->update(time);
+            }
+            // Run script-based AI rules (if any loaded from .per files)
+            if (aiPlayer->m_aiScript) {
                 aiPlayer->m_aiScript->update(time);
             }
         }
@@ -302,9 +309,10 @@ void GameState::setupScenario()
             } else {
                 auto aiPlayer = std::make_shared<AiPlayer>(playerNum, playersData.resourcesPlusPlayerInfo[realPlayerNum].civilizationID, map_);
                 aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
+                aiPlayer->m_basicAI = std::make_shared<BasicAI>(aiPlayer.get(), m_unitManager.get());
                 player = aiPlayer;
                 m_aiPlayers.push_back(aiPlayer);
-                ALOG("Created AI player %d with script", (int)playerNum);
+                ALOG("Created AI player %d with BasicAI", (int)playerNum);
             }
             player->name = playersData.playerNames[realPlayerNum];
             player->playerColor = scenario_->players[realPlayerNum].playerColor;
@@ -450,6 +458,7 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
         aiPlayer->name = "AI " + std::to_string(i);
         aiPlayer->playerColor = i - 1;
         aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
+        aiPlayer->m_basicAI = std::make_shared<BasicAI>(aiPlayer.get(), m_unitManager.get());
         m_players.push_back(aiPlayer);
         m_aiPlayers.push_back(aiPlayer);
     }

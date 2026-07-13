@@ -22,6 +22,7 @@
 #include "ui/DiplomacyScreen.h"
 #include "ui/SettingsScreen.h"
 #include "ui/TechTreeScreen.h"
+#include "mechanics/SaveGame.h"
 
 #include "core/Logger.h"
 #include "core/ResourceMap.h"
@@ -743,6 +744,22 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
 #else
             renderWindow_->close();
 #endif
+        } else if (choice == Dialog::Save) {
+            // Save game
+            MapPos camPos = renderTarget_->camera()->targetPosition();
+            std::string savePath;
+#ifdef ANDROID
+            const char *ext = SDL_AndroidGetExternalStoragePath();
+            savePath = ext ? std::string(ext) + "/save.faoe" : "/sdcard/save.faoe";
+#else
+            savePath = "save.faoe";
+#endif
+            if (SaveGame::save(savePath, *state, camPos.x, camPos.y)) {
+                addMessage("Game saved!");
+            } else {
+                addMessage("Save failed!");
+            }
+            m_currentDialog.reset();
         }
 
         return true;

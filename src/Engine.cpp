@@ -1148,8 +1148,24 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         // Single tap — try to select unit, then wait for potential second tap
         bool hasUnitAtTap = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment) != nullptr;
         if (hasUnitAtTap || state->unitManager()->selected().isEmpty()) {
-            ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
-            state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+            // Check if tapping already-selected unit → select all of same type on screen
+            Unit::Ptr tappedUnit = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);
+            bool alreadySelected = false;
+            if (tappedUnit) {
+                for (const Unit::Ptr &sel : state->unitManager()->selected()) {
+                    if (sel == tappedUnit) { alreadySelected = true; break; }
+                }
+            }
+            if (alreadySelected && tappedUnit) {
+                // Select all visible units of same type
+                Size ss = renderTarget_->getSize();
+                ScreenRect fullScreen(ScreenPos(0, 0), ScreenPos(ss.width, ss.height));
+                state->unitManager()->selectUnits(fullScreen, renderTarget_->camera());
+                // Now filter to only same type — selectUnits already handles this via InteractionMode
+            } else {
+                ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
+                state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+            }
         }
         m_touchState.tapPos = pos;
         m_touchState.tapTime = now;

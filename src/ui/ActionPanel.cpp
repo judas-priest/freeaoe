@@ -714,6 +714,62 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
         case Command::Heal:
             m_unitManager->selectHealTarget();
             break;
+        // Market buy/sell — trade 100 of resource for gold at ~70/130% rate
+        case Command::SellWood: {
+            auto player = m_unitManager->humanPlayer();
+            if (player && player->resourcesAvailable(genie::ResourceType::WoodStorage) >= 100) {
+                player->setAvailableResource(genie::ResourceType::WoodStorage,
+                    player->resourcesAvailable(genie::ResourceType::WoodStorage) - 100);
+                player->setAvailableResource(genie::ResourceType::GoldStorage,
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + 70);
+            }
+            break;
+        }
+        case Command::SellFood: {
+            auto player = m_unitManager->humanPlayer();
+            if (player && player->resourcesAvailable(genie::ResourceType::FoodStorage) >= 100) {
+                player->setAvailableResource(genie::ResourceType::FoodStorage,
+                    player->resourcesAvailable(genie::ResourceType::FoodStorage) - 100);
+                player->setAvailableResource(genie::ResourceType::GoldStorage,
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + 70);
+            }
+            break;
+        }
+        case Command::SellStone: {
+            auto player = m_unitManager->humanPlayer();
+            if (player && player->resourcesAvailable(genie::ResourceType::StoneStorage) >= 100) {
+                player->setAvailableResource(genie::ResourceType::StoneStorage,
+                    player->resourcesAvailable(genie::ResourceType::StoneStorage) - 100);
+                player->setAvailableResource(genie::ResourceType::GoldStorage,
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + 70);
+            }
+            break;
+        }
+        case Command::CollectWood:
+        case Command::BuyFood: // BuyFood is an alias used in some versions
+        case Command::CollectFood: {
+            auto player = m_unitManager->humanPlayer();
+            if (player && player->resourcesAvailable(genie::ResourceType::GoldStorage) >= 130) {
+                player->setAvailableResource(genie::ResourceType::GoldStorage,
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) - 130);
+                // CollectWood buys wood, CollectFood buys food
+                genie::ResourceType res = (button.action == Command::CollectWood)
+                    ? genie::ResourceType::WoodStorage : genie::ResourceType::FoodStorage;
+                player->setAvailableResource(res, player->resourcesAvailable(res) + 100);
+            }
+            break;
+        }
+        case Command::CollectStone:
+        case Command::BuyStone: {
+            auto player = m_unitManager->humanPlayer();
+            if (player && player->resourcesAvailable(genie::ResourceType::GoldStorage) >= 130) {
+                player->setAvailableResource(genie::ResourceType::GoldStorage,
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) - 130);
+                player->setAvailableResource(genie::ResourceType::StoneStorage,
+                    player->resourcesAvailable(genie::ResourceType::StoneStorage) + 100);
+            }
+            break;
+        }
         default:
             WARN << "Unhandled action" << button.action;
             break;

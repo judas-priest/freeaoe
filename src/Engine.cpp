@@ -287,11 +287,16 @@ void Engine::start()
             int64_t elapsed = currentTimeMs() - m_touchState.tapTime;
             if (elapsed >= TouchState::DOUBLE_TAP_MS) {
                 m_touchState.phase = TouchState::Phase::Idle;
-                // Tap on empty ground with no follow-up → deselect
+                // Tap on empty ground with no follow-up → clear selection
                 if (!state->unitManager()->selected().isEmpty()) {
-                    ScreenRect tapRect(m_touchState.tapPos - ScreenPos(15, 15),
-                                       m_touchState.tapPos + ScreenPos(15, 15));
-                    state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                    // Check if there's actually a unit at the tap position
+                    bool unitAtTap = state->unitManager()->unitAt(
+                        m_touchState.tapPos, renderTarget_->camera(), NoAlignment) != nullptr;
+                    if (!unitAtTap) {
+                        // Empty ground — just deselect everything
+                        ScreenRect emptyRect(ScreenPos(-100, -100), ScreenPos(-99, -99));
+                        state->unitManager()->selectUnits(emptyRect, renderTarget_->camera());
+                    }
                     updated = true;
                 }
             }

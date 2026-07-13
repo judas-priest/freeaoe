@@ -161,21 +161,22 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
         mainVictoryConditions = conquestConditions;
         break;
     case genie::ScnVictory::Score:
-        WARN << "TODO handle score game";
-        if (victoryConditions.scoreRequired > 0) {
-            DBG << "requires" << victoryConditions.scoreRequired << "score to win";
-            // TODO: create a condition for all score resourcetypes
-        }
+        DBG << "score game — treating as conquest (score tracking not yet implemented)";
+        mainVictoryConditions = conquestConditions;
         break;
     case genie::ScnVictory::Timed:
-        WARN << "TODO handle timed game";
+        DBG << "timed game:" << victoryConditions.timeForTimedGame << "seconds";
         if (victoryConditions.timeForTimedGame > 0) {
-            DBG << "requires" << victoryConditions.timeForTimedGame << "time to win";
-            // TODO: create a timer condition
+            // Create timer trigger — when time expires, check score (highest wins)
+            genie::TriggerCondition timerCond;
+            timerCond.type = genie::TriggerCondition::Timer;
+            timerCond.timer = victoryConditions.timeForTimedGame;
+            mainVictoryConditions.push_back(std::move(timerCond));
         }
         break;
     case genie::ScnVictory::Custom:
-        WARN << "TODO: check if we handle custom game";
+        DBG << "custom game — treating as conquest";
+        mainVictoryConditions = conquestConditions;
         break;
     default:
         WARN << "Invalid victory mode" << victoryConditions.victoryMode;
@@ -578,13 +579,7 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         ////////////////////
         // Game ending stuff
     case genie::TriggerEffect::DeclareVictory: {
-        if (m_engine) {
-            m_engine->addMessage("");
-            m_engine->addMessage("");
-            m_engine->addMessage("           ----");
-            m_engine->addMessage("u win prize congratilatons");
-            m_engine->addMessage("sorry, victory is not implemented");
-        }
+        DBG << "DeclareVictory for player" << effect.sourcePlayer;
         m_gameState->onPlayerWin(effect.sourcePlayer);
         break;
     }

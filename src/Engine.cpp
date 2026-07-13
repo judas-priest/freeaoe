@@ -597,7 +597,8 @@ void Engine::drawUi()
 
         // --- Sliding bottom panel ---
         float panelH = screenSize.height - m_gameAreaHeight;
-        bool shouldShow = m_actionPanel->hasButtons();
+        // Show panel when ANY unit is selected (not just when action buttons exist)
+        bool shouldShow = !state_manager_.getActiveState()->unitManager()->selected().isEmpty();
 
         // Animate panel slide
         m_bottomPanelTargetY = shouldShow ? m_gameAreaHeight : screenSize.height;

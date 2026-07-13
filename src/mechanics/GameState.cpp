@@ -439,6 +439,11 @@ void GameState::setupGame()
 
 void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
 {
+    // Clear existing state from demo game
+    m_players.clear();
+    m_aiPlayers.clear();
+    m_unitManager = std::make_shared<UnitManager>();
+
     // Create players
     auto gaiaPlayer = std::make_shared<Player>(0, 0, map_);
     gaiaPlayer->name = "Gaia";

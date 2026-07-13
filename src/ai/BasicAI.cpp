@@ -56,16 +56,17 @@ void BasicAI::update(Time time)
 
 void BasicAI::trainVillagers()
 {
-    // Train villagers up to 20
-    int villagerCount = countUnitsOfType(83); // Male villager
+    // Train villagers up to 20, max 1 in queue at a time
+    int villagerCount = countUnitsOfType(83);
     if (villagerCount >= 20) return;
 
-    // Find TC
+    // Find TC that isn't already producing
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
         if (unit->data()->ID != 109) continue; // Town Center
         auto building = Building::fromUnit(unit);
         if (!building) continue;
+        if (building->isProducing()) continue; // Already producing
 
         const genie::Unit &villagerData = m_player->civilization.unitData(83);
         building->enqueueProduceUnit(&villagerData);
@@ -146,6 +147,7 @@ void BasicAI::trainMilitary()
         if (unit->data()->ID != 12) continue; // Barracks
         auto building = Building::fromUnit(unit);
         if (!building) continue;
+        if (building->isProducing()) continue;
 
         const genie::Unit &militiaData = m_player->civilization.unitData(74);
         building->enqueueProduceUnit(&militiaData);

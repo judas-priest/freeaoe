@@ -182,6 +182,9 @@ void RandomMapGenerator::placeStartingUnits(const Settings &settings,
             Unit::Ptr tc = UnitFactory::createUnit(109, player, unitManager);
             if (tc) {
                 unitManager.add(tc, basePos);
+                DBG << "Placed TC for player" << player->playerId << "at" << basePos.x << basePos.y;
+            } else {
+                WARN << "Failed to create TC (ID 109) for player" << player->playerId;
             }
         }
 

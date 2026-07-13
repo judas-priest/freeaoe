@@ -291,6 +291,18 @@ void Engine::start()
 
         AudioPlayer::instance().tick(); // Drain queued dialogue streams
 
+        // Start background music if not playing
+        {
+            static bool musicStarted = false;
+            if (!musicStarted) {
+                // Try random music track
+                int track = 1 + (rand() % 9);
+                std::string musicFile = "xmusic" + std::to_string(track) + ".mp3";
+                AudioPlayer::instance().playStream(musicFile);
+                musicStarted = true;
+            }
+        }
+
         if (!m_currentDialog && !m_paused && state->result == GameState::Result::Running) {
             // Scale game time by speed (currentTimeMs is real time, we need game time)
             static Time lastRealTime = Engine::currentTimeMs();
@@ -816,6 +828,38 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
     case input::Key::Escape:
         showMenu();
         return true;
+
+    // Cheat: F10 = +1000 all resources
+    case input::Key::F10: {
+        const Player::Ptr &human = state->humanPlayer();
+        if (human) {
+            human->setAvailableResource(genie::ResourceType::WoodStorage,
+                human->resourcesAvailable(genie::ResourceType::WoodStorage) + 1000);
+            human->setAvailableResource(genie::ResourceType::FoodStorage,
+                human->resourcesAvailable(genie::ResourceType::FoodStorage) + 1000);
+            human->setAvailableResource(genie::ResourceType::GoldStorage,
+                human->resourcesAvailable(genie::ResourceType::GoldStorage) + 1000);
+            human->setAvailableResource(genie::ResourceType::StoneStorage,
+                human->resourcesAvailable(genie::ResourceType::StoneStorage) + 1000);
+            addMessage("Cheat: +1000 all resources");
+        }
+        return true;
+    }
+
+    // H = center on Town Center
+    case input::Key::H: {
+        const Player::Ptr &human = state->humanPlayer();
+        if (human) {
+            // Find TC (unit type 109 = TownCenter)
+            for (const Unit::Ptr &unit : state->unitManager()->units()) {
+                if (unit->playerId() == human->playerId && unit->data()->ID == 109) {
+                    renderTarget_->camera()->setTargetPosition(unit->position());
+                    break;
+                }
+            }
+        }
+        return true;
+    }
 
     default:
         return false;

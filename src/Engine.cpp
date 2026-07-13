@@ -21,6 +21,7 @@
 #include "audio/AudioPlayer.h"
 #include "ui/DiplomacyScreen.h"
 #include "ui/SettingsScreen.h"
+#include "ui/TechTreeScreen.h"
 
 #include "core/Logger.h"
 #include "core/ResourceMap.h"
@@ -648,6 +649,7 @@ void Engine::drawUi()
     // Overlay screens
     if (m_diplomacyScreen) m_diplomacyScreen->render();
     if (m_settingsScreen) m_settingsScreen->render();
+    if (m_techTreeScreen) m_techTreeScreen->render();
 
     // Game speed / pause indicator
     if (m_paused) {
@@ -751,6 +753,9 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     }
     if (m_settingsScreen && m_settingsScreen->isVisible()) {
         return m_settingsScreen->handleEvent(event);
+    }
+    if (m_techTreeScreen && m_techTreeScreen->isVisible()) {
+        return m_techTreeScreen->handleEvent(event);
     }
 
     if (m_actionPanel->handleEvent(event)) {
@@ -1107,7 +1112,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         } else if (clickedButton == IconButton::Chat) {
             addMessage("Chat: not yet implemented");
         } else if (clickedButton == IconButton::TechTree) {
-            addMessage("Tech Tree: not yet implemented");
+            if (m_techTreeScreen) m_techTreeScreen->show(state_manager_.getActiveState());
         } else if (clickedButton == IconButton::Settings) {
             if (m_settingsScreen) m_settingsScreen->show();
         }
@@ -1335,6 +1340,7 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 
     m_diplomacyScreen = std::make_unique<DiplomacyScreen>(renderTarget_);
     m_settingsScreen = std::make_unique<SettingsScreen>(renderTarget_);
+    m_techTreeScreen = std::make_unique<TechTreeScreen>(renderTarget_);
 
     m_mapRenderer = std::make_unique<MapRenderer>();
     m_mapRenderer->setRenderTarget(renderTarget_);

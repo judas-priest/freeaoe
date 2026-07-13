@@ -99,6 +99,11 @@ Task UnitActionHandler::findMatchingTask(const std::shared_ptr<Player> &ownPlaye
 
         case genie::Task::TargetGaiaOnly:
             if (target->playerId() != UnitManager::GaiaID) {
+                // Exception: own herdable animals (sheep converted on LOS) are still gatherable
+                if (target->data()->Class == genie::Unit::DomesticAnimal &&
+                    target->playerId() == ownPlayer->playerId) {
+                    break;
+                }
                 continue;
             }
             break;

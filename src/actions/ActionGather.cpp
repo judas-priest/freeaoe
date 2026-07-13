@@ -52,7 +52,8 @@ IAction::UpdateResult ActionGather::update(Time time)
     }
 
 
-    if (target->healthLeft() > 0 && target->playerId() != unit->playerId()) {
+    if (target->healthLeft() > 0 &&
+        (target->playerId() != unit->playerId() || target->data()->Class == genie::Unit::DomesticAnimal)) {
         DBG << "Unit isn't dead, attacking first";
         unit->actions.prependAction(std::make_shared<ActionAttack>(unit, m_task));
         return UpdateResult::NotUpdated;

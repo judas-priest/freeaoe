@@ -1246,15 +1246,11 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             // Double-tap on unit = select all visible units of SAME TYPE owned by SAME PLAYER
             Unit::Ptr tappedUnit = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);
             if (tappedUnit && tappedUnit->data()) {
-                int targetType = tappedUnit->data()->ID;
-                int targetPlayer = tappedUnit->playerId();
-                // Select all on screen, then filter by type
                 Size ss = renderTarget_->getSize();
-                ScreenRect fullScreen(ScreenPos(0, 0), ScreenPos(ss.width, m_gameAreaHeight));
-                state->unitManager()->selectUnits(fullScreen, renderTarget_->camera());
-                // selectUnits selects all matching InteractionMode — we need to further filter
-                // For now, the full-screen select picks up same-type units due to InteractionMode priority
-                // This is the best we can do without modifying UnitManager::selectUnits
+                ScreenRect gameArea(ScreenPos(0, 0), ScreenPos(ss.width, m_gameAreaHeight));
+                state->unitManager()->selectUnitsByType(
+                    tappedUnit->data()->ID, tappedUnit->playerId(),
+                    gameArea, renderTarget_->camera());
             }
             m_touchState.phase = TouchState::Phase::Idle;
             m_touchState.tapTime = 0;
@@ -1263,6 +1259,16 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
 
         // Single tap — try to select unit, then wait for potential second tap
         bool hasUnitAtTap = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment) != nullptr;
+
+        // Tap on empty ground with units selected → instant deselect
+        if (!hasUnitAtTap && !state->unitManager()->selected().isEmpty()) {
+            ScreenRect emptyRect(ScreenPos(-100, -100), ScreenPos(-99, -99));
+            state->unitManager()->selectUnits(emptyRect, renderTarget_->camera());
+            m_touchState.phase = TouchState::Phase::Idle;
+            m_touchState.tapTime = 0;
+            return true;
+        }
+
         if (hasUnitAtTap || state->unitManager()->selected().isEmpty()) {
             // Check if tapping already-selected unit → select all of same type on screen
             Unit::Ptr tappedUnit = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);

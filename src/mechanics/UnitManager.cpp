@@ -860,6 +860,25 @@ void UnitManager::selectUnits(const ScreenRect &selectionRect, const CameraPtr &
     }
 }
 
+void UnitManager::selectUnitsByType(int unitTypeId, int playerId, const ScreenRect &area, const CameraPtr &camera)
+{
+    UnitSet newSelection;
+    for (const Unit::Ptr &unit : m_units) {
+        if (!unit || !unit->isVisible) continue;
+        if (unit->data()->ID != unitTypeId) continue;
+        if (unit->playerId() != playerId) continue;
+
+        const ScreenPos screenPos = camera->absoluteScreenPos(unit->position());
+        if (area.contains(screenPos)) {
+            newSelection.add(unit);
+        }
+    }
+
+    if (!newSelection.isEmpty()) {
+        setSelectedUnits(newSelection.units);
+    }
+}
+
 void UnitManager::setMap(const MapPtr &map)
 {
     m_map = map;

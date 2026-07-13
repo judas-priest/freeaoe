@@ -176,6 +176,7 @@ public:
     bool onMouseRelease();
 
     void selectUnits(const ScreenRect &selectionRect, const CameraPtr &camera);
+    void selectUnitsByType(int unitTypeId, int playerId, const ScreenRect &area, const CameraPtr &camera);
     Unit::Ptr unitAt(const ScreenPos &pos, const CameraPtr &camera, const PlayerAlignment alignment) const;
     void setMap(const MapPtr &map);
     const MapPtr &map() { return m_map; }

@@ -1,6 +1,7 @@
 #include "BasicAI.h"
 
 #include "AiPlayer.h"
+#include "actions/IAction.h"
 #include "mechanics/Unit.h"
 #include "mechanics/Building.h"
 #include "mechanics/UnitManager.h"
@@ -52,6 +53,7 @@ void BasicAI::update(Time time)
 
     trainVillagers();
     buildHouses();
+    assignIdleVillagers();
     trainMilitary();
 }
 
@@ -135,6 +137,42 @@ void BasicAI::buildHouses()
             IAction::assignTask(buildTask, unit, IAction::AssignType::Replace);
         }
         return;
+    }
+}
+
+void BasicAI::assignIdleVillagers()
+{
+    // Find idle villagers and assign them to gather nearest resource
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 83) continue; // Male villager
+        if (unit->actions.currentAction()) continue; // Already busy
+
+        // Find nearest gatherable resource (tree=349, berry=59, gold=66, stone=102, sheep=594)
+        Unit::Ptr bestTarget;
+        float bestDist = 999999;
+
+        for (const Unit::Ptr &target : m_unitManager->units()) {
+            if (!target || target->isDead()) continue;
+            // Gatherable Gaia resources or own dead animals
+            bool isGatherableGaia = (target->playerId() == 0) && target->data()->CanBeGathered;
+            bool isOwnDeadAnimal = (target->playerId() == m_player->playerId) &&
+                                    target->data()->Class == genie::Unit::DomesticAnimal;
+            if (!isGatherableGaia && !isOwnDeadAnimal) continue;
+
+            float dist = unit->distanceTo(target);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestTarget = target;
+            }
+        }
+
+        if (bestTarget) {
+            Task task = unit->actions.findTaskWithTarget(bestTarget);
+            if (task.isValid()) {
+                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+            }
+        }
     }
 }
 

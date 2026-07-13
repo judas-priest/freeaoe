@@ -123,6 +123,16 @@ void Unit::setAngle(const float angle) noexcept
 bool Unit::update(Time time) noexcept
 {
     if (isDying()) {
+        // Food decay on dead animals (~0.016 food/sec in AoE2)
+        if (m_data->CanBeGathered && m_prevTime > 0) {
+            float decayAmount = 0.016f * (time - m_prevTime) / 1000.f * 60.f; // per game-minute approx
+            for (auto &res : resources) {
+                if (res.second > 0) {
+                    res.second = std::max(0.f, res.second - decayAmount);
+                }
+            }
+        }
+        m_prevTime = time;
         return Entity::update(time);
     }
 

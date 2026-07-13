@@ -597,6 +597,42 @@ void Engine::drawUi()
     m_stoneLabel->render();
     m_populationLabel->render();
 
+#ifdef ANDROID
+    // Age indicator + game clock in top bar
+    {
+        Size ss = renderTarget_->getSize();
+        const Player::Ptr &human = state_manager_.getActiveState()->humanPlayer();
+        if (human) {
+            // Age name
+            static const char* ageNames[] = {"Dark Age", "Feudal Age", "Castle Age", "Imperial Age"};
+            int ageIdx = std::clamp(int(human->currentAge()), 0, 3);
+
+            auto ageText = renderTarget_->createText(Drawable::Text::Plain);
+            ageText->string = ageNames[ageIdx];
+            ageText->pointSize = 13;
+            ageText->color = Drawable::Color(180, 160, 120, 255);
+            ageText->position = ScreenPos(ss.width - 200, 15);
+            renderTarget_->draw(ageText);
+        }
+
+        // Game clock
+        static Time gameStartTime = Engine::currentTimeMs();
+        Time elapsed = Engine::currentTimeMs() - gameStartTime;
+        int secs = (elapsed / 1000) % 60;
+        int mins = (elapsed / 60000) % 60;
+        int hrs = elapsed / 3600000;
+
+        auto clockText = renderTarget_->createText(Drawable::Text::Plain);
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d:%02d:%02d", hrs, mins, secs);
+        clockText->string = buf;
+        clockText->pointSize = 12;
+        clockText->color = Drawable::Color(150, 140, 110, 255);
+        clockText->position = ScreenPos(ss.width - 280, 15);
+        renderTarget_->draw(clockText);
+    }
+#endif
+
     // Overlay screens
     if (m_diplomacyScreen) m_diplomacyScreen->render();
     if (m_settingsScreen) m_settingsScreen->render();

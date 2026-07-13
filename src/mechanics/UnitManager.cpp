@@ -290,6 +290,26 @@ bool UnitManager::update(Time time)
         }
     }
 
+    // Herdable animal conversion: Gaia domestic animals convert to player on LOS contact
+    for (const Unit::Ptr &animal : m_units) {
+        if (animal->playerId() != GaiaID) continue;
+        if (animal->data()->Class != genie::Unit::DomesticAnimal) continue;
+        if (animal->isDying() || animal->isDead()) continue;
+
+        for (const Unit::Ptr &unit : m_units) {
+            if (unit->playerId() == GaiaID) continue;
+            if (unit->isDying() || unit->isDead()) continue;
+            if (unit->distanceTo(animal) < unit->data()->LineOfSight * Constants::TILE_SIZE) {
+                Player::Ptr owner = unit->player().lock();
+                if (owner) {
+                    animal->setPlayer(owner);
+                    updated = true;
+                }
+                break;
+            }
+        }
+    }
+
     // Clean up dead units
     UnitVector::iterator unitIterator = m_units.begin();
     while (unitIterator != m_units.end()) {

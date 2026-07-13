@@ -288,6 +288,23 @@ bool Building::update(Time time) noexcept
 
     bool updated = Unit::update(time);
 
+    // Heal garrisoned units (TC/Tower: 0.1 HP/sec, Castle: 0.2 HP/sec)
+    if (!garrisonedUnits.empty()) {
+        float healRate = (data()->ID == 82 /*Castle*/) ? 0.2f : 0.1f;
+        float healAmount = healRate * deltaTime / 1000.f;
+        for (auto it = garrisonedUnits.begin(); it != garrisonedUnits.end(); ) {
+            Unit::Ptr garrisoned = it->lock();
+            if (!garrisoned) {
+                it = garrisonedUnits.erase(it);
+                continue;
+            }
+            if (garrisoned->healthLeft() < garrisoned->data()->HitPoints) {
+                garrisoned->takeDamage(-healAmount);
+            }
+            ++it;
+        }
+    }
+
     if (m_currentProduct) {
         float productionTime = 0;
         if (m_currentProduct->type == Product::Unit) {

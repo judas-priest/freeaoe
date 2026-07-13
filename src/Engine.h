@@ -51,6 +51,7 @@ struct IconButton;
 class Minimap;
 struct NumberLabel;
 class UiScreen;
+class Unit;
 class UnitInfoPanel;
 class UnitsRenderer;
 
@@ -202,6 +203,9 @@ private:
     Drawable::Text::Ptr m_ageText;
     Drawable::Text::Ptr m_clockText;
     Drawable::Text::Ptr m_scoreText;
+
+    // Control groups (Ctrl+1..9 to assign, 1..9 to recall)
+    std::array<std::vector<std::shared_ptr<Unit>>, 10> m_controlGroups;
 
     float m_gameSpeed = 1.0f;
     bool m_paused = false;

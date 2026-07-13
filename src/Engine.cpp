@@ -968,14 +968,35 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         return true;
     }
 
-    // Taunts: number keys 1-9 play taunt sounds
-    case input::Key::Num1: case input::Key::Num2: case input::Key::Num3:
+    // Control groups (Ctrl+1..9) or taunts (1..9)
+    case input::Key::Num0: case input::Key::Num1: case input::Key::Num2: case input::Key::Num3:
     case input::Key::Num4: case input::Key::Num5: case input::Key::Num6:
     case input::Key::Num7: case input::Key::Num8: case input::Key::Num9: {
-        int tauntNum = static_cast<int>(event.key.code) - static_cast<int>(input::Key::Num0);
-        std::string tauntFile = "taunt/taunt" + std::to_string(tauntNum) + ".mp3";
-        AudioPlayer::instance().playStream(tauntFile);
-        addMessage("Taunt " + std::to_string(tauntNum));
+        int groupNum = static_cast<int>(event.key.code) - static_cast<int>(input::Key::Num0);
+        if (event.key.control) {
+            // Ctrl+N: assign current selection to group N
+            m_controlGroups[groupNum] = state->unitManager()->selected().units;
+            addMessage("Group " + std::to_string(groupNum) + " set (" + std::to_string(m_controlGroups[groupNum].size()) + " units)");
+        } else {
+            // N: recall group N (if assigned), otherwise play taunt
+            if (!m_controlGroups[groupNum].empty()) {
+                // Remove dead units
+                m_controlGroups[groupNum].erase(
+                    std::remove_if(m_controlGroups[groupNum].begin(), m_controlGroups[groupNum].end(),
+                        [](const std::shared_ptr<Unit> &u) { return !u || u->isDead() || u->isDying(); }),
+                    m_controlGroups[groupNum].end());
+                if (!m_controlGroups[groupNum].empty()) {
+                    state->unitManager()->setSelectedUnits(m_controlGroups[groupNum]);
+                    return true;
+                }
+            }
+            // No group assigned — play taunt
+            if (groupNum >= 1 && groupNum <= 9) {
+                std::string tauntFile = "taunt/taunt" + std::to_string(groupNum) + ".mp3";
+                AudioPlayer::instance().playStream(tauntFile);
+                addMessage("Taunt " + std::to_string(groupNum));
+            }
+        }
         return true;
     }
 

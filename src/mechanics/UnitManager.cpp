@@ -584,15 +584,69 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
 
     MapPos mapPos = camera->absoluteMapPos(screenPos).clamped(m_map->pixelSize());
 
+    // Calculate formation offsets
+    int unitCount = 0;
+    for (const Unit::Ptr &u : m_selectedUnits) {
+        if (u->playerId() == humanPlayer->playerId) unitCount++;
+    }
+
     bool movedSomeone = false;
+    int unitIndex = 0;
+    float spacing = Constants::TILE_SIZE * 0.8f; // ~38px between units
+
     for (const Unit::Ptr &unit : m_selectedUnits) {
         if (unit->playerId() != humanPlayer->playerId) {
             continue;
         }
 
+        // Calculate formation offset
+        MapPos formationTarget = mapPos;
+        if (unitCount > 1) {
+            float offsetX = 0, offsetY = 0;
+            switch (Unit::s_formation) {
+            case Unit::Formation::Line: {
+                // Spread perpendicular to move direction
+                int cols = std::min(unitCount, 8);
+                int col = unitIndex % cols;
+                int row = unitIndex / cols;
+                offsetX = (col - cols / 2.f) * spacing;
+                offsetY = row * spacing;
+                break;
+            }
+            case Unit::Formation::Box: {
+                int side = static_cast<int>(std::ceil(std::sqrt(unitCount)));
+                int col = unitIndex % side;
+                int row = unitIndex / side;
+                offsetX = (col - side / 2.f) * spacing;
+                offsetY = (row - side / 2.f) * spacing;
+                break;
+            }
+            case Unit::Formation::Flank: {
+                // Two columns
+                int col = unitIndex % 2;
+                int row = unitIndex / 2;
+                offsetX = (col - 0.5f) * spacing * 2;
+                offsetY = row * spacing;
+                break;
+            }
+            case Unit::Formation::SpreadOut: {
+                int side = static_cast<int>(std::ceil(std::sqrt(unitCount)));
+                int col = unitIndex % side;
+                int row = unitIndex / side;
+                offsetX = (col - side / 2.f) * spacing * 2;
+                offsetY = (row - side / 2.f) * spacing * 2;
+                break;
+            }
+            }
+            formationTarget.x += offsetX;
+            formationTarget.y += offsetY;
+            formationTarget = formationTarget.clamped(m_map->pixelSize());
+        }
+
         unit->actions.clearActionQueue();
-        moveUnitTo(unit, mapPos);
+        moveUnitTo(unit, formationTarget);
         movedSomeone = true;
+        unitIndex++;
 
         AudioPlayer::instance().playSound(unit->data()->Action.MoveSound, humanPlayer->civilization.id());
     }

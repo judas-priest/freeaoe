@@ -135,6 +135,14 @@ struct Unit : public Entity
         NoAttack
     } stance = Stance::Aggressive;
 
+    enum class Formation {
+        Line,
+        Box,
+        Flank,
+        SpreadOut
+    };
+    static inline Formation s_formation = Formation::Line;
+
     UnitActionHandler actions;
     std::vector<Annex> annexes;
     std::weak_ptr<Building> garrisonedIn;

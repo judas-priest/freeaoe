@@ -781,6 +781,18 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             }
             break;
         }
+        case Command::LineFormation:
+            Unit::s_formation = Unit::Formation::Line;
+            break;
+        case Command::BoxFormation:
+            Unit::s_formation = Unit::Formation::Box;
+            break;
+        case Command::FlankFormation:
+            Unit::s_formation = Unit::Formation::Flank;
+            break;
+        case Command::SpreadOutFormation:
+            Unit::s_formation = Unit::Formation::SpreadOut;
+            break;
         default:
             WARN << "Unhandled action" << button.action;
             break;

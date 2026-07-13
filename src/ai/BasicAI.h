@@ -22,6 +22,9 @@ private:
     void trainVillagers();
     void buildHouses();
     void assignIdleVillagers();
+    void researchLoom();
+    void advanceAge();
+    void attackWithArmy();
     void trainMilitary();
     void researchTechs();
     void buildStructure(int buildingId, int woodCost);

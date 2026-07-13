@@ -2,6 +2,7 @@
 
 #include "AiPlayer.h"
 #include "actions/IAction.h"
+#include "actions/ActionMove.h"
 #include "mechanics/Unit.h"
 #include "mechanics/Building.h"
 #include "mechanics/UnitManager.h"
@@ -54,7 +55,10 @@ void BasicAI::update(Time time)
     trainVillagers();
     buildHouses();
     assignIdleVillagers();
+    researchLoom();
+    advanceAge();
     trainMilitary();
+    attackWithArmy();
 }
 
 void BasicAI::trainVillagers()
@@ -172,6 +176,100 @@ void BasicAI::assignIdleVillagers()
             if (task.isValid()) {
                 IAction::assignTask(task, unit, IAction::AssignType::Replace);
             }
+        }
+    }
+}
+
+void BasicAI::researchLoom()
+{
+    // Research Loom (tech 22 in HD dat) at TC — makes villagers harder to kill
+    // In HD Edition, tech 22 = Loom (same ID as Feudal in some versions)
+    // Try both common IDs
+    int loomId = -1;
+    for (int id : {22, 8}) {
+        const genie::Tech &t = m_player->civilization.tech(id);
+        if (t.Type == 0 && t.ResearchLocation == 109 && t.ResearchTime > 0) {
+            loomId = id;
+            break;
+        }
+    }
+    if (loomId < 0 || !m_player->canAffordResearch(loomId)) return;
+
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 109) continue;
+        auto building = Building::fromUnit(unit);
+        if (!building) continue;
+        if (building->isProducing() || building->isResearching()) continue;
+
+        const genie::Tech &loom = m_player->civilization.tech(loomId);
+        if (loom.ResearchTime > 0) {
+            building->enqueueProduceResearch(&loom);
+        }
+        return;
+    }
+}
+
+void BasicAI::advanceAge()
+{
+    // Research age advance at TC when affordable
+    // Feudal=tech 22 (500F), Castle=tech 102 (800F,200G), Imperial=tech 103 (1000F,800G)
+    static const int ageTechs[] = { 22, 102, 103 };
+
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 109) continue; // Town Center
+        auto building = Building::fromUnit(unit);
+        if (!building) continue;
+        if (building->isProducing() || building->isResearching()) continue;
+
+        for (int techId : ageTechs) {
+            if (m_player->canAffordResearch(techId)) {
+                const genie::Tech &tech = m_player->civilization.tech(techId);
+                if (tech.ResearchTime > 0) { // valid tech
+                    building->enqueueProduceResearch(&tech);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+}
+
+void BasicAI::attackWithArmy()
+{
+    // Attack when we have 5+ idle military units
+    int idleMilitary = 0;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 74 && unit->data()->ID != 93 && unit->data()->ID != 4) continue; // militia, spearman, archer
+        if (unit->actions.currentAction()) continue;
+        idleMilitary++;
+    }
+    if (idleMilitary < 5) return;
+
+    // Find enemy target — prefer TC, otherwise any enemy building/unit
+    Unit::Ptr target;
+    for (const Unit::Ptr &enemy : m_unitManager->units()) {
+        if (!enemy || enemy->playerId() == m_player->playerId || enemy->playerId() == 0) continue;
+        if (enemy->isDead() || enemy->isDying()) continue;
+        if (enemy->data()->ID == 109) { target = enemy; break; } // Enemy TC — priority
+        if (!target) target = enemy;
+    }
+    if (!target) return;
+
+    // Send all idle military to attack
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 74 && unit->data()->ID != 93 && unit->data()->ID != 4) continue;
+        if (unit->actions.currentAction()) continue;
+
+        Task task = unit->actions.findTaskWithTarget(target);
+        if (task.isValid()) {
+            IAction::assignTask(task, unit, IAction::AssignType::Replace);
+        } else {
+            // Just move toward the enemy
+            unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, target->position()));
         }
     }
 }

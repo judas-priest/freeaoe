@@ -214,7 +214,18 @@ void ActionAttack::spawnMissiles(const Unit::Ptr &source, const int unitId, cons
     for (int i=0; i<missilesUnitCanFire(source); i++) {
         MapPos individualTarget = m_targetPosition;
         if (targetUnit) {
-//            individualTarget.z += targetUnit->tallness() / 2;
+            // Apply accuracy — miss offset based on AccuracyPercent
+            int accuracy = source->data()->Combat.AccuracyPercent;
+            if (accuracy < 100 && accuracy >= 0) {
+                int roll = rand() % 100;
+                if (roll >= accuracy) {
+                    // Miss: offset target by random amount (up to 2 tiles)
+                    float missX = (rand() % 200 - 100) / 50.f * Constants::TILE_SIZE;
+                    float missY = (rand() % 200 - 100) / 50.f * Constants::TILE_SIZE;
+                    individualTarget.x += missX;
+                    individualTarget.y += missY;
+                }
+            }
         }
         Missile::Ptr missile = std::make_shared<Missile>(gunit, source, individualTarget, targetUnit);
         missile->setMap(source->map());

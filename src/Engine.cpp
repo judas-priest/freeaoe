@@ -932,6 +932,17 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         return true;
     }
 
+    // Taunts: number keys 1-9 play taunt sounds
+    case input::Key::Num1: case input::Key::Num2: case input::Key::Num3:
+    case input::Key::Num4: case input::Key::Num5: case input::Key::Num6:
+    case input::Key::Num7: case input::Key::Num8: case input::Key::Num9: {
+        int tauntNum = static_cast<int>(event.key.code) - static_cast<int>(input::Key::Num0);
+        std::string tauntFile = "taunt/taunt" + std::to_string(tauntNum) + ".mp3";
+        AudioPlayer::instance().playStream(tauntFile);
+        addMessage("Taunt " + std::to_string(tauntNum));
+        return true;
+    }
+
     // Cheat: F10 = +1000 all resources
     case input::Key::F10: {
         const Player::Ptr &human = state->humanPlayer();

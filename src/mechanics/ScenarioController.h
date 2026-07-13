@@ -95,6 +95,13 @@ public:
     std::vector<WonderTimer> m_wonderTimers;
     void checkWonderVictory(Time time);
 
+    // Relic victory tracking
+    int m_totalRelicsOnMap = -1; // -1 = not counted yet
+    Time m_allRelicsHeldSince = 0;
+    int m_allRelicsHolder = -1;
+    static constexpr Time RELIC_VICTORY_TIME = 300000; // 5 min for testing
+    void checkRelicVictory(Time time);
+
 private:
     bool checkUnitMatchingEffect(const std::shared_ptr<Unit> &unit, const genie::TriggerEffect &effect);
 

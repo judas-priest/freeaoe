@@ -348,8 +348,9 @@ bool ScenarioController::update(Time time)
         }
     }
 
-    // Check wonder victory timers
+    // Check wonder and relic victory
     checkWonderVictory(time);
+    checkRelicVictory(time);
 
     return updated;
 }
@@ -399,6 +400,47 @@ void ScenarioController::checkWonderVictory(Time time)
                     [&](const WonderTimer &wt) { return wt.playerId == player->playerId; }),
                 m_wonderTimers.end());
         }
+    }
+}
+
+void ScenarioController::checkRelicVictory(Time time)
+{
+    if (!m_gameState) return;
+
+    // Count total relics on map (once)
+    if (m_totalRelicsOnMap < 0) {
+        m_totalRelicsOnMap = 0;
+        for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+            if (unit && unit->data()->ID == 285) m_totalRelicsOnMap++; // Relic ID = 285
+        }
+        if (m_totalRelicsOnMap == 0) m_totalRelicsOnMap = 5; // default assumption
+    }
+
+    // Check which player holds the most relics
+    int maxRelics = 0;
+    int maxPlayer = -1;
+    for (const auto &player : m_gameState->players()) {
+        if (!player || player->playerId == 0) continue;
+        int relics = static_cast<int>(player->resourcesAvailable(genie::ResourceType::RelicsCaptured));
+        if (relics > maxRelics) {
+            maxRelics = relics;
+            maxPlayer = player->playerId;
+        }
+    }
+
+    if (maxRelics >= m_totalRelicsOnMap && maxPlayer >= 0) {
+        if (m_allRelicsHolder != maxPlayer) {
+            m_allRelicsHolder = maxPlayer;
+            m_allRelicsHeldSince = time;
+            if (m_engine) {
+                m_engine->addMessage("Player " + std::to_string(maxPlayer) + " holds all relics!");
+            }
+        }
+        if (time - m_allRelicsHeldSince >= RELIC_VICTORY_TIME) {
+            m_gameState->onPlayerWin(maxPlayer);
+        }
+    } else {
+        m_allRelicsHolder = -1;
     }
 }
 

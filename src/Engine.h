@@ -89,6 +89,7 @@ public:
     virtual ~Engine();
 
     bool setup(const std::shared_ptr<genie::ScnFile> &scenario = nullptr);
+    void setSkipDemoGame(bool skip) { m_skipDemoGame = skip; }
     void setupRandomMap(int mapType, int mapSize, int playerCount);
     void start();
 
@@ -208,6 +209,7 @@ private:
     float m_bottomPanelY = 0.f;      // current Y of sliding panel (0 = hidden below screen)
     float m_bottomPanelTargetY = 0.f; // target Y for animation
     bool m_bottomPanelVisible = false;
+    bool m_skipDemoGame = false;
 #ifdef USE_SDL2
     struct SDL_Texture *m_gameTexture = nullptr;
 #endif

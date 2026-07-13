@@ -393,6 +393,11 @@ try
 #endif
 
     Engine engine;
+#ifdef ANDROID
+    if (isRandomMap) {
+        engine.setSkipDemoGame(true);
+    }
+#endif
     if (!engine.setup(scenarioFile)) {
         return 1;
     }

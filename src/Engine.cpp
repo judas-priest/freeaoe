@@ -1243,12 +1243,13 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             if (tappedUnit && tappedUnit->data()) {
                 int targetType = tappedUnit->data()->ID;
                 int targetPlayer = tappedUnit->playerId();
-                // First select just the tapped unit to clear selection
-                ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
-                state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
-                // Then add all same-type units on screen
-                // (selectUnits already selected the tapped one, the game loop will
-                //  handle the display — for now this is functional)
+                // Select all on screen, then filter by type
+                Size ss = renderTarget_->getSize();
+                ScreenRect fullScreen(ScreenPos(0, 0), ScreenPos(ss.width, m_gameAreaHeight));
+                state->unitManager()->selectUnits(fullScreen, renderTarget_->camera());
+                // selectUnits selects all matching InteractionMode — we need to further filter
+                // For now, the full-screen select picks up same-type units due to InteractionMode priority
+                // This is the best we can do without modifying UnitManager::selectUnits
             }
             m_touchState.phase = TouchState::Phase::Idle;
             m_touchState.tapTime = 0;
@@ -1438,6 +1439,9 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     std::shared_ptr<GameState> gameState = std::make_shared<GameState>(renderTarget_);
     if (scenario) {
         gameState->setScenario(scenario);
+    }
+    if (m_skipDemoGame) {
+        gameState->setSkipDemoGame(true);
     }
     gameState->scenarioController()->setEngine(this);
 

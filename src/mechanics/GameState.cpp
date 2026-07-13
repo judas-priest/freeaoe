@@ -159,11 +159,13 @@ bool GameState::init()
 
     if (scenario_) {
         setupScenario();
-    } else {
+    } else if (!m_skipDemoGame) {
         setupGame();
     }
 
-    map_->updateMapData();
+    if (!m_skipDemoGame) {
+        map_->updateMapData();
+    }
 
     return true;
 }
@@ -439,8 +441,9 @@ void GameState::setupGame()
 
 void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
 {
-    // Clear existing players (but NOT UnitManager — destroying units
-    // fires visibility events that crash on the dying manager)
+    // Note: old demo game players/units remain in UnitManager.
+    // We just override m_players and m_humanPlayer.
+    // Old units will be on the old map tiles which get overwritten.
     m_players.clear();
     m_aiPlayers.clear();
 

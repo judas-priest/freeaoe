@@ -89,6 +89,7 @@ public:
 
     void setScenario(const std::shared_ptr<genie::ScnFile> &scenario);
     void setGameType(const GameType &type) { m_gameType = type; }
+    void setSkipDemoGame(bool skip) { m_skipDemoGame = skip; }
     void setupRandomMap(int mapType, int mapSize, int playerCount);
 
     bool init() override;
@@ -141,6 +142,7 @@ private:
     std::vector<std::shared_ptr<AiPlayer>> m_aiPlayers;
 
     GameType m_gameType = GameType::Default;
+    bool m_skipDemoGame = false;
 
     std::unique_ptr<ScenarioController> m_scenarioController;
 

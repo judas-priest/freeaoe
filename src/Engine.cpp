@@ -987,6 +987,19 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
                     m_controlGroups[groupNum].end());
                 if (!m_controlGroups[groupNum].empty()) {
                     state->unitManager()->setSelectedUnits(m_controlGroups[groupNum]);
+                    // Double-tap: center camera on group
+                    int64_t now = currentTimeMs();
+                    if (m_lastGroupKey == groupNum && now - m_lastGroupKeyTime < 500) {
+                        // Average position of group
+                        MapPos center;
+                        for (const auto &u : m_controlGroups[groupNum]) {
+                            center += u->position();
+                        }
+                        center /= m_controlGroups[groupNum].size();
+                        renderTarget_->camera()->setTargetPosition(center);
+                    }
+                    m_lastGroupKey = groupNum;
+                    m_lastGroupKeyTime = now;
                     return true;
                 }
             }

@@ -204,8 +204,10 @@ private:
     Drawable::Text::Ptr m_clockText;
     Drawable::Text::Ptr m_scoreText;
 
-    // Control groups (Ctrl+1..9 to assign, 1..9 to recall)
+    // Control groups (Ctrl+1..9 to assign, 1..9 to recall, double-tap to center camera)
     std::array<std::vector<std::shared_ptr<Unit>>, 10> m_controlGroups;
+    int m_lastGroupKey = -1;
+    int64_t m_lastGroupKeyTime = 0;
 
     float m_gameSpeed = 1.0f;
     bool m_paused = false;

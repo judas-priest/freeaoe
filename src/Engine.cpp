@@ -640,6 +640,23 @@ void Engine::drawUi()
     m_actionPanel->draw();
     m_unitInfoPanel->draw();
 
+    // Help text tooltip (shown 3 seconds after button press)
+    if (!m_actionPanel->lastHelpText.empty() &&
+        Engine::currentTimeMs() - m_actionPanel->lastHelpTextTime < 3000) {
+        auto helpText = renderTarget_->createText(Drawable::Text::Plain);
+        helpText->string = m_actionPanel->lastHelpText;
+        helpText->pointSize = 13;
+        helpText->color = Drawable::Color(255, 240, 180, 230);
+        // Position above the action panel
+        ScreenRect apRect = m_actionPanel->rect();
+        helpText->position = ScreenPos(apRect.x, apRect.y - 22);
+        // Background
+        Size ts = helpText->size();
+        renderTarget_->draw(ScreenRect(apRect.x - 4, apRect.y - 26, ts.width + 8, 22),
+            Drawable::Color(20, 15, 8, 220));
+        renderTarget_->draw(helpText);
+    }
+
     m_woodLabel->render();
     m_foodLabel->render();
     m_goldLabel->render();

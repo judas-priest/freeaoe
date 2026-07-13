@@ -1,4 +1,5 @@
 #include "ActionPanel.h"
+#include "Engine.h"
 #include "mechanics/Building.h"
 
 #ifndef USE_SDL2
@@ -636,6 +637,13 @@ void ActionPanel::addMilitaryButtons(const std::shared_ptr<Unit> &unit)
 
 void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
 {
+    // Show help text for this button
+    std::string help = helpTextId(button.action);
+    if (!help.empty()) {
+        lastHelpText = help;
+        lastHelpTextTime = Engine::currentTimeMs();
+    }
+
     if (button.type == InterfaceButton::CreateBuilding) {
         m_unitManager->startPlaceBuilding(button.unit->ID, m_humanPlayer.lock());
         currentButtons.clear();

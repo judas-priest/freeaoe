@@ -333,6 +333,11 @@ private:
     bool m_dirty = true;
     bool m_buttonsDirty = true;
 
+public:
+    // Help text shown when button pressed — read by Engine for display
+    std::string lastHelpText;
+    Time lastHelpTextTime = 0;
+
     int m_buttonSize = 40; // TODO: put this in a central place
     int m_bottomOffset = 40;
 };

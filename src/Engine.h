@@ -158,9 +158,9 @@ private:
     bool m_selecting = false;
 
     // Touch input state machine (Android only)
-    // States: Idle → Pending → { Dragging | tap → WaitSecondTap → { double-tap | timeout } }
+    // States: Idle → Pending → { Dragging | LongPress | tap → WaitSecondTap → { double-tap | timeout } }
     struct TouchState {
-        enum class Phase { Idle, Pending, Dragging, WaitSecondTap };
+        enum class Phase { Idle, Pending, Dragging, WaitSecondTap, LongPress };
         Phase phase = Phase::Idle;
         bool pinching = false;
 
@@ -174,7 +174,21 @@ private:
         static constexpr float DRAG_THRESHOLD = 50.f;
         static constexpr int64_t DOUBLE_TAP_MS = 700;
         static constexpr float DOUBLE_TAP_DIST = 100.f;
+        static constexpr int64_t LONG_PRESS_MS = 600;
     } m_touchState;
+
+    // Context menu for long-press
+    struct ContextMenu {
+        bool visible = false;
+        ScreenPos position;
+        struct Item {
+            std::string label;
+            int action = -1; // maps to Command enum or custom action
+        };
+        std::vector<Item> items;
+        static constexpr float ITEM_HEIGHT = 48.f;
+        static constexpr float ITEM_WIDTH = 160.f;
+    } m_contextMenu;
 
     float m_gameSpeed = 1.0f;
     bool m_paused = false;

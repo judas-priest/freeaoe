@@ -268,6 +268,25 @@ void Engine::start()
             }
         }
 
+        // Long-press detection: if finger held down > 600ms without moving, show context menu
+        if (m_touchState.phase == TouchState::Phase::Pending) {
+            int64_t held = currentTimeMs() - m_touchState.startTime;
+            if (held >= TouchState::LONG_PRESS_MS && !state->unitManager()->selected().isEmpty()) {
+                m_touchState.phase = TouchState::Phase::LongPress;
+                // Build context menu
+                m_contextMenu.visible = true;
+                m_contextMenu.position = m_touchState.startPos;
+                m_contextMenu.items.clear();
+                m_contextMenu.items.push_back({"Move", 0});
+                m_contextMenu.items.push_back({"Attack", 1});
+                m_contextMenu.items.push_back({"Patrol", 2});
+                m_contextMenu.items.push_back({"Guard", 3});
+                m_contextMenu.items.push_back({"Stop", 4});
+                m_contextMenu.items.push_back({"Delete", 5});
+                updated = true;
+            }
+        }
+
         AudioPlayer::instance().tick(); // Drain queued dialogue streams
 
         if (!m_currentDialog && !m_paused && state->result == GameState::Result::Running) {
@@ -584,6 +603,42 @@ void Engine::drawUi()
     }
     renderTarget_->draw(fps_label_);
 
+    // Context menu (long-press)
+    if (m_contextMenu.visible && !m_contextMenu.items.empty()) {
+        float menuX = m_contextMenu.position.x;
+        float menuY = m_contextMenu.position.y;
+        float totalH = m_contextMenu.items.size() * ContextMenu::ITEM_HEIGHT;
+
+        // Clamp to screen
+        Size ss = renderTarget_->getSize();
+        if (menuX + ContextMenu::ITEM_WIDTH > ss.width) menuX = ss.width - ContextMenu::ITEM_WIDTH - 5;
+        if (menuY + totalH > ss.height) menuY = ss.height - totalH - 5;
+        if (menuX < 5) menuX = 5;
+        if (menuY < 50) menuY = 50;
+
+        // Background
+        renderTarget_->draw(ScreenRect(menuX - 2, menuY - 2, ContextMenu::ITEM_WIDTH + 4, totalH + 4),
+            Drawable::Color(20, 15, 8, 240));
+        // Border
+        renderTarget_->draw(ScreenRect(menuX - 2, menuY - 2, ContextMenu::ITEM_WIDTH + 4, totalH + 4),
+            Drawable::Transparent, Drawable::Color(100, 80, 40, 255));
+
+        for (size_t i = 0; i < m_contextMenu.items.size(); i++) {
+            float iy = menuY + i * ContextMenu::ITEM_HEIGHT;
+            // Item background
+            renderTarget_->draw(ScreenRect(menuX, iy, ContextMenu::ITEM_WIDTH, ContextMenu::ITEM_HEIGHT - 2),
+                Drawable::Color(45, 35, 18, 220));
+            // Item text
+            if (!fps_label_) continue; // reuse fps_label font as temp
+            auto itemText = renderTarget_->createText(Drawable::Text::Plain);
+            itemText->string = m_contextMenu.items[i].label;
+            itemText->pointSize = 16;
+            itemText->color = Drawable::Color(220, 200, 160, 255);
+            itemText->position = ScreenPos(menuX + 12, iy + 12);
+            renderTarget_->draw(itemText);
+        }
+    }
+
     const Time currentTime = Engine::currentTimeMs();
     for (const MessageLine &messageLine : m_visibleText) {
         if (messageLine.endTime < currentTime) {
@@ -829,6 +884,58 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
     }
 
     case input::Event::TouchEnded: {
+        // Context menu handling — if visible, check if tap hit an item
+        if (m_contextMenu.visible) {
+            float menuX = m_contextMenu.position.x;
+            float menuY = m_contextMenu.position.y;
+            Size ss = renderTarget_->getSize();
+            float totalH = m_contextMenu.items.size() * ContextMenu::ITEM_HEIGHT;
+            if (menuX + ContextMenu::ITEM_WIDTH > ss.width) menuX = ss.width - ContextMenu::ITEM_WIDTH - 5;
+            if (menuY + totalH > ss.height) menuY = ss.height - totalH - 5;
+            if (menuX < 5) menuX = 5;
+            if (menuY < 50) menuY = 50;
+
+            ScreenRect menuRect(menuX, menuY, ContextMenu::ITEM_WIDTH, totalH);
+            if (menuRect.contains(pos)) {
+                int idx = static_cast<int>((pos.y - menuY) / ContextMenu::ITEM_HEIGHT);
+                if (idx >= 0 && idx < static_cast<int>(m_contextMenu.items.size())) {
+                    int action = m_contextMenu.items[idx].action;
+                    switch (action) {
+                    case 0: // Move — do nothing, next tap will be move target
+                        break;
+                    case 1: // Attack
+                        state->unitManager()->selectAttackTarget();
+                        break;
+                    case 2: // Patrol
+                        state->unitManager()->selectPatrolTarget();
+                        break;
+                    case 3: // Guard
+                        state->unitManager()->selectGuardTarget();
+                        break;
+                    case 4: // Stop
+                        for (const Unit::Ptr &unit : state->unitManager()->selected()) {
+                            unit->actions.clearActionQueue();
+                        }
+                        break;
+                    case 5: // Delete
+                        for (const Unit::Ptr &unit : state->unitManager()->selected()) {
+                            unit->kill();
+                        }
+                        break;
+                    }
+                }
+            }
+            m_contextMenu.visible = false;
+            m_touchState.phase = TouchState::Phase::Idle;
+            return true;
+        }
+
+        // Long-press release — just dismiss (menu already shown)
+        if (m_touchState.phase == TouchState::Phase::LongPress) {
+            m_touchState.phase = TouchState::Phase::Idle;
+            return true;
+        }
+
         if (m_touchState.phase == TouchState::Phase::Dragging) {
             m_touchState.phase = TouchState::Phase::Idle;
             m_touchState.pinching = false;

@@ -829,6 +829,42 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         showMenu();
         return true;
 
+    // F1 = cycle idle villagers
+    case input::Key::F1: {
+        const Player::Ptr &human = state->humanPlayer();
+        if (human) {
+            static int lastIdleIdx = -1;
+            int found = 0;
+            int startIdx = lastIdleIdx + 1;
+            const auto &allUnits = state->unitManager()->units();
+            for (size_t i = 0; i < allUnits.size(); i++) {
+                int idx = (startIdx + i) % allUnits.size();
+                const Unit::Ptr &unit = allUnits[idx];
+                if (!unit || unit->playerId() != human->playerId) continue;
+                // Check if civilian and idle
+                // Check if civilian unit (not building, not siege)
+                if (unit->data()->Type < genie::Unit::CombatantType) continue;
+                if (unit->data()->Speed <= 0) continue; // skip buildings
+                {
+                    if (!unit->actions.currentAction()) {
+                        // Found idle villager
+                        lastIdleIdx = idx;
+                        ScreenRect selectRect(ScreenPos(-1,-1), ScreenPos(1,1));
+                        state->unitManager()->selectUnits(
+                            ScreenRect(ScreenPos(-999,-999), ScreenPos(999,999)),
+                            renderTarget_->camera()); // deselect all first
+                        renderTarget_->camera()->setTargetPosition(unit->position());
+                        addMessage("Idle villager found");
+                        found = 1;
+                        break;
+                    }
+                }
+            }
+            if (!found) addMessage("No idle villagers");
+        }
+        return true;
+    }
+
     // Cheat: F10 = +1000 all resources
     case input::Key::F10: {
         const Player::Ptr &human = state->humanPlayer();

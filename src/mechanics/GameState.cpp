@@ -187,21 +187,30 @@ bool GameState::update(Time time)
         onPlayerWin(playersAlive[0]->playerId);
     }
 
-//     TODO alliance win
-//    if (!playersAlive.empty()) {
-//        bool anyEnemiesAlive = false;
-//        for (size_t i=0; i<playersAlive.size() - 1 && !anyEnemiesAlive; i++) {
-//            for (size_t j=i+1; j < playersAlive.size(); j++) {
-//                // are they allied both ways
-//                if (playersAlive[i]->isAllied(playersAlive[j]->playerId) &&
-//                        playersAlive[j]->isAllied(playersAlive[i]->playerId)) {
-//                    continue;
-//                }
-//                anyEnemiesAlive = true;
-//                break;
-//            }
-//        }
-//    }
+    // Alliance win: all surviving players are mutual allies
+    if (playersAlive.size() > 1) {
+        bool anyEnemiesAlive = false;
+        for (size_t i = 0; i < playersAlive.size() - 1 && !anyEnemiesAlive; i++) {
+            for (size_t j = i + 1; j < playersAlive.size(); j++) {
+                if (playersAlive[i]->isAllied(playersAlive[j]->playerId) &&
+                    playersAlive[j]->isAllied(playersAlive[i]->playerId)) {
+                    continue;
+                }
+                anyEnemiesAlive = true;
+                break;
+            }
+        }
+        if (!anyEnemiesAlive && m_humanPlayer) {
+            // All remaining players are allies — human wins
+            bool humanAlive = false;
+            for (const auto &p : playersAlive) {
+                if (p == m_humanPlayer) { humanAlive = true; break; }
+            }
+            if (humanAlive) {
+                onPlayerWin(m_humanPlayer->playerId);
+            }
+        }
+    }
 
     return updated;
 }

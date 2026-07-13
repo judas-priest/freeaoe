@@ -54,6 +54,7 @@ void BasicAI::update(Time time)
 
     trainVillagers();
     buildHouses();
+    buildDropOffSites();
     assignIdleVillagers();
     researchLoom();
     advanceAge();
@@ -177,6 +178,52 @@ void BasicAI::assignIdleVillagers()
                 IAction::assignTask(task, unit, IAction::AssignType::Replace);
             }
         }
+    }
+}
+
+void BasicAI::buildDropOffSites()
+{
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    if (wood < 100) return;
+
+    // Build Lumber Camp (562, costs 100W) if we don't have one
+    if (countBuildingsOfType(562) == 0) {
+        // Find nearest tree cluster to TC
+        MapPos tcPos;
+        bool foundTC = false;
+        for (const Unit::Ptr &unit : m_unitManager->units()) {
+            if (unit && unit->playerId() == m_player->playerId && unit->data()->ID == 109) {
+                tcPos = unit->position();
+                foundTC = true;
+                break;
+            }
+        }
+        if (!foundTC) return;
+
+        // Find nearest tree
+        Unit::Ptr nearestTree;
+        float bestDist = 999999;
+        for (const Unit::Ptr &unit : m_unitManager->units()) {
+            if (!unit || unit->isDead()) continue;
+            if (unit->data()->Class != genie::Unit::Tree) continue;
+            float dist = std::abs(unit->position().x - tcPos.x) + std::abs(unit->position().y - tcPos.y);
+            if (dist < bestDist && dist > Constants::TILE_SIZE * 3) { // Not too close to TC
+                bestDist = dist;
+                nearestTree = unit;
+            }
+        }
+
+        if (nearestTree) {
+            // Build lumber camp near the tree
+            MapPos buildPos = nearestTree->position();
+            buildPos.x += Constants::TILE_SIZE * 2;
+            buildStructure(562, 100);
+        }
+    }
+
+    // Build Mining Camp (584, costs 100W) near gold if we don't have one
+    if (countBuildingsOfType(584) == 0 && wood >= 100) {
+        buildStructure(584, 100);
     }
 }
 

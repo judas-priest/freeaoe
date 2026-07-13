@@ -260,6 +260,13 @@ void Unit::setCreationProgress(float progress) noexcept
 
     m_creationProgress = std::min(progress, float(m_data->Creatable.TrainTime));
 
+    // Building HP scales with construction progress
+    if (m_data->Type == genie::Unit::BuildingType && m_data->Creatable.TrainTime > 0) {
+        float pct = creationProgress();
+        float targetHP = m_data->HitPoints * pct;
+        m_damageTaken = std::max(0.f, m_data->HitPoints - targetHP);
+    }
+
     if (m_data->Type == genie::Unit::BuildingType && progress < m_data->Creatable.TrainTime) {
         m_renderer->setAngle(M_PI_2 + 2. * M_PI * (creationProgress()));
     } else {

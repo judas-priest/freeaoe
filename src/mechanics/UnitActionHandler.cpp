@@ -227,8 +227,10 @@ Task UnitActionHandler::checkForAutoTargets()
                     continue;
                 }
                 if (other->playerId() == UnitManager::GaiaID) {
-                    // I don't think we should auto-target gaia units?
-                    continue;
+                    // Auto-target wolves/predators even though they're Gaia
+                    if (other->data()->Class != genie::Unit::PredatorAnimal) {
+                        continue;
+                    }
                 }
 
                 const float distance = m_unit->distanceTo(other);

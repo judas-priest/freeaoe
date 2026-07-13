@@ -385,10 +385,8 @@ void Building::finalizeUnit() noexcept
     m_unitManager.add(unit, waypoint);
 
     Player::Ptr player = unit->player().lock();
-    if (player) {
+    if (player && player->playerId == m_unitManager.humanPlayerID()) {
         AudioPlayer::instance().playSound(unit->data()->TrainSound, player->civilization.id());
-    } else {
-        WARN << "Lost our player";
     }
 
     DBG << "Finalized" << unit->debugName;

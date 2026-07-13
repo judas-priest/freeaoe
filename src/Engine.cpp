@@ -280,21 +280,14 @@ void Engine::start()
             }
         }
 
-        // Long-press detection: if finger held down > 600ms without moving, show context menu
+        // Long-press detection: if finger held down > 600ms = right-click (move/attack)
         if (m_touchState.phase == TouchState::Phase::Pending) {
             int64_t held = currentTimeMs() - m_touchState.startTime;
             if (held >= TouchState::LONG_PRESS_MS && !state->unitManager()->selected().isEmpty()) {
-                m_touchState.phase = TouchState::Phase::LongPress;
-                // Build context menu
-                m_contextMenu.visible = true;
-                m_contextMenu.position = m_touchState.startPos;
-                m_contextMenu.items.clear();
-                m_contextMenu.items.push_back({"Move", 0});
-                m_contextMenu.items.push_back({"Attack", 1});
-                m_contextMenu.items.push_back({"Patrol", 2});
-                m_contextMenu.items.push_back({"Guard", 3});
-                m_contextMenu.items.push_back({"Stop", 4});
-                m_contextMenu.items.push_back({"Delete", 5});
+                // Long-press with units selected = right click (move/attack)
+                state->unitManager()->onRightClick(m_touchState.startPos, renderTarget_->camera());
+                m_touchState.tapTime = 0; // Cancel deferred deselect
+                m_touchState.phase = TouchState::Phase::Idle;
                 updated = true;
             }
         }
@@ -677,12 +670,9 @@ void Engine::drawUi()
             static const char* ageNames[] = {"Dark Age", "Feudal Age", "Castle Age", "Imperial Age"};
             int ageIdx = std::clamp(int(human->currentAge()), 0, 3);
 
-            auto ageText = renderTarget_->createText(Drawable::Text::Plain);
-            ageText->string = ageNames[ageIdx];
-            ageText->pointSize = 13;
-            ageText->color = Drawable::Color(180, 160, 120, 255);
-            ageText->position = ScreenPos(ss.width - 200, 15);
-            renderTarget_->draw(ageText);
+            m_ageText->string = ageNames[ageIdx];
+            m_ageText->position = ScreenPos(ss.width - 200, 15);
+            renderTarget_->draw(m_ageText);
         }
 
         // Game clock
@@ -692,23 +682,17 @@ void Engine::drawUi()
         int mins = (elapsed / 60000) % 60;
         int hrs = elapsed / 3600000;
 
-        auto clockText = renderTarget_->createText(Drawable::Text::Plain);
         char buf[16];
         snprintf(buf, sizeof(buf), "%d:%02d:%02d", hrs, mins, secs);
-        clockText->string = buf;
-        clockText->pointSize = 12;
-        clockText->color = Drawable::Color(150, 140, 110, 255);
-        clockText->position = ScreenPos(ss.width - 280, 15);
-        renderTarget_->draw(clockText);
+        m_clockText->string = buf;
+        m_clockText->position = ScreenPos(ss.width - 280, 15);
+        renderTarget_->draw(m_clockText);
 
         // Score
         if (human) {
-            auto scoreText = renderTarget_->createText(Drawable::Text::Plain);
-            scoreText->string = "Score: " + std::to_string(human->score());
-            scoreText->pointSize = 12;
-            scoreText->color = Drawable::Color(150, 140, 110, 255);
-            scoreText->position = ScreenPos(ss.width - 280, 30);
-            renderTarget_->draw(scoreText);
+            m_scoreText->string = "Score: " + std::to_string(human->score());
+            m_scoreText->position = ScreenPos(ss.width - 280, 30);
+            renderTarget_->draw(m_scoreText);
         }
     }
 #endif
@@ -1237,8 +1221,13 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             && (m_touchState.tapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST);
 
         if (isDoubleTap) {
-            // Double-tap = right click (move/attack command)
-            state->unitManager()->onRightClick(pos, renderTarget_->camera());
+            // Double-tap = select all visible units of same type
+            Unit::Ptr tappedUnit = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);
+            if (tappedUnit) {
+                Size ss = renderTarget_->getSize();
+                ScreenRect fullScreen(ScreenPos(0, 0), ScreenPos(ss.width, ss.height));
+                state->unitManager()->selectUnits(fullScreen, renderTarget_->camera());
+            }
             m_touchState.phase = TouchState::Phase::Idle;
             m_touchState.tapTime = 0;
             return true;
@@ -1395,6 +1384,17 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_populationLabel = std::make_unique<NumberLabel>(renderTarget_);
 
     m_unitsRenderer = std::make_unique<UnitsRenderer>();
+
+    // Cache HUD text objects (avoid createText per frame)
+    m_ageText = renderTarget_->createText(Drawable::Text::Plain);
+    m_ageText->pointSize = 13;
+    m_ageText->color = Drawable::Color(180, 160, 120, 255);
+    m_clockText = renderTarget_->createText(Drawable::Text::Plain);
+    m_clockText->pointSize = 12;
+    m_clockText->color = Drawable::Color(150, 140, 110, 255);
+    m_scoreText = renderTarget_->createText(Drawable::Text::Plain);
+    m_scoreText->pointSize = 12;
+    m_scoreText->color = Drawable::Color(150, 140, 110, 255);
 
 #ifdef ANDROID
     // Mobile layout: taller top bar with more spacing

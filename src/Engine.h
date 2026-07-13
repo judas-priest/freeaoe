@@ -197,6 +197,11 @@ private:
         static constexpr float ITEM_WIDTH = 160.f;
     } m_contextMenu;
 
+    // Persistent HUD text (avoid createText() every frame)
+    Drawable::Text::Ptr m_ageText;
+    Drawable::Text::Ptr m_clockText;
+    Drawable::Text::Ptr m_scoreText;
+
     float m_gameSpeed = 1.0f;
     bool m_paused = false;
     float m_gameAreaHeight = 800.f;

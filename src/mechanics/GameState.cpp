@@ -487,6 +487,9 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
 
     RandomMapGenerator::generate(settings, map_, *m_unitManager, m_players);
 
+    // Compute tile frames, blends, slopes — required for rendering
+    map_->updateMapData();
+
     // Center camera on human player's TC
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (unit->playerId() == m_humanPlayer->playerId && unit->data()->ID == 109) {

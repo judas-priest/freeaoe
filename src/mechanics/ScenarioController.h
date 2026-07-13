@@ -101,6 +101,7 @@ public:
     int m_allRelicsHolder = -1;
     static constexpr Time RELIC_VICTORY_TIME = 300000; // 5 min for testing
     void checkRelicVictory(Time time);
+    void checkRegicide(Time time);
 
 private:
     bool checkUnitMatchingEffect(const std::shared_ptr<Unit> &unit, const genie::TriggerEffect &effect);

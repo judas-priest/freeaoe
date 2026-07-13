@@ -43,12 +43,21 @@ ActionConvert::UpdateResult ActionConvert::update(Time time)
     if (!m_converting && !m_isMoving) {
         m_converting = true;
         m_convertStartTime = time;
-        DBG << monk->debugName << "starting conversion of" << target->debugName;
+
+        // Randomize conversion time (4-10 seconds base, longer for siege/buildings)
+        m_convertDuration = 4000 + (rand() % 6000); // 4-10 sec
+        // Siege units resist longer
+        if (target->data()->Class == genie::Unit::SiegeWeapon ||
+            target->data()->Type == genie::Unit::BuildingType) {
+            m_convertDuration += 8000; // +8 sec for siege/buildings
+        }
+
+        DBG << monk->debugName << "starting conversion of" << target->debugName << "duration=" << m_convertDuration;
         return UpdateResult::Updated;
     }
 
     // Check if conversion complete
-    if (m_converting && time - m_convertStartTime >= CONVERT_TIME) {
+    if (m_converting && time - m_convertStartTime >= m_convertDuration) {
         // Convert: change target's owner to monk's owner
         auto monkOwner = monk->player().lock();
         if (monkOwner) {

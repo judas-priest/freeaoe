@@ -506,6 +506,26 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
     // Compute tile frames, blends, slopes — required for rendering
     map_->updateMapData();
 
+    // Regicide: spawn King (ID 434) near each player's TC
+    if (m_gameType == GameType::Regicide) {
+        for (const auto &player : m_players) {
+            if (!player || player->playerId == 0) continue;
+            // Find player's TC position
+            for (const Unit::Ptr &unit : m_unitManager->units()) {
+                if (unit->playerId() == player->playerId && unit->data()->ID == 109) {
+                    Unit::Ptr king = UnitFactory::createUnit(434, player, *m_unitManager);
+                    if (king) {
+                        MapPos kingPos = unit->position();
+                        kingPos.x += Constants::TILE_SIZE * 2;
+                        kingPos.y += Constants::TILE_SIZE * 2;
+                        m_unitManager->add(king, kingPos);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     // Center camera on human player's TC
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (unit->playerId() == m_humanPlayer->playerId && unit->data()->ID == 109) {

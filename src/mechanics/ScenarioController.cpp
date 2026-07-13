@@ -351,6 +351,7 @@ bool ScenarioController::update(Time time)
     // Check wonder and relic victory
     checkWonderVictory(time);
     checkRelicVictory(time);
+    checkRegicide(time);
 
     return updated;
 }
@@ -441,6 +442,43 @@ void ScenarioController::checkRelicVictory(Time time)
         }
     } else {
         m_allRelicsHolder = -1;
+    }
+}
+
+void ScenarioController::checkRegicide(Time /*time*/)
+{
+    if (!m_gameState || m_gameState->gameType() != GameType::Regicide) return;
+
+    // Check if any player's King (ID 434) has died
+    for (const auto &player : m_gameState->players()) {
+        if (!player || player->playerId == 0 || !player->alive) continue;
+
+        bool hasKing = false;
+        for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+            if (unit->playerId() == player->playerId && unit->data()->ID == 434 && !unit->isDead()) {
+                hasKing = true;
+                break;
+            }
+        }
+
+        if (!hasKing) {
+            player->alive = false;
+            if (m_engine) {
+                m_engine->addMessage("Player " + std::to_string(player->playerId) + " has been regicided!");
+            }
+            // Check if only one player left alive
+            int aliveCount = 0;
+            int lastAlive = -1;
+            for (const auto &p : m_gameState->players()) {
+                if (p && p->playerId != 0 && p->alive) {
+                    aliveCount++;
+                    lastAlive = p->playerId;
+                }
+            }
+            if (aliveCount == 1) {
+                m_gameState->onPlayerWin(lastAlive);
+            }
+        }
     }
 }
 

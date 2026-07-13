@@ -89,6 +89,7 @@ public:
 
     void setScenario(const std::shared_ptr<genie::ScnFile> &scenario);
     void setGameType(const GameType &type) { m_gameType = type; }
+    GameType gameType() const { return m_gameType; }
     void setSkipDemoGame(bool skip) { m_skipDemoGame = skip; }
     void setupRandomMap(int mapType, int mapSize, int playerCount);
 

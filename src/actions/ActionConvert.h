@@ -14,7 +14,7 @@ private:
     std::weak_ptr<Unit> m_target;
     bool m_isMoving = false;
     Time m_convertStartTime = 0;
+    Time m_convertDuration = 7000; // randomized per attempt
     bool m_converting = false;
     static constexpr float CONVERT_RANGE = 48.f;
-    static constexpr Time CONVERT_TIME = 5000; // 5 seconds to convert
 };

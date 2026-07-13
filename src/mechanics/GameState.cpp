@@ -439,10 +439,10 @@ void GameState::setupGame()
 
 void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
 {
-    // Clear existing state from demo game
+    // Clear existing players (but NOT UnitManager — destroying units
+    // fires visibility events that crash on the dying manager)
     m_players.clear();
     m_aiPlayers.clear();
-    m_unitManager = std::make_shared<UnitManager>();
 
     // Create players
     auto gaiaPlayer = std::make_shared<Player>(0, 0, map_);

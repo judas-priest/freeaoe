@@ -34,7 +34,7 @@ Minimap::Minimap(const IRenderTargetPtr &renderTarget) :
 
 bool Minimap::updateRect(const Size &size)
 {
-    if (size == m_windowSize) {
+    if (size == m_windowSize && m_rect.width > 0) {
         return false;
     }
 

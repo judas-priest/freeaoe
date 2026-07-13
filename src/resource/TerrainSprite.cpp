@@ -223,9 +223,9 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
                 const int index = (y * Constants::TILE_SIZE_HORIZONTAL + x + leftEdge[y]) * 4;
                 ScreenPos sourcePos = MapPos(x, y).toScreen() ;
                 sourcePos += ScreenPos(Constants::TILE_SIZE_HORIZONTAL, Constants::TILE_SIZE_VERTICAL);
-                if (sourcePos.x < 0 || sourcePos.x >= blendW) continue;
-                if (sourcePos.y < 0 || sourcePos.y >= blendH) continue;
-                const int sourceIndex = (int(sourcePos.y) * srcW + int(sourcePos.x)) * 4;
+                if (sourcePos.x < 0 || sourcePos.x >= blendW) { alphaOffset++; continue; }
+                if (sourcePos.y < 0 || sourcePos.y >= blendH) { alphaOffset++; continue; }
+                const int sourceIndex = (int(sourcePos.y) * blendW + int(sourcePos.x)) * 4;
                 const float alpha = alphamask[alphaOffset];
                 pixels[index + 0] = (blendSourcePixels[sourceIndex + 0] * (1.f - alpha)) + (pixels[index + 0] * alpha);
                 pixels[index + 1] = (blendSourcePixels[sourceIndex + 1] * (1.f - alpha)) + (pixels[index + 1] * alpha);
@@ -416,6 +416,12 @@ const Drawable::Image::Ptr &TerrainSprite::texture(const MapTile &tile, const IR
 
     if (renderer) {
         m_textures[tile] = renderer->createImage(Size(width, filter.height), reinterpret_cast<uint8_t*>(pixels));
+        // HD Edition terrain SLPs are 96x48 but isometric grid needs 97x49 to tessellate.
+        // Scale up via SDL to fill the gaps between tiles.
+        if (width > 0 && width < 97 && m_textures[tile]) {
+            m_textures[tile]->scaleX = 97.f / width;
+            m_textures[tile]->scaleY = 49.f / filter.height;
+        }
     } else {
         //DBG << "no renderer!";
     }

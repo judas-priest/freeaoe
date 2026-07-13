@@ -102,9 +102,8 @@ void RandomMapGenerator::generateTerrain(const Settings &settings, const std::sh
                 break;
             }
 
-            // Elevation from noise
-            float elevNoise = noise(col * 0.03f + 100, row * 0.03f + 100);
-            tile.elevation = std::clamp(static_cast<int>(elevNoise * 3 + 2), 0, 7);
+            // Elevation — flat for now (slopes cause rendering artifacts)
+            tile.elevation = 2;
         }
     }
 }

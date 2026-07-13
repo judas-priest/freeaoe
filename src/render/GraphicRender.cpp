@@ -296,7 +296,7 @@ ScreenRect GraphicRender::rect() const noexcept
     ret.y = -hotspot.y;
     const Size size = m_sprite->size(m_currentFrame, m_angle);
     ret.width = size.width;
-    ret.height = size.width;
+    ret.height = size.height;
 
     for (const GraphicDelta &delta : m_deltas) {
         if (!delta.graphic->isValid()) {

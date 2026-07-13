@@ -663,7 +663,16 @@ void Engine::drawUi()
     if (!m_actionPanel->lastHelpText.empty() &&
         Engine::currentTimeMs() - m_actionPanel->lastHelpTextTime < 3000) {
         auto helpText = renderTarget_->createText(Drawable::Text::Plain);
-        helpText->string = m_actionPanel->lastHelpText;
+        std::string cleaned = m_actionPanel->lastHelpText;
+        // Strip HTML tags from language.dll strings
+        cleaned = util::stringReplace(cleaned, "<b>", "");
+        cleaned = util::stringReplace(cleaned, "</b>", "");
+        cleaned = util::stringReplace(cleaned, "<B>", "");
+        cleaned = util::stringReplace(cleaned, "</B>", "");
+        cleaned = util::stringReplace(cleaned, "<i>", "");
+        cleaned = util::stringReplace(cleaned, "</i>", "");
+        cleaned = util::stringReplace(cleaned, "\\n", " ");
+        helpText->string = cleaned;
         helpText->pointSize = 13;
         helpText->color = Drawable::Color(255, 240, 180, 230);
         // Position above the action panel
@@ -1270,24 +1279,8 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         }
 
         if (hasUnitAtTap || state->unitManager()->selected().isEmpty()) {
-            // Check if tapping already-selected unit → select all of same type on screen
-            Unit::Ptr tappedUnit = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);
-            bool alreadySelected = false;
-            if (tappedUnit) {
-                for (const Unit::Ptr &sel : state->unitManager()->selected()) {
-                    if (sel == tappedUnit) { alreadySelected = true; break; }
-                }
-            }
-            if (alreadySelected && tappedUnit) {
-                // Select all visible units of same type
-                Size ss = renderTarget_->getSize();
-                ScreenRect fullScreen(ScreenPos(0, 0), ScreenPos(ss.width, ss.height));
-                state->unitManager()->selectUnits(fullScreen, renderTarget_->camera());
-                // Now filter to only same type — selectUnits already handles this via InteractionMode
-            } else {
-                ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
-                state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
-            }
+            ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
+            state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
         }
         m_touchState.tapPos = pos;
         m_touchState.tapTime = now;
@@ -1518,6 +1511,11 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     }
 #elif defined(USE_SDL2)
     SDL_SetWindowSize(m_sdlWindow->sdlWindow, uiSize.width, uiSize.height);
+    // Reset logical size that ScenarioBrowser may have set — otherwise mouse coords mismatch
+    SDL_RenderSetLogicalSize(
+        static_cast<SdlRenderTarget*>(renderTarget_.get())->renderer(),
+        0, 0
+    );
 #else
     renderWindow_->setSize(uiSize);
 #endif
@@ -1539,8 +1537,9 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_bottomPanelY = uiSize.height; // start hidden below screen
 #else
     // Calculate game area height (screen minus UI overlay)
+    // m_uiOverlayOffset is where the overlay image starts (top of the bottom bar)
     if (m_uiOverlay && m_uiOverlay->size.isValid()) {
-        m_gameAreaHeight = uiSize.height - m_uiOverlay->size.height + m_uiOverlayOffset;
+        m_gameAreaHeight = m_uiOverlayOffset > 0 ? m_uiOverlayOffset : uiSize.height * 0.75f;
     } else {
         m_gameAreaHeight = uiSize.height * 0.75f;
     }

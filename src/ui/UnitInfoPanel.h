@@ -23,8 +23,10 @@
 #include <memory>
 #include <unordered_set>
 #include <vector>
+#include <map>
 
 #include "core/Types.h"
+#include <genie/resource/SlpFile.h>
 
 class IRenderTarget;
 class UnitManager;
@@ -111,6 +113,12 @@ private:
     std::vector<Drawable::Image::Ptr> m_unitIcons;
     std::vector<Drawable::Image::Ptr> m_buildingIcons;
     std::vector<Drawable::Image::Ptr> m_researchIcons;
+
+    // Per-player colored icon cache
+    genie::SlpFilePtr m_unitIconsSlp;
+    genie::SlpFilePtr m_buildingIconsSlp;
+    std::map<std::pair<int,int>, Drawable::Image::Ptr> m_coloredIconCache;
+    Drawable::Image::Ptr getColoredIcon(const std::shared_ptr<Unit> &unit);
 
     Drawable::Image::Ptr m_unitHalo;
 

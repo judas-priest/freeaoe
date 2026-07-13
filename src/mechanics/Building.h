@@ -41,6 +41,9 @@ struct Building : public Unit
 
     bool isResearching() const noexcept { return m_currentProduct && m_currentProduct->type == Product::Research; }
     bool isProducing() const noexcept { return productionQueueLength() > 0; }
+    const genie::Tech *currentResearchTech() const noexcept {
+        return (m_currentProduct && m_currentProduct->type == Product::Research) ? m_currentProduct->tech : nullptr;
+    }
     int productIcon(size_t index) noexcept;
     std::string currentProductName() noexcept;
     float productionProgress() const noexcept;

@@ -907,8 +907,13 @@ void UnitManager::forEachUnitAt(const ScreenPos &position, const CameraPtr camer
             continue;
         }
 
-        const ScreenPos relativePosition = position - camera->absoluteScreenPos(unit->position());
-        if (unit->containsCursorPos(relativePosition)) {
+        const ScreenPos unitPos = camera->absoluteScreenPos(unit->position());
+        double radiusX = std::max(unit->data()->OutlineSize.x * Constants::TILE_SIZE_HORIZONTAL / 2., 15.0);
+        double radiusY = std::max(unit->data()->OutlineSize.y * Constants::TILE_SIZE_VERTICAL / 2., 15.0);
+        double dx = (position.x - unitPos.x) / radiusX;
+        double dy = (position.y - unitPos.y) / radiusY;
+
+        if (dx * dx + dy * dy <= 1.0) {
             if (action(unit)) {
                 break;
             }
@@ -1020,6 +1025,9 @@ Unit::Ptr UnitManager::unitAt(const ScreenPos &pos, const CameraPtr &camera, con
 {
     Player::Ptr humanPlayer = m_humanPlayer.lock();
 
+    Unit::Ptr bestUnit;
+    double bestDist = 999999;
+
     std::reverse_iterator<UnitVector::const_iterator> unitIterator;
     for (unitIterator = m_units.rbegin(); unitIterator != m_units.rend(); unitIterator++) {
         Unit::Ptr unit = *unitIterator;
@@ -1044,13 +1052,25 @@ Unit::Ptr UnitManager::unitAt(const ScreenPos &pos, const CameraPtr &camera, con
         }
 
         const ScreenPos unitPosition = camera->absoluteScreenPos(unit->position());
-        const ScreenRect unitRect = unit->screenRect() + unitPosition;
-        if (unitRect.contains(pos)) {
-            return unit;
+
+        // Use OutlineSize for click radius (matches selection circle, like real AoE2)
+        double radiusX = unit->data()->OutlineSize.x * Constants::TILE_SIZE_HORIZONTAL / 2.;
+        double radiusY = unit->data()->OutlineSize.y * Constants::TILE_SIZE_VERTICAL / 2.;
+        radiusX = std::max(radiusX, 15.0);
+        radiusY = std::max(radiusY, 15.0);
+
+        // Ellipse hit test centered on unit's map position
+        double dx = (pos.x - unitPosition.x) / radiusX;
+        double dy = (pos.y - unitPosition.y) / radiusY;
+        double dist = dx * dx + dy * dy;
+
+        if (dist <= 1.0 && dist < bestDist) {
+            bestDist = dist;
+            bestUnit = unit;
         }
     }
 
-    return nullptr;
+    return bestUnit;
 }
 
 Unit::Ptr UnitManager::clickedUnitAt(const ScreenPos &pos, const CameraPtr &camera)

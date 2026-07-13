@@ -1,6 +1,9 @@
 #include "ActionPanel.h"
 #include "Engine.h"
 #include "mechanics/Building.h"
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 
 #ifndef USE_SDL2
 #ifndef USE_SDL2
@@ -544,6 +547,8 @@ void ActionPanel::addResearchButtons(const std::shared_ptr<Unit> &unit)
         button.index = std::max(tech->ButtonID - 1, 0);
         button.tech = tech;
         button.iconId = tech->IconID;
+
+        // HD Edition IconIDs for age techs (30/31/32) are correct for desktop
 
         currentButtons.push_back(button);
 

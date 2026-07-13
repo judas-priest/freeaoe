@@ -68,19 +68,19 @@ bool UnitInfoPanel::init()
     const int playerCiv = 0;
 
     // Unit icons
-    genie::SlpFilePtr unitIconsSlp = AssetManager::Inst()->getInterfaceSlp(AssetManager::StandardSlpType::Units, playerCiv);
-    REQUIRE(unitIconsSlp, return false);
-    m_unitIcons.resize(unitIconsSlp->getFrameCount());
-    for (size_t i=0; i<unitIconsSlp->getFrameCount(); i++) {
-        m_unitIcons[i] = m_renderTarget->convertFrameToImage(unitIconsSlp->getFrame(i));
+    m_unitIconsSlp = AssetManager::Inst()->getInterfaceSlp(AssetManager::StandardSlpType::Units, playerCiv);
+    REQUIRE(m_unitIconsSlp, return false);
+    m_unitIcons.resize(m_unitIconsSlp->getFrameCount());
+    for (size_t i=0; i<m_unitIconsSlp->getFrameCount(); i++) {
+        m_unitIcons[i] = m_renderTarget->convertFrameToImage(m_unitIconsSlp->getFrame(i));
     }
 
     // Building icons
-    genie::SlpFilePtr buildingIconsSlp = AssetManager::Inst()->getInterfaceSlp(AssetManager::StandardSlpType::Buildings, playerCiv);
-    REQUIRE(buildingIconsSlp, return false);
-    m_buildingIcons.resize(buildingIconsSlp->getFrameCount());
-    for (size_t i=0; i<buildingIconsSlp->getFrameCount(); i++) {
-        m_buildingIcons[i] = m_renderTarget->convertFrameToImage(buildingIconsSlp->getFrame(i));
+    m_buildingIconsSlp = AssetManager::Inst()->getInterfaceSlp(AssetManager::StandardSlpType::Buildings, playerCiv);
+    REQUIRE(m_buildingIconsSlp, return false);
+    m_buildingIcons.resize(m_buildingIconsSlp->getFrameCount());
+    for (size_t i=0; i<m_buildingIconsSlp->getFrameCount(); i++) {
+        m_buildingIcons[i] = m_renderTarget->convertFrameToImage(m_buildingIconsSlp->getFrame(i));
     }
 
     // Tech/research icons
@@ -282,24 +282,14 @@ void UnitInfoPanel::drawSingleUnit()
     pos.x += 2;
     pos.y += 2;
 
-    // Draw the correct icon
+    // Draw the correct icon with player color
     Size size;
-    if (unit->data()->Type == genie::Unit::BuildingType) {
-        if (iconId > int16_t(m_buildingIcons.size())) {
-            WARN << "out of bounds building icon" << iconId;
-            return;
-        }
-
-        m_renderTarget->draw(m_buildingIcons[iconId], pos);
-        size = m_buildingIcons[iconId]->size;
+    Drawable::Image::Ptr coloredIcon = getColoredIcon(unit);
+    if (coloredIcon && coloredIcon->isValid()) {
+        m_renderTarget->draw(coloredIcon, pos);
+        size = coloredIcon->size;
     } else {
-        if (iconId > int16_t(m_unitIcons.size())) {
-            WARN << "out of bounds unit icon" << iconId;
-            return;
-        }
-
-        m_renderTarget->draw(m_unitIcons[iconId], pos);
-        size = m_unitIcons[iconId]->size;
+        return;
     }
 
     pos.y += size.height + 2;
@@ -553,7 +543,8 @@ void UnitInfoPanel::drawConstructionInfo(const std::shared_ptr<Building> &buildi
 {
     m_unitButtons.clear();
 
-    const Drawable::Image::Ptr &icon = building->isResearching() ? m_researchIcons.at(building->productIcon(0)) : m_unitIcons.at(building->productIcon(0));
+    int iconId = building->productIcon(0);
+    const Drawable::Image::Ptr &icon = building->isResearching() ? m_researchIcons.at(iconId) : m_unitIcons.at(iconId);
     const Size iconSize = icon->size;
     ScreenPos pos = rect().center();
     pos.x -= iconSize.width;
@@ -610,4 +601,34 @@ ScreenRect UnitInfoPanel::rect() const
     r.x = 8 * m_buttonSize;
     r.y = m_renderTarget->getSize().height - r.height;
     return r;
+}
+
+Drawable::Image::Ptr UnitInfoPanel::getColoredIcon(const std::shared_ptr<Unit> &unit)
+{
+    if (!unit || !unit->data()) return Drawable::Image::null;
+
+    const int16_t iconId = unit->data()->IconID;
+    if (iconId < 0) return Drawable::Image::null;
+
+    Player::Ptr owner = unit->player().lock();
+    const int playerColor = owner ? owner->playerColor : 0;
+
+    auto key = std::make_pair(iconId, playerColor);
+    auto it = m_coloredIconCache.find(key);
+    if (it != m_coloredIconCache.end()) return it->second;
+
+    const genie::PalFile &palette = AssetManager::Inst()->getPalette(50500);
+    Drawable::Image::Ptr icon;
+    if (unit->data()->Type == genie::Unit::BuildingType) {
+        if (iconId < int16_t(m_buildingIconsSlp->getFrameCount())) {
+            icon = m_renderTarget->convertFrameToImage(m_buildingIconsSlp->getFrame(iconId), palette, playerColor);
+        }
+    } else {
+        if (iconId < int16_t(m_unitIconsSlp->getFrameCount())) {
+            icon = m_renderTarget->convertFrameToImage(m_unitIconsSlp->getFrame(iconId), palette, playerColor);
+        }
+    }
+
+    if (icon) m_coloredIconCache[key] = icon;
+    return icon ? icon : Drawable::Image::null;
 }

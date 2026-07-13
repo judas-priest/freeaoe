@@ -5,6 +5,7 @@
 #include "mechanics/Building.h"
 #include "mechanics/UnitManager.h"
 #include "mechanics/UnitFactory.h"
+#include "mechanics/Map.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
 
@@ -109,6 +110,20 @@ void BasicAI::buildHouses()
         float oy = (rand() % 10 - 5) * Constants::TILE_SIZE;
         MapPos housePos(tcPos.x + ox, tcPos.y + oy);
 
+        // Check for existing buildings at this position
+        int tileX = housePos.x / Constants::TILE_SIZE;
+        int tileY = housePos.y / Constants::TILE_SIZE;
+        bool blocked = false;
+        for (int dy = -1; dy <= 1 && !blocked; dy++) {
+            for (int dx = -1; dx <= 1 && !blocked; dx++) {
+                const auto &entities = m_unitManager->map()->entitiesAt(tileX + dx, tileY + dy);
+                for (const auto &e : entities) {
+                    if (e.lock()) { blocked = true; break; }
+                }
+            }
+        }
+        if (blocked) continue;
+
         // Create house (ID 70)
         Unit::Ptr house = UnitFactory::createUnit(70, std::const_pointer_cast<Player>(
             std::static_pointer_cast<const Player>(unit->player().lock())), *m_unitManager);
@@ -182,6 +197,22 @@ void BasicAI::buildStructure(int buildingId, int woodCost)
 
             // Check bounds
             if (buildPos.x < Constants::TILE_SIZE * 5 || buildPos.y < Constants::TILE_SIZE * 5) continue;
+            if (buildPos.x >= m_unitManager->map()->pixelWidth() - Constants::TILE_SIZE * 5) continue;
+            if (buildPos.y >= m_unitManager->map()->pixelHeight() - Constants::TILE_SIZE * 5) continue;
+
+            // Check for existing buildings/units at this position
+            int tileX = buildPos.x / Constants::TILE_SIZE;
+            int tileY = buildPos.y / Constants::TILE_SIZE;
+            bool blocked = false;
+            for (int dy = -2; dy <= 2 && !blocked; dy++) {
+                for (int dx = -2; dx <= 2 && !blocked; dx++) {
+                    const auto &entities = m_unitManager->map()->entitiesAt(tileX + dx, tileY + dy);
+                    for (const auto &e : entities) {
+                        if (e.lock()) { blocked = true; break; }
+                    }
+                }
+            }
+            if (blocked) continue;
 
             // Place building
             auto owner = std::const_pointer_cast<Player>(

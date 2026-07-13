@@ -162,10 +162,9 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
             double width = unit->data()->OutlineSize.x * Constants::TILE_SIZE_HORIZONTAL;
             double height =  unit->data()->OutlineSize.y * Constants::TILE_SIZE_VERTICAL;
 
-            if (unit->data()->ObstructionType == genie::Unit::UnitObstruction) {
-                width /= 2.;
-                height /= 2.;
-            } else {
+            width /= 2.;
+            height /= 2.;
+            if (unit->data()->ObstructionType != genie::Unit::UnitObstruction) {
                 circle.pointCount = 4;
             }
 
@@ -301,8 +300,8 @@ void UnitsRenderer::display(const std::shared_ptr<IRenderTarget> &renderTarget)
         const std::vector<UnplacedBuilding> &buildingsToPlace = unitManager->buildingsToPlace();
 
         if (buildingsToPlace.size() == 1) {
-            const double width = buildingsToPlace[0].data->OutlineSize.x * Constants::TILE_SIZE_HORIZONTAL + 1;
-            const double height =  buildingsToPlace[0].data->OutlineSize.y * Constants::TILE_SIZE_VERTICAL + 1;
+            const double width = buildingsToPlace[0].data->OutlineSize.x * Constants::TILE_SIZE_HORIZONTAL / 2. + 1;
+            const double height =  buildingsToPlace[0].data->OutlineSize.y * Constants::TILE_SIZE_VERTICAL / 2. + 1;
 
             Drawable::Circle circle;
             circle.filled = false;
@@ -319,7 +318,7 @@ void UnitsRenderer::display(const std::shared_ptr<IRenderTarget> &renderTarget)
             renderTarget->draw(circle);
 
             circle.center = ScreenPos(pos.x - width, pos.y - height);
-            circle.borderColor = Drawable::White;
+            circle.borderColor = buildingsToPlace[0].canPlace ? Drawable::White : Drawable::Red;
             renderTarget->draw(circle);
         }
 

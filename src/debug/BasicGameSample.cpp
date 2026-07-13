@@ -71,7 +71,7 @@ Player::Ptr BasicGameSample::getEnemyPlayer()
 void BasicGameSample::addHumanTownCenter()
 {
     Unit::Ptr unit = UnitFactory::Inst().createUnit(Unit::TownCenter, m_humanPlayer, *unitManager_);
-    unitManager_->add(unit, MapPos(48*2, 48*2, 0));
+    unitManager_->add(unit, MapPos(48*5, 48*5, 0));
 }
 
 void BasicGameSample::addHumanWalls()

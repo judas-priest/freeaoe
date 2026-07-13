@@ -1,5 +1,6 @@
 #include "Building.h"
 
+#include <cmath>
 #include <genie/Types.h>
 #include <genie/dat/Research.h>
 #include <genie/dat/TerrainRestriction.h>
@@ -337,8 +338,9 @@ bool Building::canPlace(const MapPos &position, const MapPtr &map, const genie::
     const int valid1 = data->PlacementTerrain.first;
     const int valid2 = data->PlacementTerrain.first;
 
-    const int width = data->ClearanceSize.x + data->Size.x;
-    const int height = data->ClearanceSize.x + data->Size.x;
+    const int width = std::max(static_cast<int>(std::ceil(data->ClearanceSize.x + data->Size.x)), 2);
+    const int height = std::max(static_cast<int>(std::ceil(data->ClearanceSize.y + data->Size.y)), 2);
+
 
     if (!map->isValidTile(tileX - width/2, tileY - width/2)) {
         return false;
@@ -349,8 +351,10 @@ bool Building::canPlace(const MapPos &position, const MapPtr &map, const genie::
     }
 
     for (int dx = 0; dx < width; dx++) {
-        for (int dy = 0; dy < width; dy++) {
-            const int terrainId = map->getTileAt(tileX + dx - width/2, tileY + dy - height/2).terrainId;
+        for (int dy = 0; dy < height; dy++) {
+            const int tx = tileX + dx - width/2;
+            const int ty = tileY + dy - height/2;
+            const int terrainId = map->getTileAt(tx, ty).terrainId;
             if (valid1 != -1 && terrainId != valid1) {
                 return false;
             }
@@ -359,6 +363,14 @@ bool Building::canPlace(const MapPos &position, const MapPtr &map, const genie::
             }
             if (!passable[terrainId]) {
                 return false;
+            }
+
+            // Check for existing buildings/units occupying this tile
+            const auto &entities = map->entitiesAt(tx, ty);
+            for (const auto &e : entities) {
+                if (e.lock()) {
+                    return false;
+                }
             }
         }
     }

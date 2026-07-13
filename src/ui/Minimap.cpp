@@ -57,6 +57,7 @@ bool Minimap::updateRect(const Size &size)
 
 void Minimap::onTileDiscovered(const int playerID, const int /*tileX*/, const int /*tileY*/)
 {
+    if (!m_unitManager) return;
     if (playerID == m_unitManager->humanPlayerID()) {
         m_terrainUpdated = true;
     }
@@ -64,6 +65,7 @@ void Minimap::onTileDiscovered(const int playerID, const int /*tileX*/, const in
 
 void Minimap::onTileHidden(const int playerID, const int /*tileX*/, const int /*tileY*/)
 {
+    if (!m_unitManager) return;
     if (playerID == m_unitManager->humanPlayerID()) {
         m_terrainUpdated = true;
     }

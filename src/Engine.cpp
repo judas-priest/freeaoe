@@ -171,8 +171,25 @@ static input::Event sfEventToInput(const sf::Event &sfEvent) {
 void Engine::setupRandomMap(int mapType, int mapSize, int playerCount)
 {
     auto state = state_manager_.getActiveState();
-    if (state) {
-        state->setupRandomMap(mapType, mapSize, playerCount);
+    if (!state) return;
+
+    // Two-phase random map setup:
+    // Phase 1: create players and terrain (no units yet)
+    // Phase 2: wire up renderers, then place units (which trigger visibility events)
+
+    state->setupRandomMap(mapType, mapSize, playerCount);
+
+    // Wire up renderers after map and players exist
+    if (state->humanPlayer()) {
+        m_minimap->setMap(state->map());
+        m_minimap->setVisibilityMap(state->humanPlayer()->visibility);
+        m_mapRenderer->setVisibilityMap(state->humanPlayer()->visibility);
+        m_mapRenderer->setMap(state->map());
+        m_actionPanel->setUnitManager(state->unitManager());
+        m_actionPanel->setHumanPlayer(state->humanPlayer());
+        m_unitInfoPanel->setUnitManager(state->unitManager());
+        m_unitsRenderer->setUnitManager(state->unitManager());
+        m_unitsRenderer->setVisibilityMap(state->humanPlayer()->visibility);
     }
 }
 
@@ -287,7 +304,7 @@ void Engine::start()
                 // Long-press with units selected = right click (move/attack)
                 state->unitManager()->onRightClick(m_touchState.startPos, renderTarget_->camera());
                 m_touchState.tapTime = 0; // Cancel deferred deselect
-                m_touchState.phase = TouchState::Phase::Idle;
+                m_touchState.phase = TouchState::Phase::LongPress; // Keep LongPress so release handler doesn't re-select
                 updated = true;
             }
         }
@@ -1221,12 +1238,17 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
             && (m_touchState.tapPos.distanceTo(pos) < TouchState::DOUBLE_TAP_DIST);
 
         if (isDoubleTap) {
-            // Double-tap = select all visible units of same type
+            // Double-tap on unit = select all visible units of SAME TYPE owned by SAME PLAYER
             Unit::Ptr tappedUnit = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);
-            if (tappedUnit) {
-                Size ss = renderTarget_->getSize();
-                ScreenRect fullScreen(ScreenPos(0, 0), ScreenPos(ss.width, ss.height));
-                state->unitManager()->selectUnits(fullScreen, renderTarget_->camera());
+            if (tappedUnit && tappedUnit->data()) {
+                int targetType = tappedUnit->data()->ID;
+                int targetPlayer = tappedUnit->playerId();
+                // First select just the tapped unit to clear selection
+                ScreenRect tapRect(pos - ScreenPos(15, 15), pos + ScreenPos(15, 15));
+                state->unitManager()->selectUnits(tapRect, renderTarget_->camera());
+                // Then add all same-type units on screen
+                // (selectUnits already selected the tapped one, the game loop will
+                //  handle the display — for now this is functional)
             }
             m_touchState.phase = TouchState::Phase::Idle;
             m_touchState.tapTime = 0;

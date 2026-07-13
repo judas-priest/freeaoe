@@ -233,7 +233,7 @@ ScreenRect ActionPanel::rect() const
     //r.height = 3 * 51;
     r.width = 5 * m_buttonSize;
 #ifdef ANDROID
-    r.x = 8; // Flush-left with small padding on mobile
+    r.x = 3; // Flush-left on mobile
 #else
     r.x = m_buttonSize;
 #endif

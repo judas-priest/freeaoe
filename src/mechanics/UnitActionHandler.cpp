@@ -182,7 +182,9 @@ Task UnitActionHandler::findMatchingTask(const std::shared_ptr<Player> &ownPlaye
 
 Task UnitActionHandler::checkForAutoTargets()
 {
-    if (m_unit->stance != Unit::Stance::Aggressive || m_autoTargetTasks.size() == 0 || m_currentAction) {
+    // Auto-target for Aggressive and Defensive stances (not StandGround or NoAttack)
+    if ((m_unit->stance != Unit::Stance::Aggressive && m_unit->stance != Unit::Stance::Defensive)
+        || m_autoTargetTasks.size() == 0 || m_currentAction) {
         return {};
     }
 

@@ -87,6 +87,19 @@ bool Missile::initialize()
 {
     m_startingElevation = position().z;
 
+    // Ballistics: lead the target based on its movement
+    Unit::Ptr target = m_targetUnit.lock();
+    if (target && m_data.Speed > 0 && target->data()->Speed > 0) {
+        float dist = position().distance(m_targetPosition);
+        float flightEst = dist / m_data.Speed;
+        // Predict where target will be when missile arrives
+        // Use target's current movement angle and speed
+        float tSpeed = target->data()->Speed;
+        float tAngle = target->angle();
+        m_targetPosition.x += cos(tAngle) * tSpeed * flightEst * 0.5f;
+        m_targetPosition.y += sin(tAngle) * tSpeed * flightEst * 0.5f;
+    }
+
     m_distanceLeft = position().distance(m_targetPosition);
     const float heightDifference = (position().z - m_targetPosition.z);
     const float flightTime = m_distanceLeft / m_data.Speed;

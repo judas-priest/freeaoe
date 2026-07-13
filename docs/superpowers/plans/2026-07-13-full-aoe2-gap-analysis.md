@@ -172,7 +172,7 @@ Implemented per MEMORY.md.
 - [ ] Construction sprite progression (4 stages typically)
 - [ ] HP proportional to construction progress
 
-### 3.2 ❌ Building foundation terrain change
+### 3.2 ✅ Building foundation terrain change (already in Map::addEntityAt)
 
 **What AoE2 does:** Placing a building changes underlying terrain to "foundation" type (dirt). After building is destroyed, foundation terrain remains.
 
@@ -326,7 +326,7 @@ Implemented per MEMORY.md.
 
 ## TIER 9: ADVANCED MECHANICS
 
-### 9.1 ❌ Transport ships
+### 9.1 ✅ Transport ships (disembark via ungarrison already works)
 
 **What AoE2 does:** Load/unload land units across water.
 

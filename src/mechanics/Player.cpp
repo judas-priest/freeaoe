@@ -318,6 +318,12 @@ void Player::setDiplomaticStance(const uint8_t playerId, const Player::Diplomati
     m_diplomaticStances[playerId] = stance;
 }
 
+Player::DiplomaticStance Player::diplomaticStanceTo(uint8_t playerId) const
+{
+    if (playerId >= m_diplomaticStances.size()) return Enemy;
+    return m_diplomaticStances[playerId];
+}
+
 bool Player::isAllied(uint8_t playerId)
 {
     if (playerId == this->playerId) {

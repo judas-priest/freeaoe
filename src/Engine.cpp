@@ -19,6 +19,7 @@
 
 #include "Engine.h"
 #include "audio/AudioPlayer.h"
+#include "ui/DiplomacyScreen.h"
 
 #include "core/Logger.h"
 #include "core/ResourceMap.h"
@@ -595,6 +596,9 @@ void Engine::drawUi()
     m_stoneLabel->render();
     m_populationLabel->render();
 
+    // Overlay screens
+    if (m_diplomacyScreen) m_diplomacyScreen->render();
+
     // Game speed / pause indicator
     if (m_paused) {
         fps_label_->string = "PAUSED";
@@ -690,6 +694,10 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         }
 
         return true;
+    }
+
+    if (m_diplomacyScreen && m_diplomacyScreen->isVisible()) {
+        return m_diplomacyScreen->handleEvent(event);
     }
 
     if (m_actionPanel->handleEvent(event)) {
@@ -974,7 +982,7 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         if (clickedButton == IconButton::GameMenu) {
             showMenu();
         } else if (clickedButton == IconButton::Diplo) {
-            addMessage("Diplomacy: not yet implemented");
+            if (m_diplomacyScreen) m_diplomacyScreen->show(state_manager_.getActiveState());
         } else if (clickedButton == IconButton::Chat) {
             addMessage("Chat: not yet implemented");
         } else if (clickedButton == IconButton::TechTree) {
@@ -1187,6 +1195,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 
     m_unitInfoPanel = std::make_unique<UnitInfoPanel>(renderTarget_);
     REQUIRE(m_unitInfoPanel->init(), return false);
+
+    m_diplomacyScreen = std::make_unique<DiplomacyScreen>(renderTarget_);
 
     m_mapRenderer = std::make_unique<MapRenderer>();
     m_mapRenderer->setRenderTarget(renderTarget_);

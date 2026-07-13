@@ -44,6 +44,7 @@ class ActionPanel;
 class SfmlRenderTarget;
 #endif
 struct Dialog;
+class DiplomacyScreen;
 struct IconButton;
 class Minimap;
 struct NumberLabel;
@@ -114,6 +115,7 @@ private:
     std::shared_ptr<SfmlRenderTarget> renderTarget_;
 #endif
     std::unique_ptr<Dialog> m_currentDialog;
+    std::unique_ptr<DiplomacyScreen> m_diplomacyScreen;
 
     std::unique_ptr<UiScreen> m_mainScreen;
     std::unique_ptr<UnitsRenderer> m_unitsRenderer;

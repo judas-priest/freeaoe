@@ -99,6 +99,7 @@ public:
 
     const std::shared_ptr<UnitManager> &unitManager() { return m_unitManager; }
     const MapPtr &map() const { return map_; }
+    const std::vector<std::shared_ptr<Player>> &players() const { return m_players; }
 
     void moveCameraTo(const MapPos &newTarget);
 

@@ -200,11 +200,15 @@ bool UnitInfoPanel::handleEvent(input::Event event)
 bool UnitInfoPanel::update(Time /*time*/)
 {
     // TODO don't do this every update
+#ifdef ANDROID
+    m_buttonSize = 50;
+#else
     if (m_renderTarget->getSize().height >= 1024) {
         m_buttonSize = 45;
     } else {
         m_buttonSize = 40;
     }
+#endif
 
     std::shared_ptr<UnitManager> unitManager = m_unitManager.lock();
     if (!unitManager) {
@@ -262,6 +266,7 @@ void UnitInfoPanel::drawSingleUnit()
     }
 
     ScreenPos pos = rect().topLeft();
+    pos.x += 5; // Small left padding
     m_name->string = LanguageManager::getString(unit->data()->LanguageDLLName);
     m_name->position = pos;
     m_renderTarget->draw(m_name);

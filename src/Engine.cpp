@@ -366,13 +366,7 @@ void Engine::start()
 
             state->draw();
 
-            if (m_currentDialog) {
-#ifdef USE_SDL2
-                m_currentDialog->render(renderTarget_);
-#else
-                m_currentDialog->render(renderWindow_);
-#endif
-            }
+            // Dialog and result overlay rendered AFTER drawUi() — see below
 
             if (state->result != GameState::Result::Running) {
                 // Semi-transparent overlay
@@ -429,6 +423,15 @@ void Engine::start()
 #endif
             // HUD at 1:1 on top
             drawUi();
+
+            // Dialog AFTER UI so it renders on top of bottom panel
+            if (m_currentDialog) {
+#ifdef USE_SDL2
+                m_currentDialog->render(renderTarget_);
+#else
+                m_currentDialog->render(renderWindow_);
+#endif
+            }
 
             const int renderTime = Engine::currentTimeMs() - renderStart;
 

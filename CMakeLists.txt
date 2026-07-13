@@ -396,6 +396,7 @@ set (UI_SRC
     src/ui/FileDialog.cpp
     src/ui/ScenarioBrowser.cpp
     src/ui/DiplomacyScreen.cpp
+    src/ui/SettingsScreen.cpp
     src/ui/FileDialog.h
     src/ui/UnitInfoPanel.cpp
     src/ui/UnitInfoPanel.h

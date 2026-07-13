@@ -89,7 +89,7 @@
 
 All tech effects are data-driven from the dat file — Loom, Wheelbarrow, Blacksmith etc. work automatically.
 
-### 1.4 ❌ Villager auto-behavior
+### 1.4 ⚠️ Villager auto-behavior (auto-gather after building done, wolf defense done)
 
 **What AoE2 does:** After building a resource building (Lumber Camp), villager auto-starts gathering nearest resource. After killing a boar, villager auto-gathers. Villagers auto-attack wolves that attack them.
 
@@ -232,7 +232,7 @@ Implemented per MEMORY.md.
 - [ ] Spawn King unit at game start
 - [ ] Defeat condition: King dies → player eliminated
 
-### 5.7 ❌ Deathmatch mode
+### 5.7 ✅ Deathmatch mode (20000 resources + Imperial Age start)
 
 **What AoE2 does:** Players start with massive resources (20000 each) and in Post-Imperial Age.
 
@@ -299,7 +299,7 @@ Implemented per MEMORY.md.
 - [ ] Verify all cursor types work
 - [ ] Cursor changes on hover over actionable targets
 
-### 8.3 ❌ Idle villager button
+### 8.3 ✅ Idle villager button (F1)
 
 **What AoE2 does:** Button/hotkey to cycle through idle villagers and center camera.
 
@@ -315,7 +315,7 @@ Implemented per MEMORY.md.
 
 **What freeaoe does:** Production queue exists in Building, display in UnitInfoPanel.
 
-### 8.6 ❌ Group selection (Ctrl+1..9)
+### 8.6 ✅ Group selection (Ctrl+0..9, double-tap centers camera)
 
 **What AoE2 does:** Ctrl+1 assigns selection to group 1. Press 1 to recall group. Double-tap 1 to center camera on group.
 
@@ -332,7 +332,7 @@ Implemented per MEMORY.md.
 
 **What freeaoe does:** Disembark implemented per MEMORY.md.
 
-### 9.2 ❌ Conversion resistance
+### 9.2 ✅ Conversion resistance (randomized 4-10s, siege/buildings +8s)
 
 **What AoE2 does:** Some units resist conversion (Teutonic Knights, siege). Conversion time varies by unit class.
 
@@ -340,25 +340,25 @@ Implemented per MEMORY.md.
 
 **What AoE2 does:** Allied players share LOS (see what allies see).
 
-### 9.4 ❌ Trebuchet pack/unpack
+### 9.4 ✅ Trebuchet pack/unpack (swaps unit data between packed/unpacked)
 
 **What AoE2 does:** Trebuchets must unpack (transform) before firing. Pack to move.
 
-### 9.5 ❌ Relic victory countdown
+### 9.5 ✅ Relic victory countdown (already in ScenarioController)
 
 **What AoE2 does:** Holding all relics starts a 200-year countdown to victory.
 
-### 9.6 ❌ Wonder victory countdown
+### 9.6 ✅ Wonder victory countdown (already in ScenarioController)
 
 **What AoE2 does:** Building a Wonder starts a 200-year countdown. Destroying it resets.
 
-### 9.7 ❌ Terrain elevation combat bonus
+### 9.7 ✅ Terrain elevation combat bonus (+25% high ground, -25% uphill)
 
 **What AoE2 does:** Units on higher ground get +25% attack, -25% for uphill attacks.
 
 **What freeaoe does:** Elevation bonus for missiles implemented per MEMORY.md, but terrain elevation is currently flat (slopes disabled).
 
-### 9.8 ❌ Civilization-specific bonuses
+### 9.8 ⚠️ Civilization-specific bonuses (data-driven via tech effects, partially applied)
 
 **What AoE2 does:** Each civ has unique bonuses (Britons +1 range for archers, Mongols faster cavalry archers, etc.), unique unit, unique technology.
 

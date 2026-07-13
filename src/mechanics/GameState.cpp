@@ -487,6 +487,14 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
         }
     }
 
+    // Deathmatch: start in Imperial Age
+    if (m_gameType == GameType::Deathmatch) {
+        for (auto &p : m_players) {
+            if (p->playerId == 0) continue;
+            p->setAge(Player::ImperialAge);
+        }
+    }
+
     // Generate the map
     RandomMapGenerator::Settings settings;
     settings.type = static_cast<RandomMapGenerator::MapType>(mapType);

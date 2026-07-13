@@ -824,22 +824,27 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             m_unitManager->selectRepairTarget(); // reuse repair target selection for relic
             break;
         case Command::Pack:
-        case Command::Unpack:
-            // Pack/Unpack trebuchet — swap between packed and unpacked unit IDs
+        case Command::Unpack: {
+            Player::Ptr human = m_humanPlayer.lock();
+            if (!human) break;
             for (const Unit::Ptr &unit : m_selectedUnits) {
                 if (!unit) continue;
-                // Trebuchet packed (ID 331) ↔ unpacked (ID 42)
+                // Trebuchet packed (331) ↔ unpacked (42)
+                // Bombard Cannon packed (36) has no unpack in AoE2, skip
                 int currentId = unit->data()->ID;
                 int swapId = -1;
-                if (currentId == 331) swapId = 42;  // packed → unpacked
-                else if (currentId == 42) swapId = 331; // unpacked → packed
+                if (currentId == 331) swapId = 42;
+                else if (currentId == 42) swapId = 331;
                 if (swapId >= 0) {
-                    DBG << "Pack/Unpack trebuchet" << currentId << "→" << swapId;
-                    // Note: full implementation needs unit type swap
-                    // For now just log — unit type swap requires UnitFactory refactor
+                    const genie::Unit &newData = human->civilization.unitData(swapId);
+                    if (newData.ID != -1) {
+                        unit->setUnitData(newData);
+                    }
                 }
             }
+            m_buttonsDirty = true;
             break;
+        }
         default:
             WARN << "Unhandled action" << button.action;
             break;

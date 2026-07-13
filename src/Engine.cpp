@@ -378,8 +378,35 @@ void Engine::start()
                 // Semi-transparent overlay
                 Size ws = renderTarget_->getSize();
                 renderTarget_->draw(ScreenRect(0, 0, ws.width, ws.height),
-                                    Drawable::Color(0, 0, 0, 160));
+                                    Drawable::Color(0, 0, 0, 180));
                 renderTarget_->draw(m_resultOverlay);
+
+                // Post-game statistics
+                const Player::Ptr &human = state->humanPlayer();
+                if (human) {
+                    float sy = ws.height / 2.f + 40;
+                    auto statText = renderTarget_->createText(Drawable::Text::Plain);
+                    statText->pointSize = 14;
+                    statText->color = Drawable::Color(200, 190, 150, 255);
+
+                    auto drawStat = [&](const std::string &label, int value) {
+                        statText->string = label + ": " + std::to_string(value);
+                        statText->position = ScreenPos(ws.width / 2 - 100, sy);
+                        renderTarget_->draw(statText);
+                        sy += 22;
+                    };
+
+                    drawStat("Score", human->score());
+                    drawStat("Units Killed", human->unitsKilled);
+                    drawStat("Units Lost", human->unitsLost);
+                    drawStat("Buildings Razed", human->buildingsRazed);
+                    drawStat("Techs Researched", human->techsResearched);
+
+                    statText->string = "Tap Menu to exit";
+                    statText->color = Drawable::Color(150, 140, 110, 200);
+                    statText->position = ScreenPos(ws.width / 2 - 70, sy + 15);
+                    renderTarget_->draw(statText);
+                }
             }
 
 #ifdef USE_SDL2

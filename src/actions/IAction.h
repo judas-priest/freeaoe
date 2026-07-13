@@ -75,7 +75,8 @@ public:
         Follow,
         Repair,
         Convert,
-        Heal
+        Heal,
+        Trade
     };
 
     enum UnitState {

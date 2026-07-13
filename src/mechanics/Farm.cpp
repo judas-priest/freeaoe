@@ -1,4 +1,5 @@
 #include "Farm.h"
+#include "Player.h"
 
 #include <genie/Types.h>
 #include <genie/dat/Unit.h>
@@ -55,7 +56,17 @@ bool Farm::update(Time time) noexcept
     bool updated = Unit::update(time); // NOLINT
 
     if (util::floatsEquals(resources[genie::ResourceType::FoodStorage], 0)) {
-        setTerrain(FarmDead);
+        // Auto-reseed: if player can afford, reset farm
+        Player::Ptr owner = player().lock();
+        if (owner && owner->resourcesAvailable(genie::ResourceType::WoodStorage) >= 60) {
+            owner->setAvailableResource(genie::ResourceType::WoodStorage,
+                owner->resourcesAvailable(genie::ResourceType::WoodStorage) - 60);
+            resources[genie::ResourceType::FoodStorage] = data()->ResourceStorages[0].Amount;
+            setTerrain(FarmFinished);
+            DBG << "Auto-reseeded farm";
+        } else {
+            setTerrain(FarmDead);
+        }
     }
 
     if (m_updated) {

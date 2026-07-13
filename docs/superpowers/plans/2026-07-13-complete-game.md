@@ -19,6 +19,93 @@
 - [AoE2 Save Format](https://github.com/stefan-kolb/aoc-mgx-format)
 - [OpenAge RE docs](https://simonsan.github.io/openage-webdocs/sphinx/doc/sphinx/handbooks/reverse_engineering.html)
 
+**Mobile UI Design References:**
+- [Game UI: Strategy Game Dos/Don'ts](https://www.gamedeveloper.com/design/ui-strategy-game-design-dos-and-don-ts) — bottom panel for contextual info, large touch targets
+- [Rome Total War Mobile Port](https://ljackso.medium.com/a-mobile-port-done-right-falling-back-in-love-with-rome-total-war-eed926a2e159) — stone dashboard bottom panel, circular minimap, faction button
+- [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/buttons) — minimum 44pt tap targets
+- [C&C Generals iOS](https://github.com/ammaarreshi/Generals-Mac-iOS-iPad) — deferred-tap state machine, long-press context menu
+
+---
+
+## Phase 0: Mobile UI Redesign (do FIRST — affects all subsequent work)
+
+### Task 0A: Redesign top bar for mobile
+
+**Problem:** Current top bar is 28px tall with 5 tiny buttons (24px) and naked resource numbers without icons. Untappable on phone.
+
+**Design:** Replace with 48px tall bar:
+- Left: Age indicator icon (shield) + age name
+- Center: Resource icons (wood/food/gold/stone from SLP) + numbers in 18pt font + population
+- Right: Single hamburger menu button (40x40) that opens overlay with Diplo/TechTree/Settings/Save/Quit
+
+**Files:**
+- Modify: `src/Engine.cpp` — drawUi(), loadTopButtons()
+- Modify: `src/Engine.h` — remove individual button members, add hamburger menu state
+
+- [ ] **Step 1:** Increase top bar height to 48px
+- [ ] **Step 2:** Load resource icons from game data SLP (or draw colored squares as fallback)
+- [ ] **Step 3:** Replace 5 tiny buttons with single hamburger button (≡) 40x40px
+- [ ] **Step 4:** Hamburger tap opens vertical overlay menu with large buttons: Menu, Diplomacy, Tech Tree, Settings
+- [ ] **Step 5:** Commit
+
+```bash
+git commit -m "feat: redesigned mobile top bar — 48px, resource icons, hamburger menu"
+```
+
+---
+
+### Task 0B: Redesign bottom panel — sliding contextual panel
+
+**Problem:** Bottom panel appears/disappears abruptly, no proper background, action buttons too small (40px), unit info has no background.
+
+**Design (inspired by Rome Total War mobile):**
+- Panel slides up from bottom when unit/building selected, slides down when deselected
+- Three sections: ActionPanel (left, 5x3 grid) | UnitInfo (center) | Minimap (right)
+- Dark parchment background spanning full width
+- Action buttons 56px for comfortable touch
+- When nothing selected: panel hidden, game fills entire screen below top bar
+
+**Files:**
+- Modify: `src/Engine.cpp` — drawUi() with animation
+- Modify: `src/ui/ActionPanel.cpp` — button size 56px
+- Modify: `src/ui/UnitInfoPanel.cpp` — position relative to panel
+- Modify: `src/ui/Minimap.cpp` — position in panel
+
+- [ ] **Step 1:** Add `float m_bottomPanelY` to Engine — animated slide position
+- [ ] **Step 2:** In update loop: if units selected → lerp panel up; if nothing selected → lerp panel down
+- [ ] **Step 3:** Draw full-width dark background at panel Y position
+- [ ] **Step 4:** Position ActionPanel, UnitInfoPanel, Minimap relative to panel Y
+- [ ] **Step 5:** Action buttons 56px, bevel sizes use m_buttonSize
+- [ ] **Step 6:** Commit
+
+```bash
+git commit -m "feat: sliding bottom panel with 56px action buttons for mobile"
+```
+
+---
+
+### Task 0C: Long-press context menu for units
+
+**Problem:** No way to access patrol/guard/follow/formation without tiny action panel buttons.
+
+**Design:** Long press (600ms) on selected unit → radial/vertical context menu with commands:
+- Move, Attack, Patrol, Guard, Follow, Stop, Delete
+- Formation submenu (Line, Box, Flank)
+
+**Files:**
+- Create: `src/ui/ContextMenu.h/cpp`
+- Modify: `src/Engine.cpp` — touch state machine, add LongPress state
+
+- [ ] **Step 1:** Add `LongPress` phase to TouchState
+- [ ] **Step 2:** After 600ms hold without movement → show ContextMenu at touch position
+- [ ] **Step 3:** ContextMenu renders as vertical list of command buttons (60px tall each)
+- [ ] **Step 4:** Tap command → enter target selection mode (same as ActionPanel button press)
+- [ ] **Step 5:** Commit
+
+```bash
+git commit -m "feat: long-press context menu for unit commands on mobile"
+```
+
 ---
 
 ## Phase 1: Game Speed, Pause, and Hotkeys (small effort, huge impact)

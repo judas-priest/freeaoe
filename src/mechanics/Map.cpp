@@ -40,6 +40,20 @@ Map::Map() //: map_txt_(0)
 //    DBG << DataManager::Inst().datFile().TerrainBlock.TileSizes.size();
 }
 
+void Map::setupBasic(int mapSize) noexcept
+{
+    cols_ = mapSize;
+    rows_ = mapSize;
+
+    tiles_.clear();
+    MapTile grass;
+    grass.elevation = 0;
+    grass.terrainId = 0;
+    const size_t tileCount = size_t(cols_) * size_t(rows_);
+    tiles_.resize(tileCount, grass);
+    m_tileUnits.resize(tileCount);
+}
+
 void Map::setupBasic() noexcept
 {
     cols_ = 22;

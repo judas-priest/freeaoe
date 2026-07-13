@@ -74,6 +74,7 @@ public:
     Map();
 
     void setupBasic() noexcept;
+    void setupBasic(int mapSize) noexcept;
     void setupAllunitsMap() noexcept;
 
     void create(const genie::ScnMap &mapDescription);

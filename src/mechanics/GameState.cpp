@@ -19,6 +19,7 @@
 #include "GameState.h"
 #include "ai/AiPlayer.h"
 #include "ai/AiScript.h"
+#include "RandomMapGenerator.h"
 #ifdef ANDROID
 #include <android/log.h>
 #define ALOG(...) __android_log_print(ANDROID_LOG_INFO, "FreeAoE", __VA_ARGS__)
@@ -426,4 +427,64 @@ void GameState::setupGame()
 
     MapPos cameraPos(map_->pixelWidth() / 2.f, map_->pixelHeight()  / 2.f);
     renderTarget_->camera()->setTargetPosition(cameraPos);
+}
+
+void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
+{
+    // Create players
+    auto gaiaPlayer = std::make_shared<Player>(0, 0, map_);
+    gaiaPlayer->name = "Gaia";
+    gaiaPlayer->playerColor = -1;
+    m_players.push_back(gaiaPlayer);
+
+    // Human player (always player 1, civ 1 = Briton)
+    m_humanPlayer = std::make_shared<Player>(1, 1, map_, defaultStartingResources[m_gameType]);
+    m_humanPlayer->name = "You";
+    m_humanPlayer->playerColor = 0;
+    m_players.push_back(m_humanPlayer);
+
+    // AI players
+    for (int i = 2; i <= playerCount; i++) {
+        int civId = 1 + (rand() % 13); // Random civilization
+        auto aiPlayer = std::make_shared<AiPlayer>(i, civId, map_, defaultStartingResources[m_gameType]);
+        aiPlayer->name = "AI " + std::to_string(i);
+        aiPlayer->playerColor = i - 1;
+        aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
+        m_players.push_back(aiPlayer);
+        m_aiPlayers.push_back(aiPlayer);
+    }
+
+    m_unitManager->setPlayers(m_players);
+    m_unitManager->setHumanPlayer(m_humanPlayer);
+
+    // Set diplomacy — everyone is enemy to everyone else
+    for (auto &p1 : m_players) {
+        for (auto &p2 : m_players) {
+            if (p1 == p2 || p1->playerId == 0 || p2->playerId == 0) continue;
+            if (p1 != m_humanPlayer && p2 != m_humanPlayer) {
+                // AI players neutral to each other
+                p1->setDiplomaticStance(p2->playerId, Player::Neutral);
+            } else if (p1 != p2) {
+                p1->setDiplomaticStance(p2->playerId, Player::Enemy);
+            }
+        }
+    }
+
+    // Generate the map
+    RandomMapGenerator::Settings settings;
+    settings.type = static_cast<RandomMapGenerator::MapType>(mapType);
+    settings.size = mapSize;
+    settings.playerCount = playerCount;
+
+    RandomMapGenerator::generate(settings, map_, *m_unitManager, m_players);
+
+    // Center camera on human player's TC
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit->playerId() == m_humanPlayer->playerId && unit->data()->ID == 109) {
+            renderTarget_->camera()->setTargetPosition(unit->position());
+            break;
+        }
+    }
+
+    ALOG("Random map generated: type=%d size=%d players=%d", mapType, mapSize, playerCount);
 }

@@ -323,33 +323,51 @@ void BasicAI::attackWithArmy()
 
 void BasicAI::trainMilitary()
 {
-    // Train militia (ID 74) from barracks (ID 12)
-    int militaryCount = countUnitsOfType(74);
-    if (militaryCount >= 10) return;
-
     float food = m_player->resourcesAvailable(genie::ResourceType::FoodStorage);
-    if (food < 60) return;
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float gold = m_player->resourcesAvailable(genie::ResourceType::GoldStorage);
 
-    // First check if we have a barracks, if not try to build one
-    int barracksCount = countBuildingsOfType(12);
-    if (barracksCount == 0) {
-        float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
-        if (wood >= 175) {
-            buildStructure(12, 175); // Barracks costs 175 wood
-        }
+    // Build barracks (12, 175W) if we don't have one
+    if (countBuildingsOfType(12) == 0) {
+        if (wood >= 175) buildStructure(12, 175);
         return;
     }
 
-    for (const Unit::Ptr &unit : m_unitManager->units()) {
-        if (!unit || unit->playerId() != m_player->playerId) continue;
-        if (unit->data()->ID != 12) continue; // Barracks
-        auto building = Building::fromUnit(unit);
-        if (!building) continue;
-        if (building->isProducing()) continue;
+    // Build archery range (87, 175W) after barracks
+    if (countBuildingsOfType(87) == 0 && countBuildingsOfType(12) > 0) {
+        if (wood >= 175) buildStructure(87, 175);
+    }
 
-        const genie::Unit &militiaData = m_player->civilization.unitData(74);
-        building->enqueueProduceUnit(&militiaData);
-        return;
+    int totalMilitary = countUnitsOfType(74) + countUnitsOfType(4) + countUnitsOfType(93);
+    if (totalMilitary >= 15) return;
+
+    // Train from barracks: militia (74, 60F) or spearman (93, 35F 25W)
+    if (food >= 60) {
+        for (const Unit::Ptr &unit : m_unitManager->units()) {
+            if (!unit || unit->playerId() != m_player->playerId) continue;
+            if (unit->data()->ID != 12) continue;
+            auto building = Building::fromUnit(unit);
+            if (!building || building->isProducing()) continue;
+
+            int unitId = (countUnitsOfType(74) > countUnitsOfType(93)) ? 93 : 74;
+            const genie::Unit &data = m_player->civilization.unitData(unitId);
+            building->enqueueProduceUnit(&data);
+            break;
+        }
+    }
+
+    // Train from archery range: archer (4, 25W 45G)
+    if (wood >= 25 && gold >= 45) {
+        for (const Unit::Ptr &unit : m_unitManager->units()) {
+            if (!unit || unit->playerId() != m_player->playerId) continue;
+            if (unit->data()->ID != 87) continue;
+            auto building = Building::fromUnit(unit);
+            if (!building || building->isProducing()) continue;
+
+            const genie::Unit &archerData = m_player->civilization.unitData(4);
+            building->enqueueProduceUnit(&archerData);
+            break;
+        }
     }
 }
 

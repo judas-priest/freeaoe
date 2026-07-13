@@ -305,6 +305,25 @@ bool Building::update(Time time) noexcept
         }
     }
 
+    // Monastery (ID 104): generate 0.5 gold/sec per garrisoned relic (30 gold/min)
+    if (data()->ID == 104 && !garrisonedUnits.empty()) {
+        int relicCount = 0;
+        for (const auto &g : garrisonedUnits) {
+            Unit::Ptr u = g.lock();
+            if (u && u->data()->ID == 285) relicCount++; // Relic ID
+        }
+        if (relicCount > 0) {
+            Player::Ptr owner = player().lock();
+            if (owner) {
+                float goldPerMs = 0.5f * relicCount; // 0.5 gold/sec per relic
+                float gold = goldPerMs * deltaTime / 1000.f;
+                owner->setAvailableResource(genie::ResourceType::GoldStorage,
+                    owner->resourcesAvailable(genie::ResourceType::GoldStorage) + gold);
+                owner->setAvailableResource(genie::ResourceType::RelicsCaptured, relicCount);
+            }
+        }
+    }
+
     if (m_currentProduct) {
         float productionTime = 0;
         if (m_currentProduct->type == Product::Unit) {

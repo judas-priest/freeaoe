@@ -429,6 +429,11 @@ void Engine::showStartScreen()
 
 void Engine::loadTopButtons()
 {
+#ifdef ANDROID
+    // On Android, hamburger menu replaces individual top buttons.
+    // Keep only GameMenu button (hidden, triggered by hamburger).
+    // Don't add visible buttons — they're too small for touch.
+#else
     float x = renderTarget_->getSize().width - 5;
     for (int i=0; i<IconButton::ButtonsCount; i++) {
         std::unique_ptr<IconButton> button = std::make_unique<IconButton>(renderTarget_);
@@ -440,6 +445,7 @@ void Engine::loadTopButtons()
 
         m_buttons.push_back(std::move(button));
     }
+#endif
 }
 
 void Engine::loadUiOverlay()
@@ -486,9 +492,35 @@ void Engine::drawUi()
     {
         Size screenSize = renderTarget_->getSize();
 
-        // Top bar background
-        renderTarget_->draw(ScreenRect(0, 0, screenSize.width, 28),
-            Drawable::Color(30, 20, 10, 220));
+        // Top bar background — 48px for comfortable touch targets
+        renderTarget_->draw(ScreenRect(0, 0, screenSize.width, 48),
+            Drawable::Color(30, 20, 10, 230));
+        // Separator line
+        renderTarget_->draw(ScreenRect(0, 47, screenSize.width, 1),
+            Drawable::Color(80, 60, 30, 255));
+
+        // Hamburger menu button (≡) — top right, 44x44
+        {
+            float bx = screenSize.width - 50;
+            float by = 2;
+            renderTarget_->draw(ScreenRect(bx, by, 44, 44),
+                Drawable::Color(50, 35, 20, 200));
+            // Three horizontal lines (hamburger icon)
+            for (int i = 0; i < 3; i++) {
+                renderTarget_->draw(ScreenRect(bx + 10, by + 12 + i * 8, 24, 2),
+                    Drawable::Color(200, 180, 140, 255));
+            }
+        }
+
+        // Resource label icons (colored squares as placeholders)
+        // Wood=brown, Food=red, Gold=yellow, Stone=gray
+        auto drawResIcon = [&](float x, float y, Drawable::Color c) {
+            renderTarget_->draw(ScreenRect(x - 18, y + 2, 14, 14), c);
+        };
+        drawResIcon(60, 12, Drawable::Color(139, 90, 43, 255));   // Wood
+        drawResIcon(170, 12, Drawable::Color(180, 40, 40, 255));  // Food
+        drawResIcon(280, 12, Drawable::Color(220, 190, 50, 255)); // Gold
+        drawResIcon(390, 12, Drawable::Color(150, 150, 150, 255));// Stone
 
         // Bottom panel background — always draw
         float panelH = screenSize.height - m_gameAreaHeight;
@@ -807,6 +839,19 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
 
         // --- UI elements first ---
 
+#ifdef ANDROID
+        // Hamburger menu button (top-right, 44x44 at x=screenWidth-50)
+        {
+            Size screenSize = renderTarget_->getSize();
+            ScreenRect hamburgerRect(screenSize.width - 50, 2, 44, 44);
+            if (hamburgerRect.contains(pos)) {
+                showMenu();
+                m_touchState.phase = TouchState::Phase::Idle;
+                return true;
+            }
+        }
+#endif
+
         // Top bar buttons
         IconButton::Type clickedButton = IconButton::Invalid;
         for (const std::unique_ptr<IconButton> &button : m_buttons) {
@@ -998,11 +1043,20 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 
     m_unitsRenderer = std::make_unique<UnitsRenderer>();
 
+#ifdef ANDROID
+    // Mobile layout: taller top bar with more spacing
+    m_woodLabel->setPosition({60, 12});
+    m_foodLabel->setPosition({170, 12});
+    m_goldLabel->setPosition({280, 12});
+    m_stoneLabel->setPosition({390, 12});
+    m_populationLabel->setPosition({500, 12});
+#else
     m_woodLabel->setPosition({75, 5});
     m_foodLabel->setPosition({153, 5});
     m_goldLabel->setPosition({230, 5});
     m_stoneLabel->setPosition({307, 5});
     m_populationLabel->setPosition({384, 5});
+#endif
 
     showStartScreen();
 

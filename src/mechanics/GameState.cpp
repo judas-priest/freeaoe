@@ -17,6 +17,8 @@
 */
 
 #include "GameState.h"
+#include "ai/AiPlayer.h"
+#include "ai/AiScript.h"
 #ifdef ANDROID
 #include <android/log.h>
 #define ALOG(...) __android_log_print(ANDROID_LOG_INFO, "FreeAoE", __VA_ARGS__)
@@ -173,8 +175,16 @@ bool GameState::update(Time time)
         updated = m_scenarioController->update(time) || updated;
     }
 
-    //game_server_->update();
-    //game_client_->update();
+    // Update AI players — evaluate rules every 2 seconds (not every frame)
+    static Time lastAiUpdate = 0;
+    if (time - lastAiUpdate > 2000) {
+        lastAiUpdate = time;
+        for (const auto &aiPlayer : m_aiPlayers) {
+            if (aiPlayer && aiPlayer->alive && aiPlayer->m_aiScript) {
+                aiPlayer->m_aiScript->update(time);
+            }
+        }
+    }
 
     std::vector<Player::Ptr> playersAlive;
     for (const Player::Ptr &player : m_players) {
@@ -284,7 +294,17 @@ void GameState::setupScenario()
         } else {
             realPlayerNum = playerNum - 1;
 
-            player = std::make_shared<Player>(playerNum, playersData.resourcesPlusPlayerInfo[realPlayerNum].civilizationID, map_);
+            // Create AiPlayer for non-human players
+            bool isHuman = playersData.resourcesPlusPlayerInfo[realPlayerNum].isHuman;
+            if (isHuman) {
+                player = std::make_shared<Player>(playerNum, playersData.resourcesPlusPlayerInfo[realPlayerNum].civilizationID, map_);
+            } else {
+                auto aiPlayer = std::make_shared<AiPlayer>(playerNum, playersData.resourcesPlusPlayerInfo[realPlayerNum].civilizationID, map_);
+                aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
+                player = aiPlayer;
+                m_aiPlayers.push_back(aiPlayer);
+                ALOG("Created AI player %d with script", (int)playerNum);
+            }
             player->name = playersData.playerNames[realPlayerNum];
             player->playerColor = scenario_->players[realPlayerNum].playerColor;
         }

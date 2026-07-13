@@ -29,6 +29,7 @@
 #include <unordered_map>
 
 struct Player;
+struct AiPlayer;
 class Map;
 class UnitManager;
 class ScenarioController;
@@ -136,6 +137,7 @@ private:
 
     std::shared_ptr<Player> m_humanPlayer;
     std::vector<std::shared_ptr<Player>> m_players;
+    std::vector<std::shared_ptr<AiPlayer>> m_aiPlayers;
 
     GameType m_gameType = GameType::Default;
 

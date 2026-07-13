@@ -3,6 +3,10 @@
 #include "mechanics/Player.h"
 #include "gen/enums.h"
 
+#include <memory>
+
+namespace ai { struct AiScript; }
+
 struct AiPlayer : public Player
 {
     AiPlayer(const int id, const int civId, const std::shared_ptr<Map> &map, const ResourceMap &startingResources = {}) :
@@ -10,6 +14,7 @@ struct AiPlayer : public Player
     {}
 
     ai::DifficultyLevel difficultyLevel = ai::DifficultyLevel::Moderate;
+    std::shared_ptr<ai::AiScript> m_aiScript;
 
     // Held in escrow
     ResourceMap m_reserves;

@@ -1,6 +1,7 @@
 #include "AiScript.h"
 
 #include "AiPlayer.h"
+#include "AiRule.h"
 
 namespace ai
 {
@@ -25,9 +26,16 @@ bool AiScript::update(const Time time)
         emit(TimerTriggered);
     }
 
-    // TODO: I guess we should loop through our rules here
+    // Evaluate all rules — check conditions and fire actions
+    bool anyFired = false;
+    for (const std::shared_ptr<AiRule> &rule : rules) {
+        if (rule) {
+            rule->onConditionSatisfied(); // checks all conditions, fires actions if all satisfied
+            anyFired = true;
+        }
+    }
 
-    return false;
+    return anyFired;
 }
 
 void AiScript::setEscrow(const genie::ResourceType resource, float amount)

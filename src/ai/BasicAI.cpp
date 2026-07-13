@@ -125,12 +125,21 @@ void BasicAI::buildHouses()
 void BasicAI::trainMilitary()
 {
     // Train militia (ID 74) from barracks (ID 12)
-    int militaryCount = countUnitsOfType(74); // Militia
+    int militaryCount = countUnitsOfType(74);
     if (militaryCount >= 10) return;
 
     float food = m_player->resourcesAvailable(genie::ResourceType::FoodStorage);
-    float gold = m_player->resourcesAvailable(genie::ResourceType::GoldStorage);
     if (food < 60) return;
+
+    // First check if we have a barracks, if not try to build one
+    int barracksCount = countBuildingsOfType(12);
+    if (barracksCount == 0) {
+        float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+        if (wood >= 175) {
+            buildStructure(12, 175); // Barracks costs 175 wood
+        }
+        return;
+    }
 
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
@@ -141,6 +150,50 @@ void BasicAI::trainMilitary()
         const genie::Unit &militiaData = m_player->civilization.unitData(74);
         building->enqueueProduceUnit(&militiaData);
         return;
+    }
+}
+
+void BasicAI::buildStructure(int buildingId, int woodCost)
+{
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    if (wood < woodCost) return;
+
+    // Find TC for reference position
+    MapPos tcPos;
+    bool foundTC = false;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit && unit->playerId() == m_player->playerId && unit->data()->ID == 109) {
+            tcPos = unit->position();
+            foundTC = true;
+            break;
+        }
+    }
+    if (!foundTC) return;
+
+    // Find valid placement — spiral outward from TC
+    for (int radius = 3; radius < 12; radius++) {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            float angle = attempt * M_PI / 4.0f + (rand() % 100) / 100.f;
+            float ox = cos(angle) * radius * Constants::TILE_SIZE;
+            float oy = sin(angle) * radius * Constants::TILE_SIZE;
+            MapPos buildPos(tcPos.x + ox, tcPos.y + oy);
+
+            // Check bounds
+            if (buildPos.x < Constants::TILE_SIZE * 5 || buildPos.y < Constants::TILE_SIZE * 5) continue;
+
+            // Place building
+            auto owner = std::const_pointer_cast<Player>(
+                std::static_pointer_cast<const Player>(
+                    std::shared_ptr<Player>(m_player, [](Player*){})));
+
+            Unit::Ptr building = UnitFactory::createUnit(buildingId, owner, *m_unitManager);
+            if (building) {
+                m_unitManager->add(building, buildPos);
+                m_player->setAvailableResource(genie::ResourceType::WoodStorage, wood - woodCost);
+                DBG << "AI built building" << buildingId << "at" << buildPos.x << buildPos.y;
+                return;
+            }
+        }
     }
 }
 

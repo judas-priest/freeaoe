@@ -23,6 +23,7 @@ private:
     void buildHouses();
     void trainMilitary();
     void researchTechs();
+    void buildStructure(int buildingId, int woodCost);
 
     int countUnitsOfType(int unitId) const;
     int countBuildingsOfType(int buildingId) const;

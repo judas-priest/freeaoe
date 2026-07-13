@@ -781,6 +781,16 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             }
             break;
         }
+        case Command::Disembark: {
+            // Same as ungarrison — eject all units
+            for (const Unit::Ptr &unit : m_selectedUnits) {
+                auto building = std::dynamic_pointer_cast<Building>(unit);
+                if (building) {
+                    building->ungarrisonAll();
+                }
+            }
+            break;
+        }
         case Command::LineFormation:
             Unit::s_formation = Unit::Formation::Line;
             break;

@@ -348,7 +348,58 @@ bool ScenarioController::update(Time time)
         }
     }
 
+    // Check wonder victory timers
+    checkWonderVictory(time);
+
     return updated;
+}
+
+void ScenarioController::checkWonderVictory(Time time)
+{
+    if (!m_gameState) return;
+
+    // Check if any player has a wonder (ID 276)
+    for (const auto &player : m_gameState->players()) {
+        if (!player || player->playerId == 0 || !player->alive) continue;
+
+        bool hasWonder = false;
+        for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+            if (unit && unit->playerId() == player->playerId && unit->data()->ID == 276) {
+                hasWonder = true;
+                break;
+            }
+        }
+
+        if (hasWonder) {
+            // Check if timer already exists
+            bool timerExists = false;
+            for (auto &wt : m_wonderTimers) {
+                if (wt.playerId == player->playerId) {
+                    timerExists = true;
+                    // Check countdown
+                    if (time - wt.buildTime >= WonderTimer::WONDER_COUNTDOWN) {
+                        m_gameState->onPlayerWin(player->playerId);
+                    }
+                    break;
+                }
+            }
+            if (!timerExists) {
+                WonderTimer wt;
+                wt.playerId = player->playerId;
+                wt.buildTime = time;
+                m_wonderTimers.push_back(wt);
+                if (m_engine) {
+                    m_engine->addMessage("Player " + std::to_string(player->playerId) + " has built a Wonder!");
+                }
+            }
+        } else {
+            // Wonder destroyed — remove timer
+            m_wonderTimers.erase(
+                std::remove_if(m_wonderTimers.begin(), m_wonderTimers.end(),
+                    [&](const WonderTimer &wt) { return wt.playerId == player->playerId; }),
+                m_wonderTimers.end());
+        }
+    }
 }
 
 void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)

@@ -76,7 +76,8 @@ public:
         Repair,
         Convert,
         Heal,
-        Trade
+        Trade,
+        PickupRelic
     };
 
     enum UnitState {

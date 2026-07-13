@@ -793,6 +793,9 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
         case Command::SpreadOutFormation:
             Unit::s_formation = Unit::Formation::SpreadOut;
             break;
+        case Command::PickUpRelic:
+            m_unitManager->selectRepairTarget(); // reuse repair target selection for relic
+            break;
         case Command::Pack:
         case Command::Unpack:
             // Pack/Unpack trebuchet — swap between packed and unpacked unit IDs

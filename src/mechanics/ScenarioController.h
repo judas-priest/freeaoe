@@ -86,6 +86,15 @@ public:
     // a bit ugly violation of blah blah composition, but w/e
     void setEngine(Engine *engine) { m_engine = engine; }
 
+    // Wonder victory tracking
+    struct WonderTimer {
+        int playerId = -1;
+        Time buildTime = 0;
+        static constexpr Time WONDER_COUNTDOWN = 300000; // 5 minutes (300 sec) for testing, real = 200 years game time
+    };
+    std::vector<WonderTimer> m_wonderTimers;
+    void checkWonderVictory(Time time);
+
 private:
     bool checkUnitMatchingEffect(const std::shared_ptr<Unit> &unit, const genie::TriggerEffect &effect);
 

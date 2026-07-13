@@ -396,6 +396,7 @@ set (UI_SRC
     src/ui/FileDialog.cpp
     src/ui/ScenarioBrowser.cpp
     src/ui/DiplomacyScreen.cpp
+    src/ui/RandomMapSetup.cpp
     src/ui/SettingsScreen.cpp
     src/ui/TechTreeScreen.cpp
     src/mechanics/SaveGame.cpp

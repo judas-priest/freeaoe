@@ -168,6 +168,14 @@ static input::Event sfEventToInput(const sf::Event &sfEvent) {
 #endif // !USE_SDL2
 
 //------------------------------------------------------------------------------
+void Engine::setupRandomMap(int mapType, int mapSize, int playerCount)
+{
+    auto state = state_manager_.getActiveState();
+    if (state) {
+        state->setupRandomMap(mapType, mapSize, playerCount);
+    }
+}
+
 void Engine::start()
 {
     DBG << "Starting engine.";

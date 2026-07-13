@@ -1,4 +1,5 @@
 #include "ScenarioBrowser.h"
+#include "RandomMapSetup.h"
 
 #include <filesystem>
 #include <algorithm>
@@ -17,15 +18,24 @@
 
 namespace fs = std::filesystem;
 
-genie::ScnFilePtr ScenarioBrowser::show(const std::string &campaignsPath)
+ScenarioBrowser::Result ScenarioBrowser::show(const std::string &campaignsPath)
 {
     ScenarioBrowser browser;
     browser.scan(campaignsPath);
+    Result result;
     if (browser.m_entries.empty()) {
         WARN << "No campaigns found in" << campaignsPath;
-        return nullptr;
+        return result;
     }
-    return browser.run();
+    result.scenario = browser.run();
+    // Check if random map was selected
+    if (browser.m_randomMapResult.start) {
+        result.isRandomMap = true;
+        result.randomMapType = browser.m_randomMapResult.mapType;
+        result.randomMapSize = browser.m_randomMapResult.mapSize;
+        result.randomPlayerCount = browser.m_randomMapResult.playerCount;
+    }
+    return result;
 }
 
 void ScenarioBrowser::scan(const std::string &campaignsPath)
@@ -72,6 +82,13 @@ void ScenarioBrowser::scan(const std::string &campaignsPath)
     ALOG("Found %zu campaign/scenario entries", m_entries.size());
     std::sort(m_entries.begin(), m_entries.end(),
         [](const Entry &a, const Entry &b) { return a.name < b.name; });
+
+    // Add "Random Map" as first entry (special, scenarioIndex = -99)
+    Entry randomEntry;
+    randomEntry.name = ">> Random Map <<";
+    randomEntry.path = "__RANDOM__";
+    randomEntry.scenarioIndex = -99;
+    m_entries.insert(m_entries.begin(), randomEntry);
 
     m_campaignEntries = m_entries;
 }
@@ -253,7 +270,14 @@ void ScenarioBrowser::handleEvent(const input::Event &event)
             int index = m_scrollOffset + static_cast<int>((y - listStartY) / 40);
             if (index >= 0 && index < static_cast<int>(m_entries.size())) {
                 const Entry &entry = m_entries[index];
-                if (entry.scenarioIndex == -1) {
+                if (entry.scenarioIndex == -99) {
+                    // Random Map — show setup screen
+                    auto rmResult = RandomMapSetup::show(m_window.get(), m_renderTarget);
+                    if (rmResult.start) {
+                        m_randomMapResult = rmResult;
+                        m_done = true;
+                    }
+                } else if (entry.scenarioIndex == -1) {
                     openCampaign(entry);
                 } else {
                     try {

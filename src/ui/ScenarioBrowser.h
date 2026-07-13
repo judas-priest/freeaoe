@@ -6,6 +6,7 @@
 
 #include "core/Types.h"
 #include "render/IRenderTarget.h"
+#include "RandomMapSetup.h"
 #include "render/EventTypes.h"
 
 namespace genie {
@@ -29,8 +30,16 @@ public:
         int scenarioCount = 0;
     };
 
-    // Returns selected scenario, or nullptr if cancelled/nothing found.
-    static genie::ScnFilePtr show(const std::string &campaignsPath);
+    struct Result {
+        genie::ScnFilePtr scenario;
+        bool isRandomMap = false;
+        int randomMapType = 0;
+        int randomMapSize = 144;
+        int randomPlayerCount = 2;
+    };
+
+    // Returns selected scenario or random map config.
+    static Result show(const std::string &campaignsPath);
 
 private:
     ScenarioBrowser() = default;
@@ -53,6 +62,7 @@ private:
     bool m_inCampaign = false;
     std::string m_currentCampaignName;
     genie::ScnFilePtr m_result;
+    RandomMapSetup::Result m_randomMapResult;
 
     Drawable::Text::Ptr m_titleText;
     Drawable::Text::Ptr m_itemText;

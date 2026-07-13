@@ -367,15 +367,28 @@ try
 
 #ifdef ANDROID
     // Show scenario browser if no scenario specified
+    bool isRandomMap = false;
+    int rmType = 0, rmSize = 144, rmPlayers = 2;
     if (!scenarioFile) {
         std::string camPath = AssetManager::Inst()->campaignsPath();
-        scenarioFile = ScenarioBrowser::show(camPath);
+        auto browserResult = ScenarioBrowser::show(camPath);
+        scenarioFile = browserResult.scenario;
+        if (browserResult.isRandomMap) {
+            isRandomMap = true;
+            rmType = browserResult.randomMapType;
+            rmSize = browserResult.randomMapSize;
+            rmPlayers = browserResult.randomPlayerCount;
+        }
     }
 #endif
 
     // Fall back to single-player test map if nothing selected
     if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
+#ifdef ANDROID
+        if (!isRandomMap) config.setValue(Config::SinglePlayer, "1");
+#else
         config.setValue(Config::SinglePlayer, "1");
+#endif
     }
 #endif
 
@@ -383,6 +396,11 @@ try
     if (!engine.setup(scenarioFile)) {
         return 1;
     }
+#ifdef ANDROID
+    if (isRandomMap) {
+        engine.setupRandomMap(rmType, rmSize, rmPlayers);
+    }
+#endif
 
     engine.start();
 #ifdef _WIN32

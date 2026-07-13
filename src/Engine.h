@@ -89,6 +89,7 @@ public:
     virtual ~Engine();
 
     bool setup(const std::shared_ptr<genie::ScnFile> &scenario = nullptr);
+    void setupRandomMap(int mapType, int mapSize, int playerCount);
     void start();
 
     void addMessage(const std::string &message);

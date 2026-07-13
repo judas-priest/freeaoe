@@ -3,6 +3,7 @@
 #include "ActionMove.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
+#include "mechanics/Building.h"
 #include "mechanics/Civilization.h"
 #include "mechanics/Missile.h"
 #include "mechanics/Player.h"
@@ -256,5 +257,16 @@ bool ActionAttack::unitFiresMissiles(const Unit::Ptr &unit)
 
 int ActionAttack::missilesUnitCanFire(const Unit::Ptr &source)
 {
-    return std::min(int(source->data()->Creatable.TotalProjectiles), source->data()->Creatable.MaxTotalProjectiles - source->activeMissiles);
+    int base = source->data()->Creatable.TotalProjectiles;
+    int max = source->data()->Creatable.MaxTotalProjectiles;
+
+    // Garrison arrows: extra projectiles proportional to garrisoned units
+    Building::Ptr building = Building::fromUnit(source);
+    if (building && !building->garrisonedUnits.empty() && source->data()->GarrisonCapacity > 0) {
+        int garrisoned = building->garrisonedUnits.size();
+        int extraArrows = (max - base) * garrisoned / source->data()->GarrisonCapacity;
+        base += extraArrows;
+    }
+
+    return std::min(base, max - source->activeMissiles);
 }

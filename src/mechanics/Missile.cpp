@@ -301,9 +301,17 @@ bool Missile::update(Time time) noexcept
             damageMultiplier = 3.f/2.f;
         }
         DBG << debugName << "hit a unit" << hitUnit->debugName << "damage multiplier" << damageMultiplier;
+        // Sum damage from all attack classes, minimum 1 total
+        float totalDamage = 0;
         for (const genie::unit::AttackOrArmor &attack : m_attacks) {
-            hitUnit->receiveAttack(attack, damageMultiplier);
+            for (const genie::unit::AttackOrArmor &armor : hitUnit->data()->Combat.Armours) {
+                if (attack.Class == armor.Class) {
+                    totalDamage += std::max(attack.Amount - armor.Amount, 0);
+                }
+            }
         }
+        totalDamage = std::max(totalDamage * damageMultiplier, 1.f);
+        hitUnit->takeDamage(totalDamage);
     }
 
 

@@ -182,9 +182,17 @@ IAction::UpdateResult ActionAttack::update(Time time)
         } else if (unit->position().z < targetUnit->position().z) {
             elevMult = 0.75f;
         }
+        // Sum damage from all attack classes, then apply minimum 1
+        float totalDamage = 0;
         for (const genie::unit::AttackOrArmor &attack : unit->data()->Combat.Attacks) {
-            targetUnit->receiveAttack(attack, elevMult);
+            for (const genie::unit::AttackOrArmor &armor : targetUnit->data()->Combat.Armours) {
+                if (attack.Class == armor.Class) {
+                    totalDamage += std::max(attack.Amount - armor.Amount, 0);
+                }
+            }
         }
+        totalDamage = std::max(totalDamage * elevMult, 1.f);
+        targetUnit->takeDamage(totalDamage);
     } else {
         WARN << "No target unit, and not firing missiles";
         return IAction::UpdateResult::Completed;

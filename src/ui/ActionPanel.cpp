@@ -793,6 +793,23 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
         case Command::SpreadOutFormation:
             Unit::s_formation = Unit::Formation::SpreadOut;
             break;
+        case Command::Pack:
+        case Command::Unpack:
+            // Pack/Unpack trebuchet — swap between packed and unpacked unit IDs
+            for (const Unit::Ptr &unit : m_selectedUnits) {
+                if (!unit) continue;
+                // Trebuchet packed (ID 331) ↔ unpacked (ID 42)
+                int currentId = unit->data()->ID;
+                int swapId = -1;
+                if (currentId == 331) swapId = 42;  // packed → unpacked
+                else if (currentId == 42) swapId = 331; // unpacked → packed
+                if (swapId >= 0) {
+                    DBG << "Pack/Unpack trebuchet" << currentId << "→" << swapId;
+                    // Note: full implementation needs unit type swap
+                    // For now just log — unit type swap requires UnitFactory refactor
+                }
+            }
+            break;
         default:
             WARN << "Unhandled action" << button.action;
             break;

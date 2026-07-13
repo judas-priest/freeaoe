@@ -338,11 +338,16 @@ void Unit::kill() noexcept
 {
     m_damageTaken = data()->HitPoints;
 
+    // Track score: owner lost a unit
+    Player::Ptr owner = m_player.lock();
+    if (owner) {
+        owner->unitsLost++;
+    }
+
     m_renderer->setPlaySounds(true);
     m_renderer->setSprite(m_data->DyingGraphic);
 
     if (data()->DyingSound != -1) {
-        Player::Ptr owner = m_player.lock();
         if (owner) {
             AudioPlayer::instance().playSound(data()->DyingSound, owner->civilization.id());
         }

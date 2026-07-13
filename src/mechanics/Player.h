@@ -144,6 +144,18 @@ struct Player : public EventListener
     bool alive = true;
     std::shared_ptr<VisibilityMap> visibility;
 
+    // Score tracking
+    int unitsKilled = 0;
+    int unitsLost = 0;
+    int buildingsRazed = 0;
+    float totalResourcesGathered = 0;
+    int techsResearched = 0;
+
+    int score() const {
+        return unitsKilled * 20 + buildingsRazed * 50 + techsResearched * 30
+               + static_cast<int>(totalResourcesGathered / 100);
+    }
+
     void resign();
 
     ///////////////////

@@ -652,6 +652,16 @@ void Engine::drawUi()
         clockText->color = Drawable::Color(150, 140, 110, 255);
         clockText->position = ScreenPos(ss.width - 280, 15);
         renderTarget_->draw(clockText);
+
+        // Score
+        if (human) {
+            auto scoreText = renderTarget_->createText(Drawable::Text::Plain);
+            scoreText->string = "Score: " + std::to_string(human->score());
+            scoreText->pointSize = 12;
+            scoreText->color = Drawable::Color(150, 140, 110, 255);
+            scoreText->position = ScreenPos(ss.width - 280, 30);
+            renderTarget_->draw(scoreText);
+        }
     }
 #endif
 

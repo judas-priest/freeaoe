@@ -106,8 +106,8 @@ bool ActionPanel::handleEvent(input::Event event)
 bool ActionPanel::update(Time /*time*/)
 {
 #ifdef ANDROID
-    m_buttonSize = 50;
-    m_bottomOffset = 15;
+    m_buttonSize = 56;
+    m_bottomOffset = 10;
 #else
     if (m_renderTarget->getSize().height >= 1024) {
         m_buttonSize = 45;

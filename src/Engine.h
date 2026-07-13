@@ -179,6 +179,9 @@ private:
     float m_gameSpeed = 1.0f;
     bool m_paused = false;
     float m_gameAreaHeight = 800.f;
+    float m_bottomPanelY = 0.f;      // current Y of sliding panel (0 = hidden below screen)
+    float m_bottomPanelTargetY = 0.f; // target Y for animation
+    bool m_bottomPanelVisible = false;
 #ifdef USE_SDL2
     struct SDL_Texture *m_gameTexture = nullptr;
 #endif

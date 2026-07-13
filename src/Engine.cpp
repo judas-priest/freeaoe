@@ -522,17 +522,34 @@ void Engine::drawUi()
         drawResIcon(280, 12, Drawable::Color(220, 190, 50, 255)); // Gold
         drawResIcon(390, 12, Drawable::Color(150, 150, 150, 255));// Stone
 
-        // Bottom panel background — always draw
+        // --- Sliding bottom panel ---
         float panelH = screenSize.height - m_gameAreaHeight;
-        if (panelH > 0) {
-            renderTarget_->draw(ScreenRect(0, m_gameAreaHeight, screenSize.width, panelH),
-                Drawable::Color(40, 30, 15, 240));
-            renderTarget_->draw(ScreenRect(0, m_gameAreaHeight, screenSize.width, 2),
-                Drawable::Color(80, 60, 30, 255));
+        bool shouldShow = m_actionPanel->hasButtons();
+
+        // Animate panel slide
+        m_bottomPanelTargetY = shouldShow ? m_gameAreaHeight : screenSize.height;
+        float slideSpeed = 15.f; // pixels per frame
+        if (m_bottomPanelY < m_bottomPanelTargetY) {
+            m_bottomPanelY = std::min(m_bottomPanelY + slideSpeed, m_bottomPanelTargetY);
+        } else if (m_bottomPanelY > m_bottomPanelTargetY) {
+            m_bottomPanelY = std::max(m_bottomPanelY - slideSpeed, m_bottomPanelTargetY);
+        }
+
+        // Draw panel background
+        if (m_bottomPanelY < screenSize.height) {
+            // Dark parchment background
+            renderTarget_->draw(ScreenRect(0, m_bottomPanelY, screenSize.width, panelH + 20),
+                Drawable::Color(35, 25, 12, 235));
+            // Top edge highlight
+            renderTarget_->draw(ScreenRect(0, m_bottomPanelY, screenSize.width, 2),
+                Drawable::Color(90, 70, 35, 255));
+            // Subtle inner shadow
+            renderTarget_->draw(ScreenRect(0, m_bottomPanelY + 2, screenSize.width, 1),
+                Drawable::Color(60, 45, 20, 200));
         }
 
         // Draw SLP overlay on top if available
-        if (m_uiOverlay && m_uiOverlay->isValid()) {
+        if (m_uiOverlay && m_uiOverlay->isValid() && m_bottomPanelY < screenSize.height) {
             float scaleX = screenSize.width / m_uiOverlay->size.width;
             m_uiOverlay->scaleX = scaleX;
             m_uiOverlay->scaleY = scaleX;
@@ -550,21 +567,6 @@ void Engine::drawUi()
 
     m_minimap->draw();
 
-#ifdef ANDROID
-    // Draw dark backgrounds behind action panel and unit info
-    if (m_actionPanel->hasButtons()) {
-        ScreenRect apRect = m_actionPanel->rect();
-        renderTarget_->draw(ScreenRect(apRect.x - 3, apRect.y - 3, apRect.width + 6, apRect.height + 6),
-            Drawable::Color(20, 15, 10, 200));
-    }
-    {
-        ScreenRect uiRect = m_unitInfoPanel->rect();
-        if (uiRect.width > 0 && uiRect.height > 0) {
-            renderTarget_->draw(ScreenRect(uiRect.x - 3, uiRect.y - 3, uiRect.width + 6, uiRect.height + 6),
-                Drawable::Color(20, 15, 10, 200));
-        }
-    }
-#endif
     m_actionPanel->draw();
     m_unitInfoPanel->draw();
 
@@ -1140,8 +1142,9 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 #endif
 
 #ifdef ANDROID
-    // On Android, bottom ~35% for UI (action panel 120px + unit info + minimap)
+    // On Android, bottom ~35% for UI panel (slides up when units selected)
     m_gameAreaHeight = uiSize.height * 0.65f;
+    m_bottomPanelY = uiSize.height; // start hidden below screen
 #else
     // Calculate game area height (screen minus UI overlay)
     if (m_uiOverlay && m_uiOverlay->size.isValid()) {

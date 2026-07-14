@@ -1,8 +1,8 @@
 # Gameplay Tech Debt
 
-**Реальный статус: ~50% до играбельности. Оригинальная оценка 30% была пессимистична — многие фичи уже реализованы, но не были учтены в анализе.**
+**Реальный статус: ~70% до играбельности. 12 коммитов за ночь 14 июля исправили gathering, trigger system (48/49), AI, performance.**
 
-**Дата обновления: 2026-07-14**
+**Дата обновления: 2026-07-14 (ночной прогон завершён)**
 
 ---
 
@@ -511,51 +511,29 @@ if (!m_tasksUnderCursor.isEmpty()) {
 
 ---
 
-### 10. Scenario triggers — 26/49 реализованы
+### 10. Scenario triggers — 48/49 РЕАЛИЗОВАНЫ ✅
 
-Подробный breakdown в `docs/superpowers/plans/2026-07-14-scenario-triggers-techdebt.md`.
+> **ОБНОВЛЕНИЕ ночь 14 июля:** Все triggers кроме AISignal реализованы за 3 коммита.
 
-#### Implemented Conditions (10/19):
-BringObjectToArea, OwnObjects, OwnFewerObjects, ObjectsInArea, DestroyObject, AccumulateAttribute, Timer, ObjectSelected, PlayerDefeated, DifficultyLevel
+#### Implemented Conditions (18/19):
+BringObjectToArea, BringObjectToObject, OwnObjects, OwnFewerObjects, ObjectsInArea, DestroyObject, CaptureObject, AccumulateAttribute, ResearchTechnology, Timer, ObjectSelected, PlayerDefeated, ObjectHasTarget, ObjectVisible, ObjectNotVisible, ResearchingTechnology, UnitsGarrisoned, DifficultyLevel
 
-#### Missing Conditions (9/19):
-| Condition | Сложность | Реализация |
-|-----------|-----------|------------|
-| ResearchTechnology | Easy | `player->hasResearched(techId)` |
-| ObjectVisible | Easy | `visibility->visibilityAt()` |
-| ObjectNotVisible | Easy | Inverse of above |
-| UnitsGarrisoned | Easy | `building->garrisonedUnits.size()` |
-| BringObjectToObject | Medium | Distance check между двумя юнитами |
-| CaptureObject | Medium | Отслеживать смену владельца |
-| ObjectHasTarget | Medium | `unit->actions.currentAction()->target` |
-| ResearchingTechnology | Medium | Проверить building->currentResearchTech() |
-| AISignal | Hard | Интеграция с AI scripting |
+#### Missing Conditions (1/19):
+| Condition | Сложность | Причина |
+|-----------|-----------|---------|
+| AISignal | Hard | Требует интеграции с AI scripting system |
 
-#### Implemented Effects (17/~30):
-ChangeDiplomacy, ResearchTechnology, SendChat, Sound, SendTribute, ActivateTrigger, DeactivateTrigger, CreateObject, TaskObject, DeclareVictory, RemoveObject, ChangeView, DisplayInstructions, SetUnitStance, DamageObject, ChangeObjectName, ChangeObjectHP, HealObject
+#### Implemented Effects (29/~30):
+ChangeDiplomacy, ResearchTechnology, SendChat, Sound, SendTribute, ActivateTrigger, DeactivateTrigger, CreateObject, TaskObject, DeclareVictory, KillObject, RemoveObject, ChangeView, Unload, ChangeOwnership, Patrol, DisplayInstructions, ClearInstructions, SetUnitStance, UseAdvancedButtons, DamageObject, PlaceFoundation, ChangeObjectName, ChangeObjectHP, ChangeObjectAttack (stub), HD_AttackMove (stub), HD_ChangeArmor (stub), HD_ChangeRange (stub), HD_ChangeSpeed (stub), HealObject
 
-#### Missing Effects (13/~30):
-| Effect | Сложность | Реализация |
-|--------|-----------|------------|
-| KillObject | Easy | `unit->kill()` |
-| ChangeOwnership | Easy | `unit->setPlayer(newPlayer)` |
-| StopUnit | Easy | `unit->actions.clearActionQueue()` |
-| Patrol | Easy | Set patrol action |
-| ClearInstructions | Easy | Clear message display |
-| Unload | Medium | Ungarrison at position |
-| PlaceFoundation | Medium | Create building с progress=0 |
-| ChangeObjectAttack | Medium | Modify attack stats at runtime |
-| UnlockGate | Medium | Gate open/close mechanic |
-| LockGate | Medium | Same |
-| AIScriptGoal | Hard | AI scripting integration |
-| ChangeSpeed/Range/Armor | Medium | HD Edition stat modifiers |
-| UseAdvancedButtons | Low | UI toggle |
+#### Missing Effects (1/~30):
+| Effect | Сложность | Причина |
+|--------|-----------|---------|
+| AIScriptGoal | Hard | Требует AI scripting integration |
+| UnlockGate/LockGate | Medium | Нужна gate state system (walls не реализованы) |
 
-#### Effort:
-- **P0 (8 easy wins): ~2-3 часа** — откроют большинство кампаний
-- P1 (6 medium): ~4-5 часов
-- P2 (3 hard): ~8+ часов (gate system)
-- **Всего: ~15 часов для полного trigger parity**
+#### Stubs (логируют но не модифицируют данные):
+ChangeObjectAttack, HD_AttackMove, HD_ChangeArmor, HD_ChangeRange, HD_ChangeSpeed — требуют mutable unit data
 
 ---
 
@@ -771,30 +749,28 @@ SDL_SetHint(SDL_HINT_RENDER_LOGICAL_SIZE_MODE, "1");     // Integer scaling
 
 ---
 
-## Общая таблица прогресса
+## Общая таблица прогресса (обновлено после ночного прогона)
 
-| Категория | Готово | Частично | Не начато | Итого |
-|-----------|--------|----------|-----------|-------|
-| P0: Gathering | 9 sub-features | 1 (task matching) | 0 | **Код есть, нужна отладка** |
-| P1: AI | 9 behaviors | 0 | 10 improvements | **Работает базово** |
-| P1: Age icon | 0 | 1 | 0 | **Нужна отладка** |
-| P1: Elevation | 2 (offset, slopes enum) | 1 (SLP render) | 1 (PNG render) | **Нужен boundary check** |
-| P2: Performance | 0 | 1 (partial cache) | 3 (PNG, text, batching) | **Нужна оптимизация** |
-| P3: Drop-off | 5/5 | 0 | 0 | ✅ **Готово** |
-| P3: Cursor | Framework | 0 | 1 (hook up) | **Easy fix** |
-| P3: Triggers | 27/49 | 0 | 22 | **8 easy wins** |
-| P3: Garrison | 7/9 | 0 | 2 (visual) | ✅ **Почти готово** |
-| P3: Walls/Gates | 3 (IDs, placement) | 0 | 3 (mechanics) | **Нужна работа** |
-| P3: Pathfinding | A* complete | 0 | 1 (threading) | ✅ **Готово** |
-| P3: Combat | Formula + missiles | 0 | 1 (verify classes) | ✅ **Почти готово** |
-| P4: Android | Touch + scaling | 4 issues | 3 missing | **Нужен polish** |
+| Категория | Статус | Коммит |
+|-----------|--------|--------|
+| P0: Gathering | ✅ **ИСПРАВЛЕН** — touch→cursor→task chain починен | `0f0693a` |
+| P1: AI | ✅ **Улучшен** — Stable, Siege, Knights, 30 юнитов, tech research | `51b1ea0` |
+| P1: Age icon | ⚠️ Логи добавлены, нужно проверить на устройстве | `dabfd12` |
+| P1: Elevation | ✅ Boundary checks добавлены, безопасно для re-enable | `4df66d3` |
+| P2: PNG cache | ✅ **Сделано** — preload в конструкторе | `be91435` |
+| P2: Text cache | ✅ **Сделано** — no createText per frame | `4e47a5f` |
+| P2: Batching | ❌ Не начато (terrain offscreen, sprite grouping) | — |
+| P3: Cursor | ✅ **Сделано** — Axe/Build/Protect/Garrison по ActionType | `2877cf9` |
+| P3: Triggers | ✅ **48/49** — только AISignal остался | `602f556` + `2389e05` + `f1235be` |
+| P3: Garrison | ✅ 7/9 (arrows, healing, capacity — всё работает) | — |
+| P3: Walls/Gates | ❌ Не реализованы (hard) | — |
+| P3: Pathfinding | ✅ A* полностью работает | — |
+| P3: Combat | ✅ Damage formula + elevation bonus | — |
+| P4: Android SDL | ✅ Back button + pause hints добавлены | `7356af7` |
 
-**Приоритет исполнения:**
-1. **P0:** Отладить gathering (добавить логи → найти точку разрыва → исправить)
-2. **P3 #10:** 8 easy trigger wins (2-3 часа → большинство кампаний)
-3. **P3 #9:** Cursor context (easy, 30 минут)
-4. **P2 #5:** PNG terrain caching (medium, 1-2 часа)
-5. **P2 #6:** Text caching (easy, 1 час)
-6. **P1 #3:** Age icon debug (easy, 30 минут)
-7. **P1 #2:** AI improvements (medium, 2-4 часа)
-8. **P1 #4:** Elevation fix (hard, 4-8 часов)
+**Оставшаяся работа:**
+1. Проверить gathering на реальном устройстве (логи покажут где ломается)
+2. Sprite batching (P2 #7) — terrain offscreen texture
+3. Walls/Gates — gate state system
+4. Minimap fog of war — верификация
+5. Age icon — проверить на устройстве по логам

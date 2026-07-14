@@ -13,6 +13,7 @@
 #include "resource/DataManager.h"
 
 #include <genie/Types.h>
+#include <genie/dat/ResourceType.h>
 #include <genie/dat/Terrain.h>
 #include <genie/dat/Unit.h>
 #include <genie/resource/Color.h>
@@ -154,21 +155,46 @@ Drawable::Color Minimap::unitColor(const std::shared_ptr<Unit> &unit)
         return Drawable::White;
     }
 
-    switch(m_mode) {
-    case MinimapMode::Diplomatic:
-        if (unit->playerId() == UnitManager::GaiaID) {
-            return Drawable::Color(128, 192, 128);
-        } else if (unit->playerId() == m_unitManager->humanPlayerID()) {
-            return Drawable::Blue;
-        }
-        break;
-    case MinimapMode::Economic: //TODO
-    case MinimapMode::Normal: //TODO
-    default:
-        break;
-    }
+    const bool isHuman = (unit->playerId() == m_unitManager->humanPlayerID());
+    const bool isGaia  = (unit->playerId() == UnitManager::GaiaID);
 
-    return Drawable::Red;
+    switch (m_mode) {
+    case MinimapMode::Diplomatic:
+    default:
+        if (isGaia) return Drawable::Color(128, 192, 128);
+        if (isHuman) return Drawable::Blue;
+        return Drawable::Red;
+
+    case MinimapMode::Normal:
+        if (isGaia) return Drawable::Color(128, 192, 128);
+        if (unit->data()->Class == genie::Unit::Civilian) {
+            return isHuman ? Drawable::Color(255, 220, 0) : Drawable::Color(200, 100, 0);
+        }
+        return isHuman ? Drawable::Blue : Drawable::Red;
+
+    case MinimapMode::Economic:
+        if (isGaia) return Drawable::Color(128, 192, 128);
+        if (!isHuman) return Drawable::Red;
+        // Own units: color by carried resource
+        if (unit->resources[genie::ResourceType::WoodStorage]  > 0) return Drawable::Color(0, 192, 0);
+        if (unit->resources[genie::ResourceType::FoodStorage]  > 0) return Drawable::Color(255, 200, 0);
+        if (unit->resources[genie::ResourceType::GoldStorage]  > 0) return Drawable::Color(255, 215, 0);
+        if (unit->resources[genie::ResourceType::StoneStorage] > 0) return Drawable::Color(180, 180, 180);
+        if (unit->data()->Class == genie::Unit::Civilian) {
+            return Drawable::Color(255, 255, 100); // idle villager
+        }
+        return Drawable::Blue;
+    }
+}
+
+void Minimap::cycleMode()
+{
+    switch (m_mode) {
+    case MinimapMode::Diplomatic: m_mode = MinimapMode::Economic;   break;
+    case MinimapMode::Economic:   m_mode = MinimapMode::Normal;     break;
+    case MinimapMode::Normal:     m_mode = MinimapMode::Diplomatic; break;
+    }
+    m_unitsUpdated = true;
 }
 
 

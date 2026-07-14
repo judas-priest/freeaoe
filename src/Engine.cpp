@@ -990,6 +990,11 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         m_paused = !m_paused;
         addMessage(m_paused ? "Game Paused" : "Game Resumed");
         return true;
+    case input::Key::F4:
+        if (m_minimap) {
+            m_minimap->cycleMode();
+        }
+        return true;
 
     // Unit commands
     case input::Key::S: // Stop

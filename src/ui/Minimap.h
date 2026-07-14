@@ -35,6 +35,8 @@ public:
     bool update(Time time) override;
     void draw() override;
     ScreenRect rect() const { return m_rect; }
+    void cycleMode();
+    MinimapMode mode() const { return m_mode; }
 
 private:
     void updateUnits();

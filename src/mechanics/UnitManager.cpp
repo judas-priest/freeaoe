@@ -537,6 +537,20 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
         }
         break;
     }
+    case State::SelectingRallyTarget: {
+        MapPos targetPos = camera->absoluteMapPos(screenPos);
+        Unit::Ptr targetUnit = unitAt(screenPos, camera, NoAlignment);
+
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            Building::Ptr building = Building::fromUnit(unit);
+            if (!building) continue;
+            building->waypoint = targetUnit ? targetUnit->position() : targetPos;
+            building->rallyTarget = targetUnit;
+            building->hasRallyPoint = true;
+        }
+        break;
+    }
     case State::Default:
         return false;
     default:
@@ -1199,6 +1213,11 @@ void UnitManager::selectConvertTarget()
 void UnitManager::selectHealTarget()
 {
     m_state = State::SelectingHealTarget;
+}
+
+void UnitManager::selectRallyTarget()
+{
+    m_state = State::SelectingRallyTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

@@ -15,6 +15,10 @@
 #include "MapTile.h"
 #include "Player.h"
 #include "UnitFactory.h"
+#include "actions/ActionMove.h"
+#include "actions/ActionGather.h"
+#include "actions/ActionAttack.h"
+#include "actions/ActionGarrison.h"
 #include "audio/AudioPlayer.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
@@ -422,22 +426,62 @@ void Building::finalizeUnit() noexcept
         return;
     }
 
-    waypoint.x = position().x + 24;
-    waypoint.y = position().y + 24;
+    // Always spawn adjacent to the building
+    const MapPos spawnPos(position().x + 24, position().y + 24);
 
     Unit::Ptr unit = UnitFactory::Inst().createUnit(m_currentProduct->unit->ID, owner, m_unitManager);
     if (!unit) {
         WARN << "Failed to finalize unit";
         return;
     }
-    m_unitManager.add(unit, waypoint);
+    m_unitManager.add(unit, spawnPos);
 
-    Player::Ptr player = unit->player().lock();
-    if (player && player->playerId == m_unitManager.humanPlayerID()) {
-        AudioPlayer::instance().playSound(unit->data()->TrainSound, player->civilization.id());
+    Player::Ptr unitPlayer = unit->player().lock();
+    if (unitPlayer && unitPlayer->playerId == m_unitManager.humanPlayerID()) {
+        AudioPlayer::instance().playSound(unit->data()->TrainSound, unitPlayer->civilization.id());
     }
 
     DBG << "Finalized" << unit->debugName;
+
+    if (!hasRallyPoint) {
+        return;
+    }
+
+    Unit::Ptr target = rallyTarget.lock();
+
+    if (target && target->isAlive()) {
+        // Rally on enemy — attack
+        if (!owner->isAllied(target->playerId())) {
+            Task task = unit->actions.findAnyTask(genie::ActionType::Combat, target->data()->ID);
+            if (task.data) {
+                task.target = target;
+                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+                return;
+            }
+        }
+
+        // Rally on garrisonable building — garrison
+        if (target->data()->GarrisonCapacity > 0) {
+            Task task = unit->actions.findAnyTask(genie::ActionType::Garrison, target->data()->ID);
+            if (task.data) {
+                task.target = target;
+                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+                return;
+            }
+        }
+
+        // Rally on resource — gather
+        Task task = unit->actions.findTaskWithTarget(target);
+        if (task.data && (task.data->ActionType == genie::ActionType::GatherRebuild ||
+                          task.data->ActionType == genie::ActionType::Hunt)) {
+            task.target = target;
+            IAction::assignTask(task, unit, IAction::AssignType::Replace);
+            return;
+        }
+    }
+
+    // Bare ground or no usable target — just move there
+    unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, waypoint));
 }
 
 void Building::finalizeResearch() noexcept

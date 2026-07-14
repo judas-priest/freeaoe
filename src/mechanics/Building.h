@@ -53,6 +53,8 @@ struct Building : public Unit
     void setPosition(const MapPos &pos, const bool initial = false) override;
 
     MapPos waypoint;
+    std::weak_ptr<Unit> rallyTarget;
+    bool hasRallyPoint = false;
 
     static bool canPlace(const MapPos &pos, const MapPtr &map, const genie::Unit *data);
 

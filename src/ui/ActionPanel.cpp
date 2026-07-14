@@ -486,8 +486,13 @@ void ActionPanel::addCreateButtons(const std::shared_ptr<Unit> &unit)
     }
 
     if (unit->data()->Type >= genie::Unit::BuildingType) {
+        Building::Ptr building = Building::fromUnit(unit);
         InterfaceButton rallypointButton;
-        rallypointButton.action = Command::SetRallyPoint;
+        if (building && building->hasRallyPoint) {
+            rallypointButton.action = Command::RemoveRallyPoint;
+        } else {
+            rallypointButton.action = Command::SetRallyPoint;
+        }
         rallypointButton.index = 4;
         currentButtons.push_back(rallypointButton);
     }
@@ -855,6 +860,19 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             m_buttonsDirty = true;
             break;
         }
+        case Command::SetRallyPoint:
+            m_unitManager->selectRallyTarget();
+            break;
+        case Command::RemoveRallyPoint:
+            for (const Unit::Ptr &unit : m_selectedUnits) {
+                Building::Ptr building = Building::fromUnit(unit);
+                if (!building) continue;
+                building->waypoint = MapPos(building->position().x + 24, building->position().y + 24);
+                building->rallyTarget.reset();
+                building->hasRallyPoint = false;
+            }
+            m_buttonsDirty = true;
+            break;
         default:
             WARN << "Unhandled action" << button.action;
             break;

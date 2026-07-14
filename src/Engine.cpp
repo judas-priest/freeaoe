@@ -75,7 +75,6 @@
 
 #include <cstddef>
 
-#define MOUSE_MOVE_EDGE_SIZE 10
 #define CAMERA_SPEED 1.
 
 #ifndef USE_SDL2
@@ -1049,27 +1048,7 @@ bool Engine::handleMouseMove(const input::Event &event, const std::shared_ptr<Ga
     const ScreenPos mousePos = ScreenPos(event.mouseMove.x, event.mouseMove.y);
     bool handled = false;
 
-    // On Android, touch state machine handles drag/scroll — mouse events don't fire
-
-    if (mousePos.x < MOUSE_MOVE_EDGE_SIZE) {
-        m_cameraDeltaX = -1;
-        handled = true;
-    } else if (mousePos.x > renderTarget_->getSize().width - MOUSE_MOVE_EDGE_SIZE) {
-        m_cameraDeltaX = 1;
-        handled = true;
-    } else {
-        m_cameraDeltaX = 0;
-    }
-
-    if (mousePos.y < MOUSE_MOVE_EDGE_SIZE) {
-        m_cameraDeltaY = 1;
-        handled = true;
-    } else if (mousePos.y > renderTarget_->getSize().height - MOUSE_MOVE_EDGE_SIZE) {
-        m_cameraDeltaY = -1;
-        handled = true;
-    } else {
-        m_cameraDeltaY = 0;
-    }
+    // Edge panning is now handled in updateCamera() via SDL_GetMouseState
 
     if (mousePos.y < m_gameAreaHeight) {
         if (m_selecting) {
@@ -1717,6 +1696,31 @@ bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
 #ifdef ANDROID
     return false; // Camera controlled by touch drag
 #endif
+
+    // Query mouse position directly — pans even when mouse is stationary at edge
+    {
+        int mouseX = 0, mouseY = 0;
+        SDL_GetMouseState(&mouseX, &mouseY);
+        const Size windowSize = renderTarget_->getSize();
+        constexpr int EDGE = 20;
+
+        if (mouseX < EDGE) {
+            m_cameraDeltaX = -1;
+        } else if (mouseX > windowSize.width - EDGE) {
+            m_cameraDeltaX = 1;
+        } else {
+            m_cameraDeltaX = 0;
+        }
+
+        if (mouseY < EDGE) {
+            m_cameraDeltaY = 1;
+        } else if (mouseY > windowSize.height - EDGE) {
+            m_cameraDeltaY = -1;
+        } else {
+            m_cameraDeltaY = 0;
+        }
+    }
+
     if (m_cameraDeltaX == 0 && m_cameraDeltaY == 0) {
         return false;
     }

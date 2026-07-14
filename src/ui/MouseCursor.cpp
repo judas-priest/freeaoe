@@ -49,12 +49,24 @@ bool MouseCursor::update(const std::shared_ptr<UnitManager> &unitManager)
 
         REQUIRE(targetAction.data, return false);
 
-        if (targetAction.data->ActionType == genie::ActionType::Combat) {
+        switch (targetAction.data->ActionType) {
+        case genie::ActionType::Combat:
             return setCursor(MouseCursor::Attack);
-        } else {
+        case genie::ActionType::GatherRebuild:
+        case genie::ActionType::Hunt:
+            return setCursor(MouseCursor::Axe);
+        case genie::ActionType::Build:
+        case genie::ActionType::Repair:
+            return setCursor(MouseCursor::Build);
+        case genie::ActionType::Heal:
+            return setCursor(MouseCursor::Protect);
+        case genie::ActionType::Convert:
+            return setCursor(MouseCursor::Protect);
+        case genie::ActionType::Garrison:
+            return setCursor(MouseCursor::Garrison);
+        default:
             return setCursor(MouseCursor::Action);
         }
-
         break;
     }
     case UnitManager::State::SelectingAttackTarget: {

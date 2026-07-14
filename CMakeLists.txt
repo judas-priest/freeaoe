@@ -335,6 +335,8 @@ set(ACTIONS_SRC
     src/actions/ActionTrade.cpp
     src/actions/ActionPickupRelic.cpp
     src/actions/ActionGarrison.h
+    src/actions/ActionTransform.cpp
+    src/actions/ActionTransform.h
     )
 
 if(USE_SDL2)

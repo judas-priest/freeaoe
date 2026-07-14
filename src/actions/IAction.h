@@ -77,7 +77,8 @@ public:
         Convert,
         Heal,
         Trade,
-        PickupRelic
+        PickupRelic,
+        Transform
     };
 
     enum UnitState {
@@ -161,6 +162,15 @@ inline LogPrinter operator <<(LogPrinter os, const IAction::Type actionType)
     case IAction::Type::Attack: os << "Attack"; break;
     case IAction::Type::Fly: os << "Fly"; break;
     case IAction::Type::Garrison: os << "Garrison"; break;
+    case IAction::Type::Patrol: os << "Patrol"; break;
+    case IAction::Type::Guard: os << "Guard"; break;
+    case IAction::Type::Follow: os << "Follow"; break;
+    case IAction::Type::Repair: os << "Repair"; break;
+    case IAction::Type::Convert: os << "Convert"; break;
+    case IAction::Type::Heal: os << "Heal"; break;
+    case IAction::Type::Trade: os << "Trade"; break;
+    case IAction::Type::PickupRelic: os << "PickupRelic"; break;
+    case IAction::Type::Transform: os << "Transform"; break;
     }
 
     os << separator;

@@ -3,6 +3,7 @@
 #include "mechanics/Building.h"
 #include "mechanics/Gate.h"
 #include "actions/ActionGarrison.h"
+#include "actions/ActionTransform.h"
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -857,17 +858,21 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             if (!human) break;
             for (const Unit::Ptr &unit : m_selectedUnits) {
                 if (!unit) continue;
-                // Trebuchet packed (331) ↔ unpacked (42)
-                // Bombard Cannon packed (36) has no unpack in AoE2, skip
+                // Trebuchet packed (331) <-> unpacked (42)
                 int currentId = unit->data()->ID;
                 int swapId = -1;
-                if (currentId == 331) swapId = 42;
-                else if (currentId == 42) swapId = 331;
+                Time transformTime = 11100; // ~11.1 seconds default pack/unpack
+                if (currentId == 331) {
+                    swapId = 42;    // packed -> unpacked
+                } else if (currentId == 42) {
+                    swapId = 331;   // unpacked -> packed
+                }
                 if (swapId >= 0) {
-                    const genie::Unit &newData = human->civilization.unitData(swapId);
-                    if (newData.ID != -1) {
-                        unit->setUnitData(newData);
-                    }
+                    unit->actions.clearActionQueue();
+                    Task transformTask;
+                    transformTask.target = unit; // self-target
+                    unit->actions.setCurrentAction(
+                        std::make_shared<ActionTransform>(unit, transformTask, swapId, transformTime));
                 }
             }
             m_buttonsDirty = true;

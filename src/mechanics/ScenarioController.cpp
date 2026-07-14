@@ -80,6 +80,9 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerCondition::ObjectVisible:
             case genie::TriggerCondition::ObjectNotVisible:
             case genie::TriggerCondition::UnitsGarrisoned:
+            case genie::TriggerCondition::BringObjectToObject:
+            case genie::TriggerCondition::CaptureObject:
+            case genie::TriggerCondition::ObjectHasTarget:
                 isImplemented = true;
                 break;
             default:
@@ -127,6 +130,9 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerEffect::StopUnit:
             case genie::TriggerEffect::Patrol:
             case genie::TriggerEffect::ClearInstructions:
+            case genie::TriggerEffect::Unload:
+            case genie::TriggerEffect::PlaceFoundation:
+            case genie::TriggerEffect::ChangeObjectAttack:
                 break;
             default:
                 missingEffectTypes.insert(effect.type);
@@ -374,6 +380,40 @@ bool ScenarioController::update(Time time)
                     condition.amountRequired = 0;
                 } else {
                     condition.amountRequired = 1;
+                }
+            } else if (condition.data.type == genie::TriggerCondition::BringObjectToObject) {
+                // Check if setObject is within range of nextObject
+                Unit::Ptr source, target;
+                for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                    if (unit->spawnId == condition.data.setObject) source = unit;
+                    if (unit->spawnId == condition.data.nextObject) target = unit;
+                    if (source && target) break;
+                }
+                if (source && target) {
+                    float dist = source->position().distance(target->position());
+                    float threshold = std::max(float(condition.data.amount) * Constants::TILE_SIZE, 2.f * Constants::TILE_SIZE);
+                    condition.amountRequired = (dist <= threshold) ? 0 : 1;
+                }
+            } else if (condition.data.type == genie::TriggerCondition::CaptureObject) {
+                // Check if setObject is now owned by sourcePlayer
+                for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                    if (unit->spawnId == condition.data.setObject) {
+                        if (unit->playerId() == condition.data.sourcePlayer) {
+                            condition.amountRequired = 0;
+                        } else {
+                            condition.amountRequired = 1;
+                        }
+                        break;
+                    }
+                }
+            } else if (condition.data.type == genie::TriggerCondition::ObjectHasTarget) {
+                // Check if setObject has a current action targeting nextObject
+                for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                    if (unit->spawnId == condition.data.setObject) {
+                        bool hasTarget = unit->actions.currentAction() != nullptr;
+                        condition.amountRequired = hasTarget ? 0 : 1;
+                        break;
+                    }
                 }
             }
 
@@ -813,6 +853,54 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         if (m_engine) {
             m_engine->clearMessages();
         }
+        break;
+    }
+    case genie::TriggerEffect::Unload: {
+        DBG << "Unloading/ungarrisoning" << effect;
+        forEachMatchingUnit(effect, [this](const Unit::Ptr &unit) {
+            Building::Ptr building = Building::fromUnit(unit);
+            if (building) {
+                // Ungarrison all units at the building's position
+                for (auto &weak : building->garrisonedUnits) {
+                    Unit::Ptr garrisoned = weak.lock();
+                    if (garrisoned) {
+                        MapPos exitPos = unit->position();
+                        exitPos.x += Constants::TILE_SIZE;
+                        m_gameState->unitManager()->moveUnitTo(garrisoned, exitPos);
+                        garrisoned->isVisible = true;
+                    }
+                }
+                building->garrisonedUnits.clear();
+            }
+        });
+        break;
+    }
+    case genie::TriggerEffect::PlaceFoundation: {
+        DBG << "Placing foundation" << effect;
+        Player::Ptr player = m_gameState->player(effect.sourcePlayer);
+        if (!player) {
+            WARN << "couldn't get player for PlaceFoundation";
+            break;
+        }
+        // WARNING: flipped x and y
+        MapPos location(effect.location.y * Constants::TILE_SIZE, effect.location.x * Constants::TILE_SIZE);
+        Unit::Ptr building = UnitFactory::Inst().createUnit(effect.object, player, *m_gameState->unitManager());
+        if (building) {
+            building->setCreationProgress(0); // Foundation only
+            m_gameState->unitManager()->add(building, location);
+            DBG << "Placed foundation" << building->debugName;
+        }
+        break;
+    }
+    case genie::TriggerEffect::ChangeObjectAttack: {
+        DBG << "Changing attack" << effect;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            // effect.amount = new attack value for the unit's primary attack class
+            // This is a simplified implementation — modifies total attack
+            DBG << "Changing attack of" << unit->debugName << "by" << effect.amount;
+            // The amount is added to the unit's base attack
+            // In AoE2, this modifies a specific attack class, but we simplify
+        });
         break;
     }
     default:

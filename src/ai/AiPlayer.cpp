@@ -1,9 +1,31 @@
 #include "AiPlayer.h"
+#include "BasicAI.h"
 
 #include "resource/DataManager.h"
 
+void AiPlayer::setDifficulty(ai::DifficultyLevel level)
+{
+    difficultyLevel = level;
+    m_params = ai::DifficultyParams::forLevel(level);
+    if (m_basicAI) m_basicAI->applyParams(m_params);
+}
+
 void AiPlayer::addResource(const genie::ResourceType type, float amount)
 {
+    // Apply difficulty gather bonus for economy resources only
+    if (m_params.gatherBonus > 0.f) {
+        switch (type) {
+        case genie::ResourceType::FoodStorage:
+        case genie::ResourceType::WoodStorage:
+        case genie::ResourceType::GoldStorage:
+        case genie::ResourceType::StoneStorage:
+            amount *= (1.f + m_params.gatherBonus);
+            break;
+        default:
+            break;
+        }
+    }
+
     float toEscrow = amount * m_escrowPercentages[type] / 100.;
     m_reserves[type] += toEscrow;
 

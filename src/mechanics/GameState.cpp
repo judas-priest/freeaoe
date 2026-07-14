@@ -310,6 +310,7 @@ void GameState::setupScenario()
                 player = std::make_shared<Player>(playerNum, playersData.resourcesPlusPlayerInfo[realPlayerNum].civilizationID, map_);
             } else {
                 auto aiPlayer = std::make_shared<AiPlayer>(playerNum, playersData.resourcesPlusPlayerInfo[realPlayerNum].civilizationID, map_);
+                aiPlayer->setDifficulty(m_difficulty);
                 aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
                 aiPlayer->m_basicAI = std::make_shared<BasicAI>(aiPlayer.get(), m_unitManager.get());
                 player = aiPlayer;
@@ -465,6 +466,7 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
         auto aiPlayer = std::make_shared<AiPlayer>(i, civId, map_, defaultStartingResources[m_gameType]);
         aiPlayer->name = "AI " + std::to_string(i);
         aiPlayer->playerColor = i - 1;
+        aiPlayer->setDifficulty(m_difficulty);
         aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
         aiPlayer->m_basicAI = std::make_shared<BasicAI>(aiPlayer.get(), m_unitManager.get());
         m_players.push_back(aiPlayer);

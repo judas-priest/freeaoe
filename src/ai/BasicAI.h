@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Types.h"
+#include "ai/DifficultyParams.h"
 #include <memory>
 
 struct AiPlayer;
@@ -13,11 +14,13 @@ public:
     BasicAI(AiPlayer *player, UnitManager *unitManager);
 
     void update(Time time);
+    void applyParams(const ai::DifficultyParams &p) { m_params = p; }
 
 private:
     AiPlayer *m_player;
     UnitManager *m_unitManager;
     Time m_lastUpdate = 0;
+    ai::DifficultyParams m_params;
 
     void scoutMap();
     void trainVillagers();

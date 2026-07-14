@@ -232,6 +232,7 @@ set(AI_SRC
     src/ai/Ids.h
     src/ai/AiPlayer.cpp
     src/ai/BasicAI.cpp
+    src/ai/DifficultyParams.cpp
     src/ai/AiPlayer.h
 
     src/ai/EnumLogDefs.h

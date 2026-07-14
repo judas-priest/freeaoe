@@ -20,6 +20,7 @@
 
 #include "IState.h"
 
+#include "ai/gen/enums.h"
 #include "core/ResourceMap.h"
 
 #include "global/EventListener.h"
@@ -90,6 +91,8 @@ public:
     void setScenario(const std::shared_ptr<genie::ScnFile> &scenario);
     void setGameType(const GameType &type) { m_gameType = type; }
     GameType gameType() const { return m_gameType; }
+    void setDifficulty(ai::DifficultyLevel d) { m_difficulty = d; }
+    ai::DifficultyLevel difficulty() const { return m_difficulty; }
     void setSkipDemoGame(bool skip) { m_skipDemoGame = skip; }
     void setupRandomMap(int mapType, int mapSize, int playerCount);
 
@@ -143,6 +146,7 @@ private:
     std::vector<std::shared_ptr<AiPlayer>> m_aiPlayers;
 
     GameType m_gameType = GameType::Default;
+    ai::DifficultyLevel m_difficulty = ai::DifficultyLevel::Moderate;
     bool m_skipDemoGame = false;
 
     std::unique_ptr<ScenarioController> m_scenarioController;

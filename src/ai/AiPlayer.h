@@ -2,6 +2,7 @@
 
 #include "mechanics/Player.h"
 #include "gen/enums.h"
+#include "DifficultyParams.h"
 
 #include <memory>
 
@@ -11,10 +12,15 @@ class BasicAI;
 struct AiPlayer : public Player
 {
     AiPlayer(const int id, const int civId, const std::shared_ptr<Map> &map, const ResourceMap &startingResources = {}) :
-        Player(id, civId, map, startingResources)
+        Player(id, civId, map, startingResources),
+        m_params(ai::DifficultyParams::forLevel(difficultyLevel))
     {}
 
     ai::DifficultyLevel difficultyLevel = ai::DifficultyLevel::Moderate;
+    ai::DifficultyParams m_params;
+
+    void setDifficulty(ai::DifficultyLevel level);
+
     std::shared_ptr<ai::AiScript> m_aiScript;
     std::shared_ptr<BasicAI> m_basicAI;
 

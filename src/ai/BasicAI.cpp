@@ -18,7 +18,8 @@
 #include <cstdlib>
 
 BasicAI::BasicAI(AiPlayer *player, UnitManager *unitManager)
-    : m_player(player), m_unitManager(unitManager)
+    : m_player(player), m_unitManager(unitManager),
+      m_params(ai::DifficultyParams::forLevel(player->difficultyLevel))
 {
 }
 
@@ -47,7 +48,7 @@ int BasicAI::countBuildingsOfType(int buildingId) const
 
 void BasicAI::update(Time time)
 {
-    if (time - m_lastUpdate < 5000) return; // Every 5 seconds
+    if (time - m_lastUpdate < static_cast<Time>(m_params.updateIntervalMs)) return;
     m_lastUpdate = time;
 
     if (!m_player || !m_player->alive) return;
@@ -59,7 +60,7 @@ void BasicAI::update(Time time)
     assignIdleVillagers();
     researchLoom();
     advanceAge();
-    researchTechs();
+    if (m_params.researchTechs) researchTechs();
     trainMilitary();
     attackWithArmy();
 }
@@ -90,7 +91,7 @@ void BasicAI::trainVillagers()
 {
     // Train villagers up to 20, max 1 in queue at a time
     int villagerCount = countUnitsOfType(83);
-    if (villagerCount >= 20) return;
+    if (villagerCount >= m_params.villagerCap) return;
 
     // Find TC that isn't already producing
     for (const Unit::Ptr &unit : m_unitManager->units()) {
@@ -340,7 +341,7 @@ void BasicAI::attackWithArmy()
         if (unit->actions.currentAction()) continue;
         idleMilitary++;
     }
-    if (idleMilitary < 8) return;
+    if (idleMilitary < m_params.attackThreshold) return;
 
     // Find enemy target — prefer TC, otherwise any enemy building/unit
     Unit::Ptr target;
@@ -405,7 +406,7 @@ void BasicAI::trainMilitary()
     }
 
     // Build siege workshop (49, 200W) in Castle Age
-    if (countBuildingsOfType(49) == 0 && m_player->currentAge() >= Player::CastleAge) {
+    if (m_params.buildSiege && countBuildingsOfType(49) == 0 && m_player->currentAge() >= Player::CastleAge) {
         if (wood >= 200) buildStructure(49, 200);
     }
 
@@ -416,7 +417,7 @@ void BasicAI::trainMilitary()
             totalMilitary++;
         }
     }
-    if (totalMilitary >= 30) return;
+    if (totalMilitary >= m_params.militaryCap) return;
 
     // Train from barracks: militia (74, 60F) or spearman (93, 35F 25W)
     if (food >= 60) {
@@ -441,7 +442,7 @@ void BasicAI::trainMilitary()
     }
 
     // Train from siege workshop: battering ram (35, 160W 75G)
-    if (countBuildingsOfType(49) > 0 && wood >= 160 && gold >= 75) {
+    if (m_params.buildSiege && countBuildingsOfType(49) > 0 && wood >= 160 && gold >= 75) {
         if (countUnitsOfType(35) < 3) { // Max 3 rams
             trainFromBuilding(49, 35);
         }

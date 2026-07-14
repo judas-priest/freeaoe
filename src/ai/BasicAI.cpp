@@ -155,15 +155,20 @@ void BasicAI::buildHouses()
         }
         if (blocked) continue;
 
-        // Create house (ID 70)
+        // Create house (ID 70) as foundation and assign villager to build it
         Unit::Ptr house = UnitFactory::createUnit(70, std::const_pointer_cast<Player>(
             std::static_pointer_cast<const Player>(unit->player().lock())), *m_unitManager);
         if (house) {
+            house->setCreationProgress(0); // Start as foundation
             m_unitManager->add(house, housePos);
-            // Task villager to build
-            Task buildTask;
-            buildTask.data = &unit->data()->Action.TaskList[0]; // rough
-            IAction::assignTask(buildTask, unit, IAction::AssignType::Replace);
+            // Find the Build task for the villager and assign it
+            Task buildTask = unit->actions.findTaskWithTarget(house);
+            if (buildTask.isValid()) {
+                IAction::assignTask(buildTask, unit, IAction::AssignType::Replace);
+            } else {
+                // Fallback: just move villager to the building
+                m_unitManager->moveUnitTo(unit, housePos);
+            }
         }
         return;
     }
@@ -494,9 +499,22 @@ void BasicAI::buildStructure(int buildingId, int woodCost)
 
             Unit::Ptr building = UnitFactory::createUnit(buildingId, owner, *m_unitManager);
             if (building) {
+                building->setCreationProgress(0); // Start as foundation
                 m_unitManager->add(building, buildPos);
                 m_player->setAvailableResource(genie::ResourceType::WoodStorage, wood - woodCost);
                 DBG << "AI built building" << buildingId << "at" << buildPos.x << buildPos.y;
+
+                // Find idle villager to build it
+                for (const Unit::Ptr &vill : m_unitManager->units()) {
+                    if (!vill || vill->playerId() != m_player->playerId) continue;
+                    if (vill->data()->ID != 83 && vill->data()->ID != 293) continue;
+                    if (vill->actions.currentAction()) continue;
+                    Task buildTask = vill->actions.findTaskWithTarget(building);
+                    if (buildTask.isValid()) {
+                        IAction::assignTask(buildTask, vill, IAction::AssignType::Replace);
+                    }
+                    break;
+                }
                 return;
             }
         }

@@ -55,6 +55,98 @@ namespace genie {
 class Tech;
 }  // namespace genie
 
+// Determine the wall orientation for a tile at (tileX, tileY) based on its wall neighbors.
+// Returns: 0=vertical(N-S), 1=horizontal(E-W), 2=pillar/corner, 3=diagNW-SE, 4=diagNE-SW
+static int computeWallOrientation(const MapPtr &map, int tileX, int tileY)
+{
+    // Check 8 neighbors for walls
+    static const std::pair<int,int> offsets[] = {
+        { 0, -1}, // N
+        { 0,  1}, // S
+        {-1,  0}, // W
+        { 1,  0}, // E
+        {-1, -1}, // NW
+        { 1,  1}, // SE
+        { 1, -1}, // NE
+        {-1,  1}, // SW
+    };
+
+    bool hasNeighbor[8] = {};
+    for (int i = 0; i < 8; i++) {
+        int nx = tileX + offsets[i].first;
+        int ny = tileY + offsets[i].second;
+        if (!map->isValidTile(nx, ny)) continue;
+
+        for (const auto &weakEntity : map->entitiesAt(nx, ny)) {
+            auto entity = weakEntity.lock();
+            if (!entity) continue;
+            Unit::Ptr neighbor = Unit::fromEntity(entity);
+            if (!neighbor) continue;
+            if (neighbor->data()->Class == genie::Unit::Wall) {
+                hasNeighbor[i] = true;
+                break;
+            }
+        }
+    }
+
+    // N=0, S=1, W=2, E=3, NW=4, SE=5, NE=6, SW=7
+    bool hasN  = hasNeighbor[0], hasS  = hasNeighbor[1];
+    bool hasW  = hasNeighbor[2], hasE  = hasNeighbor[3];
+    bool hasNW = hasNeighbor[4], hasSE = hasNeighbor[5];
+    bool hasNE = hasNeighbor[6], hasSW = hasNeighbor[7];
+
+    // Count how many axis-groups have neighbors
+    bool axisNS   = hasN  || hasS;
+    bool axisEW   = hasW  || hasE;
+    bool axisNWSE = hasNW || hasSE;
+    bool axisNESW = hasNE || hasSW;
+    int axisCount = (int)axisNS + (int)axisEW + (int)axisNWSE + (int)axisNESW;
+
+    // Multiple axes = junction/corner = pillar
+    if (axisCount >= 2) return 2;
+
+    // Single axis
+    if (axisNS)   return 0; // vertical
+    if (axisEW)   return 1; // horizontal
+    if (axisNWSE) return 3; // NW-SE diagonal
+    if (axisNESW) return 4; // NE-SW diagonal
+
+    // No neighbors = isolated = pillar
+    return 2;
+}
+
+static void updateAdjacentWalls(const MapPtr &map, const MapPos &pos)
+{
+    static const std::pair<int,int> offsets[] = {
+        { 0, -1}, { 0,  1}, {-1,  0}, { 1,  0},
+        {-1, -1}, { 1,  1}, { 1, -1}, {-1,  1},
+    };
+
+    const int tileX = static_cast<int>(pos.x / Constants::TILE_SIZE);
+    const int tileY = static_cast<int>(pos.y / Constants::TILE_SIZE);
+
+    for (const auto &[dx, dy] : offsets) {
+        int nx = tileX + dx;
+        int ny = tileY + dy;
+        if (!map->isValidTile(nx, ny)) continue;
+
+        for (const auto &weakEntity : map->entitiesAt(nx, ny)) {
+            auto entity = weakEntity.lock();
+            if (!entity) continue;
+            Unit::Ptr neighbor = Unit::fromEntity(entity);
+            if (!neighbor) continue;
+            if (neighbor->data()->Class != genie::Unit::Wall) continue;
+
+            int newOrientation = computeWallOrientation(map, nx, ny);
+            const SpritePtr &sprite = neighbor->renderer().sprite();
+            if (sprite) {
+                float newAngle = sprite->orientationToAngle(newOrientation);
+                neighbor->setAngle(newAngle);
+            }
+        }
+    }
+}
+
 UnitManager::UnitManager()
 {
     EventManager::registerListener(this, EventManager::ResearchComplete);
@@ -1303,6 +1395,11 @@ void UnitManager::placeBuilding(const UnplacedBuilding &building)
 
         task.target = buildingToPlace;
         IAction::assignTask(task, selectedUnit, IAction::AssignType::Replace);
+    }
+
+    // Update adjacent walls to connect with the newly placed wall
+    if (building.isWall) {
+        updateAdjacentWalls(m_map, building.position);
     }
 }
 

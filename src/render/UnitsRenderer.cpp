@@ -71,6 +71,10 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
                 continue;
             }
 
+            if (unit->isHidden()) {
+                continue;
+            }
+
             if (visibility == VisibilityMap::Visible) {
                 entity->isVisible = true;
                 visibleUnits.push_back(unit);

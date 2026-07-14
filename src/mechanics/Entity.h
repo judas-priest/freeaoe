@@ -64,6 +64,8 @@ struct Entity : std::enable_shared_from_this<Entity>
     const std::string debugName;
 
     bool isVisible = false;
+    bool isHidden() const noexcept { return m_hidden; }
+    void setHidden(bool hidden) noexcept { m_hidden = hidden; }
 
     virtual void setMap(const MapPtr &newMap) noexcept;
     MapPtr map() const noexcept;
@@ -95,6 +97,7 @@ protected:
     std::unique_ptr<GraphicRender> m_renderer;
     SpritePtr defaultGraphics;
     std::weak_ptr<Map> m_map;
+    bool m_hidden = false;
 
 private:
     const Type m_type = Type::None;

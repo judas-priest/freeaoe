@@ -30,7 +30,9 @@ ActionAttack::ActionAttack(const Unit::Ptr &attacker, const Task &task) :
         return;
     }
     m_targetPosition = target->position();
-    if (target->playerId() == attacker->playerId()) {
+    // Don't attack own units — EXCEPT own herdable animals (sheep for food gathering)
+    if (target->playerId() == attacker->playerId() &&
+        target->data()->Class != genie::Unit::DomesticAnimal) {
         m_targetUnit.reset();
     }
     const int attackGraphic = attacker->data()->Combat.AttackGraphic;

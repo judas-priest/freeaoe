@@ -1269,6 +1269,17 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
 
         // --- Game area tap ---
 
+        // Building/wall placement: if in PlacingBuilding state, tap places the building
+        if (state->unitManager()->state() == UnitManager::State::PlacingBuilding ||
+            state->unitManager()->state() == UnitManager::State::PlacingWall) {
+            MapPos mapPos = renderTarget_->camera()->absoluteMapPos(pos).clamped(state->map()->pixelSize());
+            state->unitManager()->onMouseMove(mapPos);
+            state->unitManager()->onMouseRelease();
+            m_touchState.phase = TouchState::Phase::Idle;
+            m_touchState.tapTime = 0;
+            return true;
+        }
+
         // Double-tap detection: was WaitSecondTap and second tap is close enough?
         bool isDoubleTap = (m_touchState.tapTime > 0)
             && (now - m_touchState.tapTime < TouchState::DOUBLE_TAP_MS)

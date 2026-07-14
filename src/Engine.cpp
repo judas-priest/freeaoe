@@ -823,6 +823,28 @@ void Engine::drawUi()
         renderTarget_->draw(messageLine.text);
     }
 
+    // Objectives panel
+    auto activeState = state_manager_.getActiveState();
+    if (m_objectivesVisible && activeState && activeState->scenarioController()) {
+        const auto &objs = activeState->scenarioController()->objectives();
+        if (!objs.empty() && m_statText) {
+            const int panelH = 24 + int(objs.size()) * 20;
+            renderTarget_->draw(ScreenRect(8, 55, 300, panelH),
+                                Drawable::Color(0, 0, 0, 160));
+            float oy = 60;
+            for (const auto &obj : objs) {
+                std::string prefix = obj.completed ? "[x] " : "[ ] ";
+                m_statText->string = prefix + obj.description;
+                m_statText->color = obj.completed
+                    ? Drawable::Color(128, 255, 128, 255)
+                    : Drawable::White;
+                m_statText->position = ScreenPos(14, oy);
+                renderTarget_->draw(m_statText);
+                oy += 20;
+            }
+        }
+    }
+
     // Chat input bar
     if (m_chat.active) {
         const Size ws = renderTarget_->getSize();
@@ -1027,6 +1049,9 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         if (m_minimap) {
             m_minimap->cycleMode();
         }
+        return true;
+    case input::Key::F11:
+        m_objectivesVisible = !m_objectivesVisible;
         return true;
 
     // Unit commands

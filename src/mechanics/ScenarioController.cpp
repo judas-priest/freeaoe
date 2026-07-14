@@ -106,6 +106,20 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
         DBG << "Missing support for condition type" << genie::TriggerCondition::Type(type);
     }
 
+    // Collect objectives from triggers
+    m_objectives.clear();
+    for (const genie::Trigger &trig : scenario->triggers) {
+        if (trig.isObjective == 0) continue;
+        Objective obj;
+        obj.description = trig.description;
+        obj.order = trig.descriptionOrder;
+        obj.triggerName = trig.name;
+        obj.completed = false;
+        m_objectives.push_back(obj);
+    }
+    std::sort(m_objectives.begin(), m_objectives.end(),
+        [](const Objective &a, const Objective &b) { return a.order < b.order; });
+
     std::unordered_set<int32_t> missingEffectTypes;
     for (const Trigger &trigger : m_triggers) {
         for (const genie::TriggerEffect &effect : trigger.effects) {
@@ -471,6 +485,13 @@ bool ScenarioController::update(Time time)
 
         for (const genie::TriggerEffect &effect : trigger.effects) {
             handleTriggerEffect(effect);
+        }
+
+        // Mark matching objective as completed
+        for (Objective &obj : m_objectives) {
+            if (!obj.completed && obj.triggerName == trigger.name) {
+                obj.completed = true;
+            }
         }
     }
 

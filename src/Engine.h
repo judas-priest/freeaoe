@@ -213,6 +213,9 @@ private:
     Drawable::Text::Ptr m_statText;     // Cached post-game stats text
     Drawable::Text::Ptr m_menuItemText; // Cached context menu item text
 
+    // Objectives panel
+    bool m_objectivesVisible = false;
+
     // Chat UI
     struct ChatState {
         bool active = false;

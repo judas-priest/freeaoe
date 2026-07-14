@@ -79,10 +79,19 @@ class ScenarioController : public EventListener
     };
 
 public:
+    struct Objective {
+        std::string description;
+        int order = 0;
+        bool completed = false;
+        std::string triggerName; // for matching
+    };
+
     ScenarioController(GameState *gameState);
 
     void setScenario(const std::shared_ptr<genie::ScnFile> &scenario);
     bool update(Time time);
+
+    const std::vector<Objective> &objectives() const { return m_objectives; }
 
     // a bit ugly violation of blah blah composition, but w/e
     void setEngine(Engine *engine) { m_engine = engine; }
@@ -120,6 +129,7 @@ private:
 
     // Todo: put these in an std::array based on type, so we don't have to loop over all
     std::vector<Trigger> m_triggers;
+    std::vector<Objective> m_objectives;
     std::unordered_set<int> m_pendingAISignals;
     Time m_lastUpdateTime = 0;
 

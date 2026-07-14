@@ -194,7 +194,7 @@ Unit::Ptr UnitFactory::createUnit(const int ID, const Player::Ptr &owner, UnitMa
     owner->applyResearch(gunit.Building.TechID);
 
     Unit::Ptr unit;
-    if (ID == Unit::Farm) { // Farms are very special (shortbus special), so better to just use a special class
+    if (gunit.Class == genie::Unit::Farm) { // Farms and Fish Traps share the Farm class
         unit = std::make_shared<Farm>(gunit, owner, unitManager);
     } else if (gunit.Class == genie::Unit::Gate) {
         unit = std::make_shared<Gate>(gunit, owner, unitManager);

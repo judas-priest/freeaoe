@@ -142,7 +142,17 @@ IAction::UpdateResult ActionGather::maybeDropOff(const std::shared_ptr<Unit> &un
 
     Unit::Ptr target = m_target.lock();
     if (target && target->resources[m_resourceType] > 0) {
+        // Target still has resources -- return to it after drop-off
         unit->actions.queueAction(std::make_shared<ActionGather>(unit, m_task));
+    } else {
+        // Target depleted -- find nearest fish/resource of same type
+        Unit::Ptr nextTarget = findNextGatherTarget(unit);
+        if (nextTarget) {
+            Task newTask = m_task;
+            newTask.target = nextTarget;
+            unit->actions.queueAction(ActionMove::moveUnitTo(unit, nextTarget));
+            unit->actions.queueAction(std::make_shared<ActionGather>(unit, newTask));
+        }
     }
 
     return UpdateResult::Completed;
@@ -174,6 +184,44 @@ std::shared_ptr<Unit> ActionGather::findDropSite(const std::shared_ptr<Unit> &un
         closestDistance = distance;
         closestPos = other->position();
         closestUnit = other;
+    }
+
+    return closestUnit;
+}
+
+std::shared_ptr<Unit> ActionGather::findNextGatherTarget(const std::shared_ptr<Unit> &unit)
+{
+    Unit::Ptr oldTarget = m_target.lock();
+    const int targetClass = oldTarget ? oldTarget->data()->Class : -1;
+
+    float closestDistance = std::numeric_limits<float>::max();
+    Unit::Ptr closestUnit;
+
+    for (const Unit::Ptr &other : unit->unitManager().units()) {
+        if (other == oldTarget) {
+            continue; // skip the depleted one
+        }
+
+        // Must be same class (e.g. OceanFish, DeepSeaFish, ShoreFish)
+        if (targetClass >= 0 && other->data()->Class != targetClass) {
+            continue;
+        }
+
+        // Must have the resource we're gathering
+        if (other->resources[m_resourceType] <= 0) {
+            continue;
+        }
+
+        // Must be alive (not a dead fish carcass)
+        if (other->isDead() || other->isDying()) {
+            continue;
+        }
+
+        const float distance = unit->position().distance(other->position());
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestUnit = other;
+        }
     }
 
     return closestUnit;

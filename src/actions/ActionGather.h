@@ -33,6 +33,7 @@ public:
 private:
     UpdateResult maybeDropOff(const std::shared_ptr<Unit> &unit);
     std::shared_ptr<Unit> findDropSite(const std::shared_ptr<Unit> &unit);
+    std::shared_ptr<Unit> findNextGatherTarget(const std::shared_ptr<Unit> &unit);
 
     std::weak_ptr<Unit> m_target;
     genie::ResourceType m_resourceType;

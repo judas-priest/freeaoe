@@ -58,6 +58,7 @@ void BasicAI::update(Time time)
     assignIdleVillagers();
     researchLoom();
     advanceAge();
+    researchTechs();
     trainMilitary();
     attackWithArmy();
 }
@@ -283,17 +284,35 @@ void BasicAI::advanceAge()
     }
 }
 
+bool BasicAI::isMilitaryUnit(int unitId) const
+{
+    // Barracks: Militia=74, MenAtArms=75, Spearman=93, Pikeman=358, LongSword=77, TwoHanded=473, Champion=567
+    // Archery: Archer=4, Crossbow=24, Skirmisher=7, EliteSkirmisher=6, CavArcher=39
+    // Stable: Scout=448, LightCav=546, Knight=38, Cavalier=283, Paladin=569, Camel=329
+    // Siege: Mangonel=280, Scorpion=279, BatteringRam=35, Onager=550, SiegeRam=422
+    static const int ids[] = {
+        74, 75, 77, 473, 567, 93, 358,   // barracks
+        4, 24, 7, 6, 39,                   // archery
+        448, 546, 38, 283, 569, 329,       // stable
+        280, 279, 35, 550, 422             // siege
+    };
+    for (int id : ids) {
+        if (unitId == id) return true;
+    }
+    return false;
+}
+
 void BasicAI::attackWithArmy()
 {
-    // Attack when we have 5+ idle military units
+    // Attack when we have 8+ idle military units
     int idleMilitary = 0;
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
-        if (unit->data()->ID != 74 && unit->data()->ID != 93 && unit->data()->ID != 4) continue; // militia, spearman, archer
+        if (!isMilitaryUnit(unit->data()->ID)) continue;
         if (unit->actions.currentAction()) continue;
         idleMilitary++;
     }
-    if (idleMilitary < 5) return;
+    if (idleMilitary < 8) return;
 
     // Find enemy target — prefer TC, otherwise any enemy building/unit
     Unit::Ptr target;
@@ -308,7 +327,7 @@ void BasicAI::attackWithArmy()
     // Send all idle military to attack
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
-        if (unit->data()->ID != 74 && unit->data()->ID != 93 && unit->data()->ID != 4) continue;
+        if (!isMilitaryUnit(unit->data()->ID)) continue;
         if (unit->actions.currentAction()) continue;
 
         Task task = unit->actions.findTaskWithTarget(target);
@@ -318,6 +337,20 @@ void BasicAI::attackWithArmy()
             // Just move toward the enemy
             unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, target->position()));
         }
+    }
+}
+
+void BasicAI::trainFromBuilding(int buildingId, int unitId)
+{
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != buildingId) continue;
+        auto building = Building::fromUnit(unit);
+        if (!building || building->isProducing()) continue;
+
+        const genie::Unit &data = m_player->civilization.unitData(unitId);
+        building->enqueueProduceUnit(&data);
+        return;
     }
 }
 
@@ -338,35 +371,51 @@ void BasicAI::trainMilitary()
         if (wood >= 175) buildStructure(87, 175);
     }
 
-    int totalMilitary = countUnitsOfType(74) + countUnitsOfType(4) + countUnitsOfType(93);
-    if (totalMilitary >= 15) return;
+    // Build stable (101, 175W) in Castle Age
+    if (countBuildingsOfType(101) == 0 && m_player->currentAge() >= Player::CastleAge) {
+        if (wood >= 175) buildStructure(101, 175);
+    }
+
+    // Build siege workshop (49, 200W) in Castle Age
+    if (countBuildingsOfType(49) == 0 && m_player->currentAge() >= Player::CastleAge) {
+        if (wood >= 200) buildStructure(49, 200);
+    }
+
+    // Count all military
+    int totalMilitary = 0;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit && unit->playerId() == m_player->playerId && isMilitaryUnit(unit->data()->ID)) {
+            totalMilitary++;
+        }
+    }
+    if (totalMilitary >= 30) return;
 
     // Train from barracks: militia (74, 60F) or spearman (93, 35F 25W)
     if (food >= 60) {
-        for (const Unit::Ptr &unit : m_unitManager->units()) {
-            if (!unit || unit->playerId() != m_player->playerId) continue;
-            if (unit->data()->ID != 12) continue;
-            auto building = Building::fromUnit(unit);
-            if (!building || building->isProducing()) continue;
+        int unitId = (countUnitsOfType(74) > countUnitsOfType(93)) ? 93 : 74;
+        trainFromBuilding(12, unitId);
+    }
 
-            int unitId = (countUnitsOfType(74) > countUnitsOfType(93)) ? 93 : 74;
-            const genie::Unit &data = m_player->civilization.unitData(unitId);
-            building->enqueueProduceUnit(&data);
-            break;
+    // Train from archery range: archer (4, 25W 45G) or skirmisher (7, 25F 35W)
+    if (wood >= 25 && gold >= 45) {
+        trainFromBuilding(87, 4); // Archer
+    } else if (food >= 25 && wood >= 35) {
+        trainFromBuilding(87, 7); // Skirmisher (no gold)
+    }
+
+    // Train from stable: scout (448, 80F) or knight (38, 60F 75G)
+    if (countBuildingsOfType(101) > 0) {
+        if (food >= 60 && gold >= 75) {
+            trainFromBuilding(101, 38); // Knight
+        } else if (food >= 80) {
+            trainFromBuilding(101, 448); // Scout
         }
     }
 
-    // Train from archery range: archer (4, 25W 45G)
-    if (wood >= 25 && gold >= 45) {
-        for (const Unit::Ptr &unit : m_unitManager->units()) {
-            if (!unit || unit->playerId() != m_player->playerId) continue;
-            if (unit->data()->ID != 87) continue;
-            auto building = Building::fromUnit(unit);
-            if (!building || building->isProducing()) continue;
-
-            const genie::Unit &archerData = m_player->civilization.unitData(4);
-            building->enqueueProduceUnit(&archerData);
-            break;
+    // Train from siege workshop: battering ram (35, 160W 75G)
+    if (countBuildingsOfType(49) > 0 && wood >= 160 && gold >= 75) {
+        if (countUnitsOfType(35) < 3) { // Max 3 rams
+            trainFromBuilding(49, 35);
         }
     }
 }
@@ -433,6 +482,39 @@ void BasicAI::buildStructure(int buildingId, int woodCost)
 
 void BasicAI::researchTechs()
 {
-    // Auto-research available techs at buildings
-    // TODO: prioritize important techs
+    // Research available techs at idle buildings
+    // Priority techs: Blacksmith upgrades, armor, attack upgrades
+    static const int priorityTechs[] = {
+        67,  // Forging (Blacksmith, +1 melee attack)
+        68,  // IronCasting (+1 melee attack)
+        75,  // ScaleMailArmor (+1/+1 infantry armor)
+        76,  // ChainMailArmor (+1/+1 infantry armor)
+        81,  // Fletching (+1 range, +1 attack archery)
+        82,  // BodkinArrow (+1 range, +1 attack archery)
+        74,  // ScaleBardingArmor (+1/+1 cavalry armor)
+        100, // Padded Archer Armor
+        140, // Guard Tower
+        211, // Wheelbarrow (TC, faster villagers)
+        249, // HandCart (TC, even faster)
+    };
+
+    for (int techId : priorityTechs) {
+        if (m_player->hasResearched(techId)) continue;
+        if (!m_player->canAffordResearch(techId)) continue;
+
+        const genie::Tech &tech = m_player->civilization.tech(techId);
+        if (tech.ResearchTime <= 0) continue;
+        if (tech.ResearchLocation <= 0) continue;
+
+        // Find the building that researches this tech
+        for (const Unit::Ptr &unit : m_unitManager->units()) {
+            if (!unit || unit->playerId() != m_player->playerId) continue;
+            if (unit->data()->ID != tech.ResearchLocation) continue;
+            auto building = Building::fromUnit(unit);
+            if (!building || building->isProducing() || building->isResearching()) continue;
+
+            building->enqueueProduceResearch(&tech);
+            return; // One research at a time
+        }
+    }
 }

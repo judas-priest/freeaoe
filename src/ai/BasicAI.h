@@ -29,6 +29,8 @@ private:
     void trainMilitary();
     void researchTechs();
     void buildStructure(int buildingId, int woodCost);
+    void trainFromBuilding(int buildingId, int unitId);
+    bool isMilitaryUnit(int unitId) const;
 
     int countUnitsOfType(int unitId) const;
     int countBuildingsOfType(int buildingId) const;

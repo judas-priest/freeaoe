@@ -1,8 +1,11 @@
 #include "ActionTrade.h"
 #include "ActionMove.h"
+#include "mechanics/Map.h"
 #include "mechanics/Player.h"
 
 #include <genie/dat/ResourceType.h>
+
+#include <algorithm>
 
 ActionTrade::ActionTrade(const Unit::Ptr &tradeCart, const Unit::Ptr &targetMarket)
     : IAction(Type::Trade, tradeCart, Task())
@@ -37,10 +40,18 @@ ActionTrade::UpdateResult ActionTrade::update(Time time)
         m_isMoving = false;
 
         if (!m_goingToTarget) {
-            // Arrived back home — deposit gold
-            // Gold earned = distance between markets / 10
-            float tradeDist = m_homePos.distance(market->position());
-            float goldEarned = tradeDist / 10.f;
+            // Arrived back home — deposit gold using AoE2 formula:
+            //   gold = 0.46 * d_tiles * (d_tiles / mapSize + 0.3)
+            const float pixelsPerTile = 48.f;
+            const float tradeDist = m_homePos.distance(market->position());
+            const float distTiles = tradeDist / pixelsPerTile;
+
+            float mapSize = 120.f;
+            if (cart->map()) {
+                mapSize = float(std::max(cart->map()->columnCount(), cart->map()->rowCount()));
+            }
+
+            const float goldEarned = 0.46f * distTiles * (distTiles / mapSize + 0.3f);
 
             auto owner = cart->player().lock();
             if (owner) {

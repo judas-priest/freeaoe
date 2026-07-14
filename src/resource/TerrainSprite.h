@@ -69,6 +69,7 @@ public:
 
     bool isValid() const noexcept;
 
+    int frameCount() const noexcept { return m_tileSquareCount * m_tileSquareCount; }
     size_t cacheSize() const { return m_textures.size(); }
 
 private:

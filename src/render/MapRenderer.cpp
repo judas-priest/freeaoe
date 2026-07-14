@@ -53,10 +53,17 @@ MapRenderer::~MapRenderer()
 {
 }
 
-bool MapRenderer::update(Time /*time*/)
+bool MapRenderer::update(Time time)
 {
     if (!m_map) {
         return false;
+    }
+
+    // Advance water animation frame every 200ms
+    if (time - m_lastWaterFrameTime >= 200) {
+        m_lastWaterFrameTime = time;
+        m_waterFrame = (m_waterFrame + 1) % 8;
+        m_camChanged = true;
     }
 
     const MapPos cameraPos = renderTarget_->camera()->targetPosition();
@@ -225,7 +232,13 @@ void MapRenderer::updateTexture()
                 m_textureTarget->draw(invalidIndicator);
                 continue;
             }
-            const Drawable::Image::Ptr &tileTexture = terrain->texture(mapTile, m_textureTarget);
+            // Animate water tiles by offsetting the frame
+            MapTile animatedTile = mapTile;
+            if (mapTile.terrainId == 1 || mapTile.terrainId == 2 || mapTile.terrainId == 3 ||
+                mapTile.terrainId == 4 || mapTile.terrainId == 22 || mapTile.terrainId == 26) {
+                animatedTile.frame = (mapTile.frame + m_waterFrame) % std::max(1, terrain->frameCount());
+            }
+            const Drawable::Image::Ptr &tileTexture = terrain->texture(animatedTile, m_textureTarget);
             if (!tileTexture->isValid()) {
                 invalidIndicator.center = spos + ScreenPos(Constants::TILE_SIZE_HORIZONTAL/2.f, Constants::TILE_SIZE_VERTICAL/2.f);
                 m_textureTarget->draw(invalidIndicator);

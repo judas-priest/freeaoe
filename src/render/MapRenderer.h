@@ -65,6 +65,10 @@ private:
     bool m_camChanged;
     std::shared_ptr<VisibilityMap> m_visibilityMap;
 
+    // Water animation
+    Time m_lastWaterFrameTime = 0;
+    int m_waterFrame = 0;
+
     MapPtr m_map;
 
     int m_xOffset, m_yOffset; //TODO: ScreenPos?

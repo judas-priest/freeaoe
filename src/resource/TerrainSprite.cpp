@@ -376,10 +376,12 @@ const Drawable::Image::Ptr &TerrainSprite::texture(const MapTile &tile, const IR
 
     // This is used to alter the source SLP (for sloping), but we mostly ignore it,
     // we only need the modified offset to the left and then use the texture filtering for the rest
-    const genie::SlpTemplateFile::SlpTemplate &slpTemplate = AssetManager::Inst()->getSlpTemplateFile()->templates[tile.slopes.self.toGenie()];
+    const int slopeIdx = tile.slopes.self.toGenie();
 
-    // This defines the texture mapping for slopes (what pixels from the original SLP should go where)
-    const genie::FiltermapFile::Filtermap &filter = AssetManager::Inst()->filtermapFile()->maps[tile.slopes.self.toGenie()];
+    // Bounds check: fall back to flat slope if index is out of range or data is invalid
+    const int safeSlopeIdx = (slopeIdx >= 0 && slopeIdx < genie::SlopeCount) ? slopeIdx : genie::SlopeFlat;
+    const genie::SlpTemplateFile::SlpTemplate &slpTemplate = AssetManager::Inst()->getSlpTemplateFile()->templates[safeSlopeIdx];
+    const genie::FiltermapFile::Filtermap &filter = AssetManager::Inst()->filtermapFile()->maps[safeSlopeIdx];
 
     const std::vector<genie::Pattern> &slopePatterns = tile.slopePatterns();
 
@@ -394,10 +396,13 @@ const Drawable::Image::Ptr &TerrainSprite::texture(const MapTile &tile, const IR
     uint32_t *pixels = reinterpret_cast<uint32_t*>(pixelsBuf.data());
 
     for (unsigned y=0; y<filter.height; y++) {
+        if (y >= slpTemplate.left_edges_.size()) break;
         int xPos = slpTemplate.left_edges_[y];
+        if (y >= filter.lines.size()) break;
         const genie::FiltermapFile::FilterLine &line = filter.lines[y];
 
         for (unsigned x=0; x<line.width; x++, xPos++) {
+            if (x >= line.commands.size()) break;
             const genie::FiltermapFile::FilterCmd &cmd = line.commands[x];
 
             // Each target pixel can blend several source pixels
@@ -421,7 +426,9 @@ const Drawable::Image::Ptr &TerrainSprite::texture(const MapTile &tile, const IR
             const int pixelIndex = icm.paletteIndex(r >> 11, g >> 11, b >> 11);
 
             // And then finally we get the color for a single pixel
-            pixels[y * width + xPos] = colors[pixelIndex].toUint32();
+            if (xPos >= 0 && xPos < width && y * width + xPos < (unsigned)area) {
+                pixels[y * width + xPos] = colors[pixelIndex].toUint32();
+            }
         }
     }
 

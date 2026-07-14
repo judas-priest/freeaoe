@@ -335,6 +335,7 @@ bool ActionPanel::loadButtons(const int playerCiv)
 
     genie::SlpFilePtr researchIconsSlp = AssetManager::Inst()->getInterfaceSlp(AssetManager::StandardSlpType::Technology, playerCiv);
     REQUIRE(researchIconsSlp, return false);
+    DBG << "Technology icons SLP: frames=" << researchIconsSlp->getFrameCount() << "civ=" << playerCiv;
     for (size_t i=0; i<researchIconsSlp->getFrameCount(); i++) {
         m_researchIcons[i] = m_renderTarget->convertFrameToImage(researchIconsSlp->getFrame(i));
     }
@@ -548,7 +549,11 @@ void ActionPanel::addResearchButtons(const std::shared_ptr<Unit> &unit)
         button.tech = tech;
         button.iconId = tech->IconID;
 
-        // HD Edition IconIDs for age techs (30/31/32) are correct for desktop
+        // DEBUG: log age tech icon IDs (age techs have IconID 30-32)
+        if (tech->IconID >= 30 && tech->IconID <= 32) {
+            DBG << "Age tech: Name=" << tech->Name
+                << " IconID=" << tech->IconID << " ButtonID=" << tech->ButtonID;
+        }
 
         currentButtons.push_back(button);
 

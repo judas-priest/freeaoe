@@ -81,6 +81,15 @@ Task UnitActionHandler::findMatchingTask(const std::shared_ptr<Player> &ownPlaye
 {
     REQUIRE(ownPlayer, return Task());
 
+    // DEBUG: log when checking gatherable Gaia targets
+    const bool debugGather = (target->playerId() == 0 && target->data()->CanBeGathered);
+    if (debugGather) {
+        DBG << "findMatchingTask: target=" << target->debugName
+            << " class=" << target->data()->Class
+            << " playerId=" << target->playerId()
+            << " potentials=" << potentials.size();
+    }
+
     Task matched;
     for (const Task &task : potentials) {
         const genie::Task *action = task.data;
@@ -128,6 +137,7 @@ Task UnitActionHandler::findMatchingTask(const std::shared_ptr<Player> &ownPlaye
         }
 
         if (action->ActionType == genie::ActionType::Garrison) {
+            if (debugGather) DBG << "  skip Garrison task";
             continue;
         }
 
@@ -136,24 +146,41 @@ Task UnitActionHandler::findMatchingTask(const std::shared_ptr<Player> &ownPlaye
                 matched = task;
                 break;
             }
-
+            if (debugGather) DBG << "  skip: target under construction";
             continue;
         }
 
+        if (debugGather) {
+            DBG << "  checking: ActionType=" << (int)action->ActionType
+                << " ClassID=" << action->ClassID << " UnitID=" << action->UnitID
+                << " targetClass=" << target->data()->Class
+                << " targetID=" << target->data()->ID;
+        }
+
         if (target->canMatchGenieUnitID(action->UnitID)) {
+            if (debugGather) DBG << "  MATCH by UnitID!";
             matched = task;
             break;
         }
 
         if (action->ClassID == target->data()->Class) {
+            if (debugGather) DBG << "  MATCH by ClassID!";
             matched = task;
             break;
         }
     }
 
     if (matched.isValid()) {
+        if (debugGather) {
+            DBG << "findMatchingTask: FOUND task ActionType=" << (int)matched.data->ActionType
+                << " for target=" << target->debugName;
+        }
         matched.target = target;
         return matched;
+    }
+
+    if (debugGather) {
+        DBG << "findMatchingTask: NO MATCH for target=" << target->debugName;
     }
 
     // Try more generic targeting

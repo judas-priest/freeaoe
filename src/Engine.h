@@ -95,6 +95,7 @@ public:
     void start();
 
     void addMessage(const std::string &message);
+    void clearMessages();
 
 private:
     void showStartScreen();

@@ -306,6 +306,8 @@ void Engine::start()
         if (m_touchState.phase == TouchState::Phase::Pending) {
             int64_t held = currentTimeMs() - m_touchState.startTime;
             if (held >= TouchState::LONG_PRESS_MS && !state->unitManager()->selected().isEmpty()) {
+                // Update tasks under cursor BEFORE right-click so gathering/attacking works
+                state->unitManager()->onCursorPositionChanged(m_touchState.startPos, renderTarget_->camera());
                 // Long-press with units selected = right click (move/attack)
                 state->unitManager()->onRightClick(m_touchState.startPos, renderTarget_->camera());
                 m_touchState.tapTime = 0; // Cancel deferred deselect
@@ -481,6 +483,14 @@ void Engine::addMessage(const std::string &message)
     }
     m_visibleText[s_numMessagesLines - 1].text->string = message;
     m_visibleText[s_numMessagesLines - 1].endTime = Engine::currentTimeMs() + s_messageTimeout;
+}
+
+void Engine::clearMessages()
+{
+    for (int i = 0; i < s_numMessagesLines; i++) {
+        m_visibleText[i].text->string = "";
+        m_visibleText[i].endTime = 0;
+    }
 }
 
 void Engine::showStartScreen()
@@ -1301,7 +1311,33 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         }
 
         // Single tap — try to select unit, then wait for potential second tap
-        bool hasUnitAtTap = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment) != nullptr;
+        Unit::Ptr unitAtTap = state->unitManager()->unitAt(pos, renderTarget_->camera(), NoAlignment);
+        bool hasUnitAtTap = unitAtTap != nullptr;
+
+        // If own units selected and tapping on a non-own unit (resource, enemy) →
+        // treat as right-click (gather/attack) instead of selecting
+        if (hasUnitAtTap && !state->unitManager()->selected().isEmpty()) {
+            Player::Ptr humanPlayer = state->humanPlayer();
+            bool tappedOwnUnit = humanPlayer && unitAtTap->playerId() == humanPlayer->playerId;
+            if (!tappedOwnUnit) {
+                // Check if we have own units selected (not just enemy units)
+                bool hasOwnSelected = false;
+                for (const Unit::Ptr &sel : state->unitManager()->selected()) {
+                    if (humanPlayer && sel->playerId() == humanPlayer->playerId) {
+                        hasOwnSelected = true;
+                        break;
+                    }
+                }
+                if (hasOwnSelected) {
+                    // Tap on resource/enemy with own units selected = right-click (gather/attack)
+                    state->unitManager()->onCursorPositionChanged(pos, renderTarget_->camera());
+                    state->unitManager()->onRightClick(pos, renderTarget_->camera());
+                    m_touchState.phase = TouchState::Phase::Idle;
+                    m_touchState.tapTime = 0;
+                    return true;
+                }
+            }
+        }
 
         // Tap on empty ground with units selected → instant deselect
         if (!hasUnitAtTap && !state->unitManager()->selected().isEmpty()) {
@@ -1371,6 +1407,8 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
         return true;
     }
     if (event.mouseButton.button == input::MouseButton::Right) {
+        // Ensure tasks under cursor are evaluated at click position
+        state->unitManager()->onCursorPositionChanged(mousePos, renderTarget_->camera());
         state->unitManager()->onRightClick(mousePos, renderTarget_->camera());
     }
 

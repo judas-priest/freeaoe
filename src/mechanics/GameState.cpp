@@ -535,4 +535,52 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
     }
 
     ALOG("Random map generated: type=%d size=%d players=%d", mapType, mapSize, playerCount);
+
+    // DEBUG: Dump villager tasks to diagnose gathering
+    {
+        const int villagerId = 83;
+        const auto &directTasks = DataManager::Inst().getTasks(villagerId);
+        ALOG("=== GATHERING DEBUG: Villager (ID=%d) direct tasks: %zu ===", villagerId, directTasks.size());
+        for (size_t i = 0; i < directTasks.size(); i++) {
+            const auto &t = directTasks[i];
+            ALOG("  Task[%zu]: ActionType=%d ClassID=%d UnitID=%d TargetDiplo=%d ResIn=%d ResOut=%d WorkVal=%.2f",
+                 i, (int)t.ActionType, t.ClassID, t.UnitID, t.TargetDiplomacy, t.ResourceIn, t.ResourceOut, t.WorkValue1);
+        }
+
+        // Check TaskSwapGroup
+        const auto &villagerData = m_humanPlayer->civilization.unitData(villagerId);
+        int swapGroup = villagerData.Action.TaskSwapGroup;
+        ALOG("  Villager TaskSwapGroup=%d", swapGroup);
+
+        if (swapGroup && m_humanPlayer) {
+            const auto &swappables = m_humanPlayer->civilization.swappableUnits(swapGroup);
+            ALOG("  Swappable units in group %d: %zu", swapGroup, swappables.size());
+            for (const genie::Unit *su : swappables) {
+                const auto &suTasks = DataManager::Inst().getTasks(su->ID);
+                for (size_t i = 0; i < suTasks.size(); i++) {
+                    const auto &t = suTasks[i];
+                    if (t.ActionType == genie::ActionType::GatherRebuild ||
+                        t.ActionType == genie::ActionType::Hunt) {
+                        ALOG("  SwapUnit[%d] Task: ActionType=%d ClassID=%d UnitID=%d TargetDiplo=%d ResIn=%d ResOut=%d",
+                             su->ID, (int)t.ActionType, t.ClassID, t.UnitID, t.TargetDiplomacy, t.ResourceIn, t.ResourceOut);
+                    }
+                }
+            }
+        }
+
+        // Dump first few Gaia resource units
+        int resCount = 0;
+        for (const Unit::Ptr &u : m_unitManager->units()) {
+            if (u->playerId() == 0 && u->data()->CanBeGathered && resCount < 5) {
+                ALOG("  GaiaResource: ID=%d Class=%d Name=%s OutlineSize=%.1fx%.1f resources:",
+                     u->data()->ID, u->data()->Class, u->data()->Name.c_str(),
+                     u->data()->OutlineSize.x, u->data()->OutlineSize.y);
+                for (const auto &res : u->resources) {
+                    ALOG("    ResType=%d Amount=%.1f", (int)res.first, res.second);
+                }
+                resCount++;
+            }
+        }
+        ALOG("=== END GATHERING DEBUG ===");
+    }
 }

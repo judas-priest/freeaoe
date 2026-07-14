@@ -563,6 +563,9 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
     }
     bool foundTasks = false;
 
+    DBG << "onRightClick: tasksUnderCursor=" << m_tasksUnderCursor.size()
+        << "selectedUnits=" << m_selectedUnits.size();
+
     if (!m_tasksUnderCursor.isEmpty()) {
         for (Task task : m_tasksUnderCursor) {
             REQUIRE(task.data && task.taskId != -1, continue);
@@ -1121,10 +1124,22 @@ void UnitManager::onCursorPositionChanged(const ScreenPos &pos, const CameraPtr 
             return false;
         }
 
+        // DEBUG: log when hovering over gatherable Gaia resource
+        if (target->playerId() == 0 && target->data()->CanBeGathered) {
+            DBG << "CURSOR HIT gatherable resource:" << target->debugName
+                << "class=" << target->data()->Class
+                << "selected_units=" << m_selectedUnits.size();
+        }
+
         // TODO: we could/should probably limit ourselves to m_availableActions, but whatever
         for (const Unit::Ptr &unit : m_selectedUnits) {
             Task task = unit->actions.findTaskWithTarget(target);
             if (!task.isValid()) {
+                // DEBUG: log when task matching fails for gatherable target
+                if (target->playerId() == 0 && target->data()->CanBeGathered) {
+                    DBG << "CURSOR: no valid task for" << unit->debugName
+                        << "→" << target->debugName;
+                }
                 return false;
             }
 

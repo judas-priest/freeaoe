@@ -33,6 +33,7 @@
 #include "actions/ActionHeal.h"
 #include "actions/ActionRepair.h"
 #include "actions/ActionMove.h"
+#include "actions/ActionAttackMove.h"
 #include "actions/ActionPatrol.h"
 #include "audio/AudioPlayer.h"
 #include "core/Constants.h"
@@ -534,6 +535,15 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
             if (unit->playerId() != humanPlayer->playerId) continue;
             auto heal = std::make_shared<ActionHeal>(unit, targetUnit);
             unit->actions.setCurrentAction(heal);
+        }
+        break;
+    }
+    case State::SelectingAttackMoveTarget: {
+        MapPos targetPos = camera->absoluteMapPos(screenPos);
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() != humanPlayer->playerId) continue;
+            unit->actions.clearActionQueue();
+            unit->actions.setCurrentAction(std::make_shared<ActionAttackMove>(unit, targetPos));
         }
         break;
     }
@@ -1218,6 +1228,11 @@ void UnitManager::selectHealTarget()
 void UnitManager::selectRallyTarget()
 {
     m_state = State::SelectingRallyTarget;
+}
+
+void UnitManager::selectAttackMoveTarget()
+{
+    m_state = State::SelectingAttackMoveTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

@@ -997,6 +997,11 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
             unit->actions.clearActionQueue();
         }
         return true;
+    case input::Key::A: // Attack-move
+        if (!state->unitManager()->selected().isEmpty()) {
+            state->unitManager()->selectAttackMoveTarget();
+        }
+        return true;
     case input::Key::Delete: // Delete selected units
         for (const Unit::Ptr &unit : state->unitManager()->selected()) {
             unit->kill();

@@ -324,6 +324,7 @@ set(ACTIONS_SRC
     src/actions/ActionFly.cpp
     src/actions/ActionFly.h
     src/actions/ActionGarrison.cpp
+    src/actions/ActionAttackMove.cpp
     src/actions/ActionPatrol.cpp
     src/actions/ActionGuard.cpp
     src/actions/ActionFollow.cpp

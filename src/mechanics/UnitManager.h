@@ -149,6 +149,7 @@ public:
         SelectingConvertTarget,
         SelectingHealTarget,
         SelectingRallyTarget,
+        SelectingAttackMoveTarget,
         Default
     };
 
@@ -211,6 +212,7 @@ public:
     void selectConvertTarget();
     void selectHealTarget();
     void selectRallyTarget();
+    void selectAttackMoveTarget();
 
     State state() const { return m_state; }
 

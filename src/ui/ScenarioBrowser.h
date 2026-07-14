@@ -36,6 +36,11 @@ public:
         int randomMapType = 0;
         int randomMapSize = 144;
         int randomPlayerCount = 2;
+
+        // Campaign progression
+        std::string campaignPath;
+        int scenarioIndex = -1;
+        int scenarioCount = 0;
     };
 
     // Returns selected scenario or random map config.
@@ -62,6 +67,9 @@ private:
     bool m_inCampaign = false;
     std::string m_currentCampaignName;
     genie::ScnFilePtr m_result;
+    std::string m_selectedCampaignPath;
+    int m_selectedScenarioIndex = -1;
+    int m_selectedScenarioCount = 0;
     RandomMapSetup::Result m_randomMapResult;
 
     Drawable::Text::Ptr m_titleText;

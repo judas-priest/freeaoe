@@ -368,10 +368,15 @@ try
     // Show scenario browser if no scenario specified
     bool isRandomMap = false;
     int rmType = 0, rmSize = 144, rmPlayers = 2;
+    std::string campaignPath;
+    int campaignScenarioIndex = -1, campaignScenarioCount = 0;
     if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
         std::string camPath = AssetManager::Inst()->campaignsPath();
         auto browserResult = ScenarioBrowser::show(camPath);
         scenarioFile = browserResult.scenario;
+        campaignPath = browserResult.campaignPath;
+        campaignScenarioIndex = browserResult.scenarioIndex;
+        campaignScenarioCount = browserResult.scenarioCount;
         if (browserResult.isRandomMap) {
             isRandomMap = true;
             rmType = browserResult.randomMapType;
@@ -395,6 +400,10 @@ try
     }
     if (isRandomMap) {
         engine.setupRandomMap(rmType, rmSize, rmPlayers);
+    }
+    // Store campaign info for progression
+    if (!isRandomMap && !campaignPath.empty()) {
+        engine.setCampaignInfo(campaignPath, campaignScenarioIndex, campaignScenarioCount);
     }
 
     engine.start();

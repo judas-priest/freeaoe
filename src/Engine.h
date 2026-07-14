@@ -213,6 +213,19 @@ private:
     Drawable::Text::Ptr m_statText;     // Cached post-game stats text
     Drawable::Text::Ptr m_menuItemText; // Cached context menu item text
 
+    // Campaign progression
+    std::string m_campaignPath;
+    int m_campaignScenarioIndex = -1;
+    int m_campaignScenarioCount = 0;
+public:
+    void setCampaignInfo(const std::string &path, int index, int count) {
+        m_campaignPath = path;
+        m_campaignScenarioIndex = index;
+        m_campaignScenarioCount = count;
+    }
+    void loadNextCampaignScenario();
+private:
+
     // Objectives panel
     bool m_objectivesVisible = false;
 

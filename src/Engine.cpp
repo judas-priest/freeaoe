@@ -32,6 +32,7 @@
 #include "mechanics/ScenarioController.h"
 #include "mechanics/UnitManager.h"
 #include "global/EventManager.h"
+#include <genie/script/ScnFile.h>
 
 #include "render/Camera.h"
 #ifdef USE_SDL2
@@ -450,6 +451,13 @@ void Engine::start()
 
                     if (m_showContinueButton) {
                         btnY += btnH + 8;
+                        // Show "Next Mission" for campaigns, "Continue Playing" for standalone
+                        if (!m_campaignPath.empty() && m_campaignScenarioIndex >= 0 &&
+                            m_campaignScenarioIndex + 1 < m_campaignScenarioCount) {
+                            m_btnContinuePlaying.text = "Next Mission";
+                        } else {
+                            m_btnContinuePlaying.text = "Continue Playing";
+                        }
                         drawButton(m_btnContinuePlaying, btnX, btnY);
                     }
                 }
@@ -918,7 +926,12 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
                 return true;
             }
             if (m_showContinueButton && m_btnContinuePlaying.rect.contains(pos)) {
-                state->result = GameState::Result::Running;
+                if (!m_campaignPath.empty() && m_campaignScenarioIndex >= 0 &&
+                    m_campaignScenarioIndex + 1 < m_campaignScenarioCount) {
+                    loadNextCampaignScenario();
+                } else {
+                    state->result = GameState::Result::Running;
+                }
                 return true;
             }
         }
@@ -1938,6 +1951,35 @@ bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
     }
 
     return true;
+}
+
+void Engine::loadNextCampaignScenario()
+{
+    if (m_campaignPath.empty() || m_campaignScenarioIndex < 0) return;
+
+    const int nextIndex = m_campaignScenarioIndex + 1;
+    if (nextIndex >= m_campaignScenarioCount) {
+        addMessage("Campaign Complete!");
+        if (m_resultOverlay) {
+            m_resultOverlay->string = "Campaign Complete!";
+        }
+        return;
+    }
+
+    try {
+        genie::CpxFile cpx;
+        cpx.load(m_campaignPath);
+        genie::ScnFilePtr nextScenario = cpx.getScnFile(nextIndex);
+        if (!nextScenario) {
+            WARN << "Failed to load scenario" << nextIndex << "from" << m_campaignPath;
+            return;
+        }
+        addMessage("Loading next mission...");
+        m_campaignScenarioIndex = nextIndex;
+        setup(nextScenario);
+    } catch (const std::exception &ex) {
+        WARN << "Exception loading next campaign scenario:" << ex.what();
+    }
 }
 
 void Engine::onChatMessage(const int sourcePlayer, const int /*targetPlayer*/, const std::string &message)

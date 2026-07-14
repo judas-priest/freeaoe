@@ -28,6 +28,9 @@ ScenarioBrowser::Result ScenarioBrowser::show(const std::string &campaignsPath)
         return result;
     }
     result.scenario = browser.run();
+    result.campaignPath    = browser.m_selectedCampaignPath;
+    result.scenarioIndex   = browser.m_selectedScenarioIndex;
+    result.scenarioCount   = browser.m_selectedScenarioCount;
     // Check if random map was selected
     if (browser.m_randomMapResult.start) {
         result.isRandomMap = true;
@@ -288,6 +291,9 @@ void ScenarioBrowser::handleEvent(const input::Event &event)
                             genie::CpxFile cpx;
                             cpx.load(entry.path);
                             m_result = cpx.getScnFile(entry.scenarioIndex);
+                            m_selectedCampaignPath = entry.path;
+                            m_selectedScenarioIndex = entry.scenarioIndex;
+                            m_selectedScenarioCount = static_cast<int>(cpx.getFilecount());
                         } else {
                             m_result = std::make_shared<genie::ScnFile>();
                             m_result->load(entry.path);

@@ -84,6 +84,8 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerCondition::CaptureObject:
             case genie::TriggerCondition::ObjectHasTarget:
             case genie::TriggerCondition::ResearchingTechnology:
+            case genie::TriggerCondition::AISignal:
+            case genie::TriggerCondition::HD_Chance:
                 isImplemented = true;
                 break;
             default:
@@ -139,6 +141,7 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerEffect::HD_ChangeArmor:
             case genie::TriggerEffect::HD_ChangeRange:
             case genie::TriggerEffect::HD_ChangeSpeed:
+            case genie::TriggerEffect::AIScriptGoal:
                 break;
             default:
                 missingEffectTypes.insert(effect.type);
@@ -437,6 +440,13 @@ bool ScenarioController::update(Time time)
                     }
                 }
                 condition.amountRequired = researching ? 0 : 1;
+            } else if (condition.data.type == genie::TriggerCondition::AISignal) {
+                condition.amountRequired = m_pendingAISignals.count(condition.data.aiSignal) > 0 ? 0 : 1;
+            } else if (condition.data.type == genie::TriggerCondition::HD_Chance) {
+                if (condition.amountRequired > 0) {
+                    const int probability = int(condition.data.amount);
+                    condition.amountRequired = (std::rand() % 100) < probability ? 0 : 1;
+                }
             }
 
             if (condition.amountRequired > 0) {
@@ -925,6 +935,12 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
     case genie::TriggerEffect::UseAdvancedButtons:
         // UI toggle — no-op
         DBG << "UseAdvancedButtons (no-op):" << effect;
+        break;
+    case genie::TriggerEffect::AIScriptGoal:
+        if (effect.aiGoal >= 0) {
+            m_pendingAISignals.insert(effect.aiGoal);
+            DBG << "AIScriptGoal: set signal" << effect.aiGoal;
+        }
         break;
     default:
         WARN << "not implemented trigger effect" << effect;

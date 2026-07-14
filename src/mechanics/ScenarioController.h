@@ -7,6 +7,7 @@
 #include <genie/script/scn/Trigger.h>
 
 #include <functional>
+#include <unordered_set>
 
 class GameState;
 class Engine;
@@ -119,6 +120,7 @@ private:
 
     // Todo: put these in an std::array based on type, so we don't have to loop over all
     std::vector<Trigger> m_triggers;
+    std::unordered_set<int> m_pendingAISignals;
     Time m_lastUpdateTime = 0;
 
     GameState *m_gameState = nullptr; // ugly raw pointer, but owned by gamestate, so sue me

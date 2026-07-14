@@ -245,6 +245,18 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
             }
         }
 
+        // Update damage overlay based on current HP
+        if (!unit->data()->DamageGraphics.empty() && unit->isAlive()) {
+            const float healthPct = unit->healthLeft() * 100.f;
+            int overlayId = -1;
+            for (const genie::unit::DamageGraphic &dg : unit->data()->DamageGraphics) {
+                if (healthPct <= float(dg.DamagePercent)) {
+                    overlayId = dg.GraphicID;
+                }
+            }
+            unit->renderer().setDamageOverlay(overlayId);
+        }
+
         const ScreenPos pos = camera->absoluteScreenPos(unit->position());
         unit->renderer().render(*renderTarget, pos, RenderType::Base);
 

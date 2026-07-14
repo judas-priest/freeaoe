@@ -93,6 +93,7 @@ struct sts_mixer_voice_t {
   float                     gain;
   float                     pitch;
   float                     pan;
+  int                       loop;             // if non-zero, sample loops instead of stopping
 };
 
 
@@ -142,6 +143,12 @@ void sts_mixer_stop_sample(sts_mixer_t* mixer, sts_mixer_sample_t* sample);
 
 // Stops all voices playing the given stream. Useful when you want to delete the stream and make sure it is not used anymore.
 void sts_mixer_stop_stream(sts_mixer_t* mixer, sts_mixer_stream_t* stream);
+
+// Play the given sample with looping enabled. Same as sts_mixer_play_sample but the sample will restart when it finishes.
+int sts_mixer_play_sample_loop(sts_mixer_t* mixer, sts_mixer_sample_t* sample, float gain, float pitch, float pan);
+
+// Set the gain of an active voice. Safe to call from any thread if guarded by the same lock as mix_audio.
+void sts_mixer_set_voice_volume(sts_mixer_t* mixer, int voice, float volume);
 
 // The mixing function. You should call the function if you need to pass more audio data to the audio device.
 // Typically this function is called in a separate thread or something like that.

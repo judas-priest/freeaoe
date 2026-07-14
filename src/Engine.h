@@ -114,6 +114,7 @@ private:
     bool handleTouchEvent(const input::Event &event, const std::shared_ptr<GameState> &state);
     void showMenu();
     bool updateUi(const std::shared_ptr<GameState> &state);
+    void updateAmbientSounds(const std::shared_ptr<GameState> &state);
 
 #ifdef USE_SDL2
     std::unique_ptr<SdlWindow> m_sdlWindow;
@@ -243,6 +244,7 @@ private:
 
     float m_gameSpeed = 1.0f;
     bool m_paused = false;
+    int64_t m_lastAmbientUpdate = 0;
     float m_gameAreaHeight = 800.f;
     float m_bottomPanelY = 0.f;      // current Y of sliding panel (0 = hidden below screen)
     float m_bottomPanelTargetY = 0.f; // target Y for animation

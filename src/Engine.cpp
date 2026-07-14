@@ -1936,6 +1936,7 @@ bool Engine::updateUi(const std::shared_ptr<GameState> &state)
     if (m_mouseCursor) updated = m_mouseCursor->update(state->unitManager()) || updated;
 
     updated = m_mapRenderer->update(Engine::currentTimeMs()) || updated;
+    updateAmbientSounds(state);
 
     updated = updateCamera(state) || updated;
 
@@ -2033,4 +2034,63 @@ void Engine::onChatMessage(const int sourcePlayer, const int /*targetPlayer*/, c
 {
     std::string display = "Player " + std::to_string(sourcePlayer) + ": " + message;
     addMessage(display);
+}
+
+void Engine::updateAmbientSounds(const std::shared_ptr<GameState> &state)
+{
+    if (!m_mapRenderer || !state || !state->map()) return;
+
+    // Only update every 500ms to avoid thrashing
+    int64_t now = currentTimeMs();
+    if (now - m_lastAmbientUpdate < 500) return;
+    m_lastAmbientUpdate = now;
+
+    int waterTiles = 0;
+    int treeTiles = 0;
+    int totalTiles = 0;
+
+    const int colBegin = m_mapRenderer->firstVisibleColumn();
+    const int colEnd = m_mapRenderer->lastVisibleColumn();
+    const int rowBegin = m_mapRenderer->firstVisibleRow();
+    const int rowEnd = m_mapRenderer->lastVisibleRow();
+
+    const MapPtr &map = state->map();
+
+    for (int col = colBegin; col < colEnd; col++) {
+        for (int row = rowBegin; row < rowEnd; row++) {
+            totalTiles++;
+            const MapTile &tile = map->getTileAt(col, row);
+            int id = tile.terrainId;
+            // Water terrain IDs: 1=shallow, 2=medium, 3=deep, 4=ocean, 22=deep, 26=beach
+            if (id == 1 || id == 2 || id == 3 || id == 4 || id == 22 || id == 26) {
+                waterTiles++;
+            }
+            // Forest terrain IDs: 10=forest, 13=palm, 17=jungle, 18=bamboo, 19=pine
+            if (id == 10 || id == 13 || id == 17 || id == 18 || id == 19) {
+                treeTiles++;
+            }
+        }
+    }
+
+    if (totalTiles == 0) return;
+
+    // Water ambient: sound 326 (water lapping)
+    float waterRatio = static_cast<float>(waterTiles) / totalTiles;
+    if (waterRatio > 0.05f) {
+        float vol = std::clamp(waterRatio * 0.5f, 0.05f, 0.3f);
+        AudioPlayer::instance().startAmbientLoop(0, 326, 0);
+        AudioPlayer::instance().setAmbientVolume(0, vol);
+    } else {
+        AudioPlayer::instance().stopAmbientLoop(0);
+    }
+
+    // Forest ambient: sound 330 (birds/forest)
+    float treeRatio = static_cast<float>(treeTiles) / totalTiles;
+    if (treeRatio > 0.05f) {
+        float vol = std::clamp(treeRatio * 0.4f, 0.05f, 0.25f);
+        AudioPlayer::instance().startAmbientLoop(1, 330, 0);
+        AudioPlayer::instance().setAmbientVolume(1, vol);
+    } else {
+        AudioPlayer::instance().stopAmbientLoop(1);
+    }
 }

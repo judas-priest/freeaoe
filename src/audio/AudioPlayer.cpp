@@ -649,3 +649,108 @@ void AudioPlayer::onMusicVolumeChanged()
     } //idgaf
     m_mixer->stream_gain = std::clamp(volume, 0.f, 1.f);
 }
+
+void AudioPlayer::setAmbientVolume(int slot, float volume)
+{
+    if (slot < 0 || slot >= 2) return;
+    m_ambientSlots[slot].volume = std::clamp(volume, 0.f, 1.f);
+
+    if (m_ambientSlots[slot].active && m_ambientSlots[slot].voiceId >= 0) {
+        std::lock_guard<std::mutex> guard(m_mutex);
+        sts_mixer_set_voice_volume(m_mixer.get(), m_ambientSlots[slot].voiceId,
+                                   m_ambientSlots[slot].volume);
+    }
+}
+
+void AudioPlayer::startAmbientLoop(int slot, int soundId, int civilization)
+{
+    if (slot < 0 || slot >= 2) return;
+
+    // Already playing this sound
+    if (m_ambientSlots[slot].active && m_ambientSlots[slot].soundId == soundId) {
+        return;
+    }
+
+    // Stop previous
+    stopAmbientLoop(slot);
+
+    const genie::Sound &sound = DataManager::Inst().getSound(soundId);
+    if (sound.Items.empty()) {
+        WARN << "No ambient sound items for id" << soundId;
+        return;
+    }
+
+    // Pick first matching civilization item, or first available
+    int wavId = -1;
+    for (const genie::SoundItem &item : sound.Items) {
+        if (item.Civilization == civilization || item.Civilization == -1) {
+            wavId = item.ResourceID;
+            break;
+        }
+    }
+    if (wavId < 0 && !sound.Items.empty()) {
+        wavId = sound.Items[0].ResourceID;
+    }
+    if (wavId < 0) {
+        WARN << "No wav resource for ambient sound" << soundId;
+        return;
+    }
+
+    std::shared_ptr<uint8_t[]> wavPtr = AssetManager::Inst()->getWavPtr(wavId);
+    if (!wavPtr) {
+        WARN << "Failed to load wav for ambient" << wavId;
+        return;
+    }
+
+    WavHeader *header = reinterpret_cast<WavHeader*>(wavPtr.get());
+    if (memcmp(wavPtr.get(), "RIFF", 4) != 0 || header->AudioFormat != WavHeader::PCM) {
+        WARN << "Invalid ambient wav format";
+        return;
+    }
+    if (header->NumChannels != 1) {
+        WARN << "Ambient sound must be mono";
+        return;
+    }
+
+    int audioFormat = STS_MIXER_SAMPLE_FORMAT_16;
+    if (header->BitsPerSample == 8) audioFormat = STS_MIXER_SAMPLE_FORMAT_8;
+    else if (header->BitsPerSample == 32) audioFormat = STS_MIXER_SAMPLE_FORMAT_32;
+
+    sts_mixer_sample_t *sample = new sts_mixer_sample_t;
+    sample->audio_format = audioFormat;
+    sample->frequency = header->SampleRate;
+    sample->length = (header->Subchunk2Size / (header->BitsPerSample/8));
+    sample->data = wavPtr;
+    sample->audiodata = wavPtr.get() + sizeof(WavHeader);
+
+    std::lock_guard<std::mutex> guard(m_mutex);
+    int voiceId = sts_mixer_play_sample_loop(m_mixer.get(), sample, m_ambientSlots[slot].volume, 1.0f, 0.f);
+    if (voiceId < 0) {
+        WARN << "Failed to play ambient sample";
+        delete sample;
+        return;
+    }
+
+    m_ambientSlots[slot].soundId = soundId;
+    m_ambientSlots[slot].voiceId = voiceId;
+    m_ambientSlots[slot].active = true;
+    m_ambientSlots[slot].wavData = wavPtr;
+
+    DBG << "Started ambient loop slot" << slot << "soundId" << soundId;
+}
+
+void AudioPlayer::stopAmbientLoop(int slot)
+{
+    if (slot < 0 || slot >= 2) return;
+    if (!m_ambientSlots[slot].active) return;
+
+    if (m_ambientSlots[slot].voiceId >= 0) {
+        std::lock_guard<std::mutex> guard(m_mutex);
+        sts_mixer_stop_voice(m_mixer.get(), m_ambientSlots[slot].voiceId);
+    }
+
+    m_ambientSlots[slot].active = false;
+    m_ambientSlots[slot].soundId = -1;
+    m_ambientSlots[slot].voiceId = -1;
+    m_ambientSlots[slot].wavData.reset();
+}

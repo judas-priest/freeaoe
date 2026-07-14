@@ -78,6 +78,7 @@ static void sts_mixer_reset_voice(sts_mixer_t* mixer, const int i) {
   voice->sample = nullptr;
   voice->stream = nullptr;
   voice->position = voice->gain = voice->pitch = voice->pan = 0.0f;
+  voice->loop = 0;
 }
 
 
@@ -176,6 +177,22 @@ void sts_mixer_stop_stream(sts_mixer_t* mixer, sts_mixer_stream_t* stream) {
   }
 }
 
+int sts_mixer_play_sample_loop(sts_mixer_t* mixer, sts_mixer_sample_t* sample, float gain, float pitch, float pan) {
+  int i = sts_mixer_play_sample(mixer, sample, gain, pitch, pan);
+  if (i >= 0) {
+    mixer->voices[i].loop = 1;
+  }
+  return i;
+}
+
+
+void sts_mixer_set_voice_volume(sts_mixer_t* mixer, int voice, float volume) {
+  if (voice >= 0 && voice < STS_MIXER_VOICES) {
+    mixer->voices[voice].gain = volume;
+  }
+}
+
+
 void sts_mixer_mix_audio(sts_mixer_t* mixer, void* output, unsigned int samples) {
   sts_mixer_voice_t*  voice;
   unsigned int        i, position;
@@ -198,7 +215,7 @@ void sts_mixer_mix_audio(sts_mixer_t* mixer, void* output, unsigned int samples)
           left += sts_mixer_clamp_sample(sample * (0.5f - voice->pan));
           right += sts_mixer_clamp_sample(sample * (0.5f + voice->pan));
           voice->position += (float)voice->sample->frequency * advance * voice->pitch;
-        } else { sts_mixer_reset_voice(mixer, i); }
+        } else if (voice->loop) { voice->position = 0.0f; } else { sts_mixer_reset_voice(mixer, i); }
       } else if (voice->state == STS_MIXER_VOICE_STREAMING) {
         position = ((int)voice->position) * 2;
         if (position >= voice->stream->sample.length) {

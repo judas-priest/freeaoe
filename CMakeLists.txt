@@ -337,6 +337,8 @@ set(ACTIONS_SRC
     src/actions/ActionGarrison.h
     src/actions/ActionTransform.cpp
     src/actions/ActionTransform.h
+    src/actions/ActionAutoScout.cpp
+    src/actions/ActionAutoScout.h
     )
 
 if(USE_SDL2)

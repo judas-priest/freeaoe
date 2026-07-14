@@ -3,6 +3,7 @@
 #include "mechanics/Building.h"
 #include "mechanics/Gate.h"
 #include "actions/ActionGarrison.h"
+#include "actions/ActionAutoScout.h"
 #include "actions/ActionTransform.h"
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -359,6 +360,9 @@ bool ActionPanel::loadButtons(const int playerCiv)
         m_commandIcons[Command::PreviousPage] = m_renderTarget->convertFrameToImage(prevImage->mirrorX());
     }
 
+    // Auto-scout uses the patrol icon (compass)
+    m_commandIcons[Command::AutoScout] = m_commandIcons[Command::Patrol];
+
     { // can't find this icon anywhere else
         genie::SlpFilePtr cursorsSlp = AssetManager::Inst()->getSlp("mcursors.shp", AssetManager::ResourceType::Interface);
         if (!cursorsSlp) {
@@ -671,6 +675,17 @@ void ActionPanel::addMilitaryButtons(const std::shared_ptr<Unit> &unit)
         currentButtons.push_back(button);
 
     }
+
+    // Auto-scout button for scout-class units
+    if (unit->data()->Class == genie::Unit::Scout ||
+        unit->data()->ID == 448 || unit->data()->ID == 546) {
+        InterfaceButton autoScoutBtn;
+        autoScoutBtn.type = InterfaceButton::Other;
+        autoScoutBtn.action = Command::AutoScout;
+        autoScoutBtn.index = 10;
+        autoScoutBtn.interfacePage = 0;
+        currentButtons.push_back(autoScoutBtn);
+    }
 }
 
 void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
@@ -960,6 +975,15 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             }
 
             m_garrisonedByBell.clear();
+            break;
+        }
+        case Command::AutoScout: {
+            for (const Unit::Ptr &unit : m_selectedUnits) {
+                if (!unit) continue;
+                unit->actions.clearActionQueue();
+                unit->actions.setCurrentAction(
+                    std::make_shared<ActionAutoScout>(unit));
+            }
             break;
         }
         default:

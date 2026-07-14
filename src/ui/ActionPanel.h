@@ -238,6 +238,7 @@ public:
         // Special ones not actually in the SLP
         PreviousPage,
         Garrison,
+        AutoScout,
 
         Undefined
     };
@@ -423,6 +424,7 @@ inline LogPrinter &operator <<(LogPrinter &os, const ActionPanel::Command &cmd)
     case ActionPanel::Command::IconCount: os << "IconCount"; break;
     case ActionPanel::Command::PreviousPage: os << "PreviousPage"; break;
     case ActionPanel::Command::Garrison: os << "Garrison"; break;
+    case ActionPanel::Command::AutoScout: os << "AutoScout"; break;
     case ActionPanel::Command::Undefined: os << "Undefined"; break;
     default: os << "Invalid"; break;
     }

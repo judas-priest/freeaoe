@@ -282,23 +282,11 @@ void Engine::start()
         }
 #endif
 
-        // Deferred deselect: if first tap expired without second tap, deselect
+        // WaitSecondTap timeout: just reset phase, deselection handled in TouchEnded
         if (m_touchState.phase == TouchState::Phase::WaitSecondTap) {
             int64_t elapsed = currentTimeMs() - m_touchState.tapTime;
             if (elapsed >= TouchState::DOUBLE_TAP_MS) {
                 m_touchState.phase = TouchState::Phase::Idle;
-                // Tap on empty ground with no follow-up → clear selection
-                if (!state->unitManager()->selected().isEmpty()) {
-                    // Check if there's actually a unit at the tap position
-                    bool unitAtTap = state->unitManager()->unitAt(
-                        m_touchState.tapPos, renderTarget_->camera(), NoAlignment) != nullptr;
-                    if (!unitAtTap) {
-                        // Empty ground — just deselect everything
-                        ScreenRect emptyRect(ScreenPos(-100, -100), ScreenPos(-99, -99));
-                        state->unitManager()->selectUnits(emptyRect, renderTarget_->camera());
-                    }
-                    updated = true;
-                }
             }
         }
 

@@ -102,15 +102,8 @@ void RandomMapGenerator::generateTerrain(const Settings &settings, const std::sh
                 break;
             }
 
-            // Gentle elevation using noise — clamped to 1-3 to avoid slope artifacts
-            // Use different frequency than terrain so hills don't align with terrain changes
-            if (tile.terrainId == 1 || tile.terrainId == 22 || tile.terrainId == 23) {
-                // Water tiles stay flat at elevation 1
-                tile.elevation = 1;
-            } else {
-                float elevNoise = noise(col * 0.03f + 100.f, row * 0.03f + 100.f);
-                tile.elevation = std::clamp(int(elevNoise * 3.f + 1.5f), 1, 3);
-            }
+            // Elevation — flat (slopes cause black tile artifacts in filtermap rendering)
+            tile.elevation = 2;
         }
     }
 }

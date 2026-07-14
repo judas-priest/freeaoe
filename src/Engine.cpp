@@ -294,7 +294,9 @@ void Engine::start()
         // Long-press detection: if finger held down > 600ms = right-click (move/attack)
         if (m_touchState.phase == TouchState::Phase::Pending) {
             int64_t held = currentTimeMs() - m_touchState.startTime;
-            if (held >= TouchState::LONG_PRESS_MS && !state->unitManager()->selected().isEmpty()) {
+            const bool isPlacing = state->unitManager()->state() == UnitManager::State::PlacingBuilding ||
+                                   state->unitManager()->state() == UnitManager::State::PlacingWall;
+            if (held >= TouchState::LONG_PRESS_MS && !state->unitManager()->selected().isEmpty() && !isPlacing) {
                 // Update tasks under cursor BEFORE right-click so gathering/attacking works
                 state->unitManager()->onCursorPositionChanged(m_touchState.startPos, renderTarget_->camera());
                 // Long-press with units selected = right click (move/attack)

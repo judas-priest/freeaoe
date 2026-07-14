@@ -23,6 +23,7 @@
 
 #include "render/IRenderTarget.h"
 #include "render/EventTypes.h"
+#include "ui/TextButton.h"
 
 #ifndef USE_SDL2
 #ifndef USE_SDL2
@@ -131,6 +132,9 @@ private:
     StateManager state_manager_;
 
     Drawable::Text::Ptr m_resultOverlay;
+    TextButton m_btnReturnToMenu;
+    TextButton m_btnContinuePlaying;
+    bool m_showContinueButton = true;
 
     Drawable::Text::Ptr fps_label_;
     std::vector<std::unique_ptr<IconButton>> m_buttons;

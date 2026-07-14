@@ -373,35 +373,84 @@ void Engine::start()
             // Dialog and result overlay rendered AFTER drawUi() — see below
 
             if (state->result != GameState::Result::Running) {
-                // Semi-transparent overlay
-                Size ws = renderTarget_->getSize();
+                const Size ws = renderTarget_->getSize();
+
+                // Fullscreen dim
                 renderTarget_->draw(ScreenRect(0, 0, ws.width, ws.height),
                                     Drawable::Color(0, 0, 0, 180));
+
+                // Panel geometry
+                const int panelW = std::min(500, int(ws.width) - 40);
+                const int panelH = 320;
+                const int panelX = (int(ws.width)  - panelW) / 2;
+                const int panelY = (int(ws.height) - panelH) / 2;
+
+                // Panel background
+                renderTarget_->draw(ScreenRect(panelX, panelY, panelW, panelH),
+                                    Drawable::Color(60, 50, 40, 220));
+                // Panel border
+                const Drawable::Color border(160, 140, 100, 255);
+                renderTarget_->draw(ScreenRect(panelX,          panelY,          panelW, 2), border);
+                renderTarget_->draw(ScreenRect(panelX,          panelY+panelH-2, panelW, 2), border);
+                renderTarget_->draw(ScreenRect(panelX,          panelY,          2, panelH), border);
+                renderTarget_->draw(ScreenRect(panelX+panelW-2, panelY,          2, panelH), border);
+
+                // Title
+                m_resultOverlay->position = ScreenPos(ws.width / 2, panelY + 36);
                 renderTarget_->draw(m_resultOverlay);
 
-                // Post-game statistics
+                // Stats
                 const Player::Ptr &human = state->humanPlayer();
                 if (human) {
-                    float sy = ws.height / 2.f + 40;
+                    const int statX  = panelX + 24;
+                    const int valueX = panelX + panelW - 24;
+                    float sy = panelY + 76;
                     m_statText->color = Drawable::Color(200, 190, 150, 255);
 
                     auto drawStat = [&](const std::string &label, int value) {
-                        m_statText->string = label + ": " + std::to_string(value);
-                        m_statText->position = ScreenPos(ws.width / 2 - 100, sy);
+                        m_statText->string = label;
+                        m_statText->position = ScreenPos(statX, sy);
                         renderTarget_->draw(m_statText);
-                        sy += 22;
+                        m_statText->string = std::to_string(value);
+                        m_statText->position = ScreenPos(valueX - int(m_statText->string.size()) * 9, sy);
+                        renderTarget_->draw(m_statText);
+                        sy += 26;
                     };
 
-                    drawStat("Score", human->score());
-                    drawStat("Units Killed", human->unitsKilled);
-                    drawStat("Units Lost", human->unitsLost);
-                    drawStat("Buildings Razed", human->buildingsRazed);
-                    drawStat("Techs Researched", human->techsResearched);
+                    drawStat("Score",             human->score());
+                    drawStat("Units Killed",      human->unitsKilled);
+                    drawStat("Units Lost",        human->unitsLost);
+                    drawStat("Buildings Razed",   human->buildingsRazed);
+                    drawStat("Techs Researched",  human->techsResearched);
 
-                    m_statText->string = "Tap Menu to exit";
-                    m_statText->color = Drawable::Color(150, 140, 110, 200);
-                    m_statText->position = ScreenPos(ws.width / 2 - 70, sy + 15);
-                    renderTarget_->draw(m_statText);
+                    // Buttons — simple filled rects with centered text
+                    const int btnW = panelW - 48;
+                    const int btnH = 52;
+                    const int btnX = panelX + 24;
+                    int btnY = panelY + panelH - (m_showContinueButton ? 130 : 74);
+
+                    auto drawButton = [&](TextButton &btn, int bx, int by) {
+                        btn.rect = ScreenRect(bx, by, btnW, btnH);
+                        Drawable::Color bg = btn.pressed
+                            ? Drawable::Color(80, 70, 50, 255)
+                            : Drawable::Color(40, 35, 25, 255);
+                        renderTarget_->draw(btn.rect, bg);
+                        renderTarget_->draw(ScreenRect(bx, by, btnW, 1), border);
+                        renderTarget_->draw(ScreenRect(bx, by+btnH-1, btnW, 1), border);
+                        renderTarget_->draw(ScreenRect(bx, by, 1, btnH), border);
+                        renderTarget_->draw(ScreenRect(bx+btnW-1, by, 1, btnH), border);
+                        m_statText->string = btn.text;
+                        m_statText->color = Drawable::Color(220, 210, 180, 255);
+                        m_statText->position = ScreenPos(bx + btnW/2 - int(btn.text.size()) * 4, by + btnH/2 - 7);
+                        renderTarget_->draw(m_statText);
+                    };
+
+                    drawButton(m_btnReturnToMenu, btnX, btnY);
+
+                    if (m_showContinueButton) {
+                        btnY += btnH + 8;
+                        drawButton(m_btnContinuePlaying, btnX, btnY);
+                    }
                 }
             }
 
@@ -803,6 +852,43 @@ void Engine::drawEntities(const std::shared_ptr<Map> &map)
 
 bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
+    // Post-game overlay — consume all input, handle button taps
+    if (state && state->result != GameState::Result::Running) {
+        ScreenPos pos;
+        bool isRelease = false;
+
+        if (event.type == input::Event::MouseButtonReleased) {
+            pos = ScreenPos(event.mouseButton.x, event.mouseButton.y);
+            isRelease = true;
+        } else if (event.type == input::Event::TouchEnded) {
+            pos = ScreenPos(event.touch.x, event.touch.y);
+            isRelease = true;
+        } else if (event.type == input::Event::MouseButtonPressed ||
+                   event.type == input::Event::TouchBegan) {
+            ScreenPos p = (event.type == input::Event::MouseButtonPressed)
+                ? ScreenPos(event.mouseButton.x, event.mouseButton.y)
+                : ScreenPos(event.touch.x, event.touch.y);
+            m_btnReturnToMenu.pressed   = m_btnReturnToMenu.rect.contains(p);
+            m_btnContinuePlaying.pressed = m_btnContinuePlaying.rect.contains(p);
+            return true;
+        }
+
+        if (isRelease) {
+            m_btnReturnToMenu.pressed    = false;
+            m_btnContinuePlaying.pressed = false;
+
+            if (m_btnReturnToMenu.rect.contains(pos)) {
+                m_sdlWindow->close();
+                return true;
+            }
+            if (m_showContinueButton && m_btnContinuePlaying.rect.contains(pos)) {
+                state->result = GameState::Result::Running;
+                return true;
+            }
+        }
+        return true; // consume all input while overlay visible
+    }
+
     if (m_currentDialog) {
         Dialog::Choice choice = m_currentDialog->handleEvent(event);
         if (choice == Dialog::Cancel) {
@@ -1606,6 +1692,11 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_resultOverlay->color = Drawable::White;
     m_resultOverlay->pointSize = 25;
     m_resultOverlay->outlineColor = Drawable::Black;
+
+    m_btnReturnToMenu.text = "Return to Menu";
+    m_btnContinuePlaying.text = "Continue Playing";
+    m_btnReturnToMenu.setRenderTarget(renderTarget_);
+    m_btnContinuePlaying.setRenderTarget(renderTarget_);
 
     fps_label_ = renderTarget_->createText(Drawable::Text::UI);
     fps_label_->position = ScreenPos(uiSize.width - 75, uiSize.height - 20);

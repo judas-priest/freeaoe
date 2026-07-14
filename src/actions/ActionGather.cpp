@@ -71,6 +71,14 @@ IAction::UpdateResult ActionGather::update(Time time)
     if (unit->resources[m_resourceType] >= unit->data()->ResourceCapacity || target->resources[m_resourceType] == 0) {
         if (target->resources[m_resourceType] == 0) {
             DBG << target->debugName << "is empty" << target->resources[m_resourceType];
+            const int16_t deadId = target->data()->DeadUnitID;
+            if (deadId >= 0) {
+                auto owner = target->player().lock();
+                if (owner) {
+                    const genie::Unit &deadData = owner->civilization.unitData(deadId);
+                    target->setUnitData(deadData);
+                }
+            }
         } else {
             DBG << unit->debugName << "is full" << unit->resources[m_resourceType] << "/" << unit->data()->ResourceCapacity;
         }

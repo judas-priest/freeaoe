@@ -28,6 +28,7 @@
 #include "core/ResourceMap.h"
 #include "mechanics/GameState.h"
 #include "mechanics/Map.h"
+#include "mechanics/MapTile.h"
 #include "mechanics/Player.h"
 #include "mechanics/ScenarioController.h"
 #include "mechanics/UnitManager.h"
@@ -1037,6 +1038,29 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
     return false;
 }
 
+static std::string quickSavePath()
+{
+#ifdef __ANDROID__
+    const char *internal = SDL_AndroidGetInternalStoragePath();
+    if (internal) {
+        return std::string(internal) + "/quicksave.faoe";
+    }
+    return "/sdcard/quicksave.faoe";
+#elif defined(USE_SDL2)
+    char *prefPath = SDL_GetPrefPath("freeaoe", "freeaoe");
+    std::string path;
+    if (prefPath) {
+        path = std::string(prefPath) + "quicksave.faoe";
+        SDL_free(prefPath);
+    } else {
+        path = "quicksave.faoe";
+    }
+    return path;
+#else
+    return "quicksave.faoe";
+#endif
+}
+
 bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
     ScreenPos cameraScreenPos = renderTarget_->camera()->targetPosition().toScreen();
@@ -1065,6 +1089,27 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
             m_minimap->cycleMode();
         }
         return true;
+    case input::Key::F5: {
+        const std::string savePath = quickSavePath();
+        MapPos camPos = renderTarget_->camera()->targetPosition();
+        if (SaveGame::save(savePath, *state, camPos.x, camPos.y)) {
+            addMessage("Game saved to " + savePath);
+        } else {
+            addMessage("Failed to save game!");
+        }
+        return true;
+    }
+    case input::Key::F9: {
+        const std::string savePath = quickSavePath();
+        float camX = 0, camY = 0;
+        if (SaveGame::load(savePath, *state, camX, camY)) {
+            renderTarget_->camera()->setTargetPosition(MapPos(camX, camY));
+            addMessage("Game loaded from " + savePath);
+        } else {
+            addMessage("No save file found!");
+        }
+        return true;
+    }
     case input::Key::F11:
         m_objectivesVisible = !m_objectivesVisible;
         return true;

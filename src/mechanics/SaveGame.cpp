@@ -7,6 +7,7 @@
 #include "UnitManager.h"
 #include "core/Logger.h"
 #include "core/Constants.h"
+#include "UnitFactory.h"
 
 #include <genie/dat/Unit.h>
 #include <genie/dat/ResourceType.h>
@@ -107,10 +108,11 @@ bool SaveGame::load(const std::string &path, GameState &state, float &cameraX, f
         return false;
     }
     uint32_t version = readU32(file);
-    if (version != VERSION) {
+    if (version < 1 || version > VERSION) {
         WARN << "Unsupported save version:" << version;
         return false;
     }
+    const bool hasUnitRestore = (version >= 2);
 
     cameraX = readFloat(file);
     cameraY = readFloat(file);
@@ -149,9 +151,79 @@ bool SaveGame::load(const std::string &path, GameState &state, float &cameraX, f
         }
     }
 
-    // Units — skip for now (would need to remove existing and create new)
+    // Units
     uint32_t unitCount = readU32(file);
-    DBG << "Save has" << unitCount << "units (resource restore only)";
+
+    if (hasUnitRestore) {
+        DBG << "Save has" << unitCount << "units, restoring...";
+
+        // Remove all existing units
+        auto &unitManager = state.unitManager();
+        {
+            // Copy the vector since remove() modifies it
+            UnitVector existingUnits = unitManager->units();
+            for (const auto &unit : existingUnits) {
+                if (unit) {
+                    unitManager->remove(unit);
+                }
+            }
+        }
+
+        // Recreate units from save data
+        uint32_t restored = 0;
+        for (uint32_t i = 0; i < unitCount; i++) {
+            int unitId = readI32(file);
+            int playerId = readI32(file);
+            float posX = readFloat(file);
+            float posY = readFloat(file);
+            float posZ = readFloat(file);
+            float hp = readFloat(file);
+            float angle = readFloat(file);
+
+            // Find the owning player
+            std::shared_ptr<Player> owner;
+            for (const auto &player : state.players()) {
+                if (player->playerId == playerId) {
+                    owner = player;
+                    break;
+                }
+            }
+            if (!owner) {
+                WARN << "No player found for id" << playerId << ", skipping unit" << unitId;
+                continue;
+            }
+
+            Unit::Ptr unit = UnitFactory::createUnit(unitId, owner, *unitManager);
+            if (!unit) {
+                WARN << "Failed to create unit" << unitId << "for player" << playerId;
+                continue;
+            }
+
+            MapPos pos(posX, posY, posZ);
+            unitManager->add(unit, pos);
+            unit->setAngle(angle);
+
+            // Restore HP by applying damage difference
+            float maxHp = unit->data()->HitPoints;
+            if (hp < maxHp) {
+                unit->takeDamage(maxHp - hp);
+            }
+
+            // Mark building construction as complete
+            unit->setCreationProgress(1.f);
+            restored++;
+        }
+
+        DBG << "Restored" << restored << "of" << unitCount << "units from save";
+    } else {
+        DBG << "Save v1 has" << unitCount << "units (resource restore only, skipping)";
+        // Skip unit data: 7 fields * 4 bytes each
+        for (uint32_t i = 0; i < unitCount; i++) {
+            readI32(file); readI32(file);
+            readFloat(file); readFloat(file); readFloat(file);
+            readFloat(file); readFloat(file);
+        }
+    }
 
     return true;
 }

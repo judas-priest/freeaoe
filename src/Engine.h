@@ -23,6 +23,7 @@
 
 #include "render/IRenderTarget.h"
 #include "render/EventTypes.h"
+#include "global/EventListener.h"
 #include "ui/TextButton.h"
 
 #ifndef USE_SDL2
@@ -74,7 +75,7 @@ class RenderWindow;
 
 struct MouseCursor;
 
-class Engine
+class Engine : public EventListener
 {
 public:
     static const int s_numMessagesLines = 15;
@@ -211,6 +212,13 @@ private:
     Drawable::Text::Ptr m_helpText;     // Cached tooltip text
     Drawable::Text::Ptr m_statText;     // Cached post-game stats text
     Drawable::Text::Ptr m_menuItemText; // Cached context menu item text
+
+    // Chat UI
+    struct ChatState {
+        bool active = false;
+        std::string buffer;
+    } m_chat;
+    void onChatMessage(const int sourcePlayer, const int targetPlayer, const std::string &message) override;
 
     // Control groups (Ctrl+1..9 to assign, 1..9 to recall, double-tap to center camera)
     std::array<std::vector<std::shared_ptr<Unit>>, 10> m_controlGroups;

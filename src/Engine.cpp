@@ -31,6 +31,7 @@
 #include "mechanics/Player.h"
 #include "mechanics/ScenarioController.h"
 #include "mechanics/UnitManager.h"
+#include "global/EventManager.h"
 
 #include "render/Camera.h"
 #ifdef USE_SDL2
@@ -822,6 +823,19 @@ void Engine::drawUi()
         renderTarget_->draw(messageLine.text);
     }
 
+    // Chat input bar
+    if (m_chat.active) {
+        const Size ws = renderTarget_->getSize();
+        renderTarget_->draw(ScreenRect(0, m_gameAreaHeight - 28, ws.width, 28),
+                            Drawable::Color(0, 0, 0, 180));
+        if (m_statText) {
+            m_statText->string = "Say: " + m_chat.buffer + "_";
+            m_statText->color = Drawable::White;
+            m_statText->position = ScreenPos(8, m_gameAreaHeight - 24);
+            renderTarget_->draw(m_statText);
+        }
+    }
+
 #ifndef ANDROID
     if (m_mouseCursor) m_mouseCursor->render();
 #endif
@@ -940,6 +954,25 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         return true;
     }
 
+    // Chat text input
+    if (event.type == input::Event::TextEntered && m_chat.active) {
+        uint32_t ch = event.text.unicode;
+        if (ch >= 32 && ch < 127) { // printable ASCII
+            m_chat.buffer += static_cast<char>(ch);
+        }
+        return true;
+    }
+
+    // When chat is active, only pass Enter/Escape/Backspace to key handler
+    if (m_chat.active && event.type == input::Event::KeyPressed) {
+        if (event.key.code == input::Key::Return ||
+            event.key.code == input::Key::Escape ||
+            event.key.code == input::Key::BackSpace) {
+            return handleKeyEvent(event, state);
+        }
+        return true; // consume all other keys while chatting
+    }
+
     switch(event.type) {
     case input::Event::KeyPressed:
         return handleKeyEvent(event, state);
@@ -1013,8 +1046,42 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         }
         return true;
     case input::Key::Escape:
+        if (m_chat.active) {
+            m_chat.active = false;
+            m_chat.buffer.clear();
+#ifdef USE_SDL2
+            SDL_StopTextInput();
+#endif
+            return true;
+        }
         showMenu();
         return true;
+    case input::Key::Return:
+        if (m_chat.active) {
+            if (!m_chat.buffer.empty()) {
+                const Player::Ptr &human = state->humanPlayer();
+                int playerId = human ? human->playerId : 1;
+                EventManager::sendChatMessage(playerId, -1, m_chat.buffer);
+            }
+            m_chat.buffer.clear();
+            m_chat.active = false;
+#ifdef USE_SDL2
+            SDL_StopTextInput();
+#endif
+        } else {
+            m_chat.active = true;
+            m_chat.buffer.clear();
+#ifdef USE_SDL2
+            SDL_StartTextInput();
+#endif
+        }
+        return true;
+    case input::Key::BackSpace:
+        if (m_chat.active && !m_chat.buffer.empty()) {
+            m_chat.buffer.pop_back();
+            return true;
+        }
+        break;
 
     // F1 = cycle idle villagers
     case input::Key::F1: {
@@ -1703,6 +1770,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_resultOverlay->pointSize = 25;
     m_resultOverlay->outlineColor = Drawable::Black;
 
+    EventManager::registerListener(this, EventManager::ChatMessage);
+
     m_btnReturnToMenu.text = "Return to Menu";
     m_btnContinuePlaying.text = "Continue Playing";
     m_btnReturnToMenu.setRenderTarget(renderTarget_);
@@ -1844,4 +1913,10 @@ bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
     }
 
     return true;
+}
+
+void Engine::onChatMessage(const int sourcePlayer, const int /*targetPlayer*/, const std::string &message)
+{
+    std::string display = "Player " + std::to_string(sourcePlayer) + ": " + message;
+    addMessage(display);
 }

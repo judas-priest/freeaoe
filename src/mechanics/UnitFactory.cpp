@@ -31,6 +31,7 @@
 #include "Building.h"
 #include "Civilization.h"
 #include "Farm.h"
+#include "Gate.h"
 #include "Player.h"
 #include "UnitManager.h"
 #include "actions/ActionFly.h"
@@ -195,6 +196,8 @@ Unit::Ptr UnitFactory::createUnit(const int ID, const Player::Ptr &owner, UnitMa
     Unit::Ptr unit;
     if (ID == Unit::Farm) { // Farms are very special (shortbus special), so better to just use a special class
         unit = std::make_shared<Farm>(gunit, owner, unitManager);
+    } else if (gunit.Class == genie::Unit::Gate) {
+        unit = std::make_shared<Gate>(gunit, owner, unitManager);
     } else if (gunit.Type == genie::Unit::BuildingType) {
         unit = std::make_shared<Building>(gunit, owner, unitManager);
     } else {

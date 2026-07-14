@@ -21,6 +21,7 @@
 #include "core/Logger.h"
 #include "core/Utility.h"
 #include "mechanics/Unit.h"
+#include "mechanics/Gate.h"
 #include "mechanics/UnitManager.h"
 #include "mechanics/MapTile.h"
 #include "mechanics/Map.h"
@@ -964,6 +965,14 @@ bool ActionMove::isPassable(const int x, const int y, const bool useCache) noexc
                 case genie::Unit::BuildingObstruction:
                 case genie::Unit::MountainObstruction: // TOOD:  apparently uses the selection mask?
                     if (dx == tileX && dy == tileY) { // TODO: need to check the distance from the tile
+                        // Gates are passable for owner/allies when open & unlocked
+                        if (otherUnit->data()->ObstructionClass == genie::Unit::GateObstructionClass) {
+                            Gate::Ptr gate = Gate::fromUnit(otherUnit);
+                            Unit::Ptr mover = m_unit.lock();
+                            if (gate && mover && gate->isPassableFor(mover->playerId())) {
+                                break; // passable
+                            }
+                        }
                         if (useCache) {
                             m_passable[cacheIndex] = false;
                         }

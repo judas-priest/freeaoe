@@ -305,6 +305,7 @@ set(MECHANICS_SRC
     src/mechanics/MapTile.cpp
     src/mechanics/MapTile.h
     src/mechanics/Building.cpp
+    src/mechanics/Gate.cpp
     src/mechanics/Building.h
     src/mechanics/ScenarioController.cpp
     src/mechanics/ScenarioController.h

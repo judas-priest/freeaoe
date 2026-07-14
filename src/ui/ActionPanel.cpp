@@ -1,6 +1,7 @@
 #include "ActionPanel.h"
 #include "Engine.h"
 #include "mechanics/Building.h"
+#include "mechanics/Gate.h"
 #include "actions/ActionGarrison.h"
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -586,6 +587,17 @@ void ActionPanel::addMilitaryButtons(const std::shared_ptr<Unit> &unit)
         return;
     }
 
+    // Gate lock/unlock button
+    if (unit->data()->Class == genie::Unit::Gate) {
+        Gate::Ptr gate = Gate::fromUnit(unit);
+        if (gate) {
+            InterfaceButton gateBtn;
+            gateBtn.action = gate->isLocked ? Command::OpenGate : Command::CloseGate;
+            gateBtn.index = 5;
+            currentButtons.push_back(gateBtn);
+        }
+    }
+
     if (unit->data()->Class == genie::Unit::SiegeWeapon || unit->data()->Class == genie::Unit::UnpackedSiegeUnit) {
         InterfaceButton button;
         button.type = InterfaceButton::Other;
@@ -914,6 +926,19 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
                 garrisonTask.target = nearestTC;
                 u->actions.setCurrentAction(std::make_shared<ActionGarrison>(u, garrisonTask));
             }
+            break;
+        }
+        case Command::CloseGate:
+        case Command::OpenGate: {
+            const bool newLocked = (button.action == Command::CloseGate);
+            for (const Unit::Ptr &u : m_selectedUnits) {
+                Gate::Ptr gate = Gate::fromUnit(u);
+                if (gate) {
+                    gate->isLocked = newLocked;
+                    if (newLocked) gate->setOpen(false);
+                }
+            }
+            m_buttonsDirty = true;
             break;
         }
         case Command::AbortTownBell: {

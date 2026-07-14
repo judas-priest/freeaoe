@@ -1,6 +1,7 @@
 #include "ActionPanel.h"
 #include "Engine.h"
 #include "mechanics/Building.h"
+#include "actions/ActionGarrison.h"
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -873,6 +874,64 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             }
             m_buttonsDirty = true;
             break;
+        case Command::RingTownBell: {
+            if (m_bellActive) break;
+            m_garrisonedByBell.clear();
+            m_bellActive = true;
+
+            // Find all TCs belonging to the human player
+            std::vector<Unit::Ptr> townCenters;
+            for (const Unit::Ptr &u : m_unitManager->units()) {
+                if (u->playerId() != m_humanPlayerId) continue;
+                if (u->data()->ID == Unit::TownCenter) {
+                    townCenters.push_back(u);
+                }
+            }
+            if (townCenters.empty()) break;
+
+            constexpr float BELL_RANGE = 23.f * 48.f; // 23 tiles in pixels
+
+            for (const Unit::Ptr &u : m_unitManager->units()) {
+                if (u->playerId() != m_humanPlayerId) continue;
+                if (u->data()->Class != genie::Unit::Civilian) continue;
+
+                // Find nearest TC within range
+                Unit::Ptr nearestTC;
+                float nearestDist = BELL_RANGE;
+                for (const Unit::Ptr &tc : townCenters) {
+                    float d = u->position().distance(tc->position());
+                    if (d < nearestDist) {
+                        nearestDist = d;
+                        nearestTC = tc;
+                    }
+                }
+                if (!nearestTC) continue;
+
+                m_garrisonedByBell.push_back({u});
+
+                u->actions.clearActionQueue();
+                Task garrisonTask;
+                garrisonTask.target = nearestTC;
+                u->actions.setCurrentAction(std::make_shared<ActionGarrison>(u, garrisonTask));
+            }
+            break;
+        }
+        case Command::AbortTownBell: {
+            if (!m_bellActive) break;
+            m_bellActive = false;
+
+            // Ungarrison all TCs
+            for (const Unit::Ptr &u : m_unitManager->units()) {
+                if (u->playerId() != m_humanPlayerId) continue;
+                if (u->data()->ID == Unit::TownCenter) {
+                    auto tcBuilding = Building::fromUnit(u);
+                    if (tcBuilding) tcBuilding->ungarrisonAll();
+                }
+            }
+
+            m_garrisonedByBell.clear();
+            break;
+        }
         default:
             WARN << "Unhandled action" << button.action;
             break;

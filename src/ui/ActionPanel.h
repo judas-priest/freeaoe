@@ -322,6 +322,11 @@ private:
     std::unordered_map<int, Drawable::Image::Ptr> m_buildingIcons;
     std::unordered_map<int, Drawable::Image::Ptr> m_researchIcons;
 
+    // Town bell state
+    struct SavedBellUnit { std::weak_ptr<Unit> unit; };
+    std::vector<SavedBellUnit> m_garrisonedByBell;
+    bool m_bellActive = false;
+
     int m_currentPage = 0;
     int m_buttonOffset = 0;
 

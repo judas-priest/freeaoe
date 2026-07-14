@@ -1135,18 +1135,14 @@ void UnitManager::onCursorPositionChanged(const ScreenPos &pos, const CameraPtr 
         for (const Unit::Ptr &unit : m_selectedUnits) {
             Task task = unit->actions.findTaskWithTarget(target);
             if (!task.isValid()) {
-                // DEBUG: log when task matching fails for gatherable target
-                if (target->playerId() == 0 && target->data()->CanBeGathered) {
-                    DBG << "CURSOR: no valid task for" << unit->debugName
-                        << "→" << target->debugName;
-                }
-                return false;
+                // Skip units that can't interact with this target (e.g. soldier can't gather)
+                continue;
             }
 
             // TODO: should we check for multiple tasks and prioritize?
             m_tasksUnderCursor.add(task);
         }
-        return false;
+        return !m_tasksUnderCursor.isEmpty(); // stop searching if we found tasks
     });
 
 }

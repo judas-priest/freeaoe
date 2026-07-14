@@ -396,14 +396,12 @@ void Engine::start()
                 const Player::Ptr &human = state->humanPlayer();
                 if (human) {
                     float sy = ws.height / 2.f + 40;
-                    auto statText = renderTarget_->createText(Drawable::Text::Plain);
-                    statText->pointSize = 14;
-                    statText->color = Drawable::Color(200, 190, 150, 255);
+                    m_statText->color = Drawable::Color(200, 190, 150, 255);
 
                     auto drawStat = [&](const std::string &label, int value) {
-                        statText->string = label + ": " + std::to_string(value);
-                        statText->position = ScreenPos(ws.width / 2 - 100, sy);
-                        renderTarget_->draw(statText);
+                        m_statText->string = label + ": " + std::to_string(value);
+                        m_statText->position = ScreenPos(ws.width / 2 - 100, sy);
+                        renderTarget_->draw(m_statText);
                         sy += 22;
                     };
 
@@ -413,10 +411,10 @@ void Engine::start()
                     drawStat("Buildings Razed", human->buildingsRazed);
                     drawStat("Techs Researched", human->techsResearched);
 
-                    statText->string = "Tap Menu to exit";
-                    statText->color = Drawable::Color(150, 140, 110, 200);
-                    statText->position = ScreenPos(ws.width / 2 - 70, sy + 15);
-                    renderTarget_->draw(statText);
+                    m_statText->string = "Tap Menu to exit";
+                    m_statText->color = Drawable::Color(150, 140, 110, 200);
+                    m_statText->position = ScreenPos(ws.width / 2 - 70, sy + 15);
+                    renderTarget_->draw(m_statText);
                 }
             }
 
@@ -672,7 +670,6 @@ void Engine::drawUi()
     // Help text tooltip (shown 3 seconds after button press)
     if (!m_actionPanel->lastHelpText.empty() &&
         Engine::currentTimeMs() - m_actionPanel->lastHelpTextTime < 3000) {
-        auto helpText = renderTarget_->createText(Drawable::Text::Plain);
         std::string cleaned = m_actionPanel->lastHelpText;
         // Strip HTML tags from language.dll strings
         cleaned = util::stringReplace(cleaned, "<b>", "");
@@ -682,17 +679,15 @@ void Engine::drawUi()
         cleaned = util::stringReplace(cleaned, "<i>", "");
         cleaned = util::stringReplace(cleaned, "</i>", "");
         cleaned = util::stringReplace(cleaned, "\\n", " ");
-        helpText->string = cleaned;
-        helpText->pointSize = 13;
-        helpText->color = Drawable::Color(255, 240, 180, 230);
+        m_helpText->string = cleaned;
         // Position above the action panel
         ScreenRect apRect = m_actionPanel->rect();
-        helpText->position = ScreenPos(apRect.x, apRect.y - 22);
+        m_helpText->position = ScreenPos(apRect.x, apRect.y - 22);
         // Background
-        Size ts = helpText->size();
+        Size ts = m_helpText->size();
         renderTarget_->draw(ScreenRect(apRect.x - 4, apRect.y - 26, ts.width + 8, 22),
             Drawable::Color(20, 15, 8, 220));
-        renderTarget_->draw(helpText);
+        renderTarget_->draw(m_helpText);
     }
 
     m_woodLabel->render();
@@ -777,13 +772,9 @@ void Engine::drawUi()
             renderTarget_->draw(ScreenRect(menuX, iy, ContextMenu::ITEM_WIDTH, ContextMenu::ITEM_HEIGHT - 2),
                 Drawable::Color(45, 35, 18, 220));
             // Item text
-            if (!fps_label_) continue; // reuse fps_label font as temp
-            auto itemText = renderTarget_->createText(Drawable::Text::Plain);
-            itemText->string = m_contextMenu.items[i].label;
-            itemText->pointSize = 16;
-            itemText->color = Drawable::Color(220, 200, 160, 255);
-            itemText->position = ScreenPos(menuX + 12, iy + 12);
-            renderTarget_->draw(itemText);
+            m_menuItemText->string = m_contextMenu.items[i].label;
+            m_menuItemText->position = ScreenPos(menuX + 12, iy + 12);
+            renderTarget_->draw(m_menuItemText);
         }
     }
 
@@ -1494,6 +1485,18 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_scoreText = renderTarget_->createText(Drawable::Text::Plain);
     m_scoreText->pointSize = 12;
     m_scoreText->color = Drawable::Color(150, 140, 110, 255);
+
+    m_helpText = renderTarget_->createText(Drawable::Text::Plain);
+    m_helpText->pointSize = 13;
+    m_helpText->color = Drawable::Color(255, 240, 180, 230);
+
+    m_statText = renderTarget_->createText(Drawable::Text::Plain);
+    m_statText->pointSize = 14;
+    m_statText->color = Drawable::Color(200, 190, 150, 255);
+
+    m_menuItemText = renderTarget_->createText(Drawable::Text::Plain);
+    m_menuItemText->pointSize = 16;
+    m_menuItemText->color = Drawable::Color(220, 200, 160, 255);
 
 #ifdef ANDROID
     // Mobile layout: taller top bar with more spacing

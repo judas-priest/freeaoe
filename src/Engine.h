@@ -204,6 +204,9 @@ private:
     Drawable::Text::Ptr m_ageText;
     Drawable::Text::Ptr m_clockText;
     Drawable::Text::Ptr m_scoreText;
+    Drawable::Text::Ptr m_helpText;     // Cached tooltip text
+    Drawable::Text::Ptr m_statText;     // Cached post-game stats text
+    Drawable::Text::Ptr m_menuItemText; // Cached context menu item text
 
     // Control groups (Ctrl+1..9 to assign, 1..9 to recall, double-tap to center camera)
     std::array<std::vector<std::shared_ptr<Unit>>, 10> m_controlGroups;

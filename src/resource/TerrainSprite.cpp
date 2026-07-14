@@ -52,6 +52,37 @@
 #endif
 #endif
 
+// Helper: load PNG file to RGBA pixel buffer
+#ifdef USE_SDL2
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#include "stb_image.h"
+#endif
+
+struct PngImageData {
+    std::vector<uint8_t> pixels;
+    int width = 0;
+    int height = 0;
+
+    bool loadFromFile(const std::string &path) {
+#ifdef USE_SDL2
+        int channels = 0;
+        uint8_t *data = stbi_load(path.c_str(), &width, &height, &channels, 4);
+        if (!data) return false;
+        pixels.assign(data, data + width * height * 4);
+        stbi_image_free(data);
+#else
+        sf::Image img;
+        if (!img.loadFromFile(path)) return false;
+        width = img.getSize().x;
+        height = img.getSize().y;
+        const uint8_t *src = img.getPixelsPtr();
+        pixels.assign(src, src + width * height * 4);
+#endif
+        return true;
+    }
+};
+
 
 TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
 {
@@ -84,6 +115,15 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
     if (m_isPng) {
         m_tileSquareCount = data->TerrainDimensions.first;
         if (m_tileSquareCount <= 0) m_tileSquareCount = 10;
+        // Preload PNG into memory to avoid repeated disk I/O
+        PngImageData preload;
+        if (preload.loadFromFile(m_pngPath)) {
+            m_pngPixels = std::move(preload.pixels);
+            m_pngWidth = preload.width;
+            m_pngHeight = preload.height;
+        } else {
+            WARN << "Failed to preload PNG terrain" << m_pngPath;
+        }
         return;
     }
     if (!m_slp) {
@@ -95,37 +135,6 @@ TerrainSprite::TerrainSprite(unsigned int id_) : id(id_)
 }
 
 TerrainSprite::~TerrainSprite() {  }
-
-// Helper: load PNG file to RGBA pixel buffer
-#ifdef USE_SDL2
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#include "stb_image.h"
-#endif
-
-struct PngImageData {
-    std::vector<uint8_t> pixels;
-    int width = 0;
-    int height = 0;
-
-    bool loadFromFile(const std::string &path) {
-#ifdef USE_SDL2
-        int channels = 0;
-        uint8_t *data = stbi_load(path.c_str(), &width, &height, &channels, 4);
-        if (!data) return false;
-        pixels.assign(data, data + width * height * 4);
-        stbi_image_free(data);
-#else
-        sf::Image img;
-        if (!img.loadFromFile(path)) return false;
-        width = img.getSize().x;
-        height = img.getSize().y;
-        const uint8_t *src = img.getPixelsPtr();
-        pixels.assign(src, src + width * height * 4);
-#endif
-        return true;
-    }
-};
 
 #if PNG_TERRAIN_TEXTURES
 const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const IRenderTargetPtr &renderer)
@@ -140,11 +149,17 @@ const Drawable::Image::Ptr &TerrainSprite::pngTexture(const MapTile &tile, const
         return it->second;
     }
 
-    PngImageData sourceImage;
-    if (!sourceImage.loadFromFile(m_pngPath)) {
-        WARN << "Failed to load PNG" << m_pngPath;
+    // Use cached PNG data instead of loading from disk every time
+    if (m_pngPixels.empty()) {
+        WARN << "PNG not preloaded" << m_pngPath;
         return Drawable::Image::null;
     }
+
+    // Create a lightweight wrapper referencing cached data
+    PngImageData sourceImage;
+    sourceImage.pixels = m_pngPixels; // copy pixels for blend modifications
+    sourceImage.width = m_pngWidth;
+    sourceImage.height = m_pngHeight;
 
     const int cols = sourceImage.width / 64;
 

@@ -83,6 +83,10 @@ private:
 #if PNG_TERRAIN_TEXTURES
     bool m_isPng = false;
     std::string m_pngPath;
+    // Cached raw PNG pixel data to avoid repeated disk I/O
+    std::vector<uint8_t> m_pngPixels;
+    int m_pngWidth = 0;
+    int m_pngHeight = 0;
 #endif
 };
 

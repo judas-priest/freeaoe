@@ -542,18 +542,23 @@ void ActionPanel::addResearchButtons(const std::shared_ptr<Unit> &unit)
             continue;
         }
 
+        // Skip techs whose prerequisites aren't met (e.g. Castle Age before Feudal)
+        if (tech->RequiredTechCount > 0) {
+            int satisfied = 0;
+            for (int16_t reqId : tech->RequiredTechs) {
+                if (reqId == -1) continue;
+                if (player->hasResearched(reqId)) satisfied++;
+            }
+            if (satisfied < tech->RequiredTechCount) continue;
+        }
+
+
         InterfaceButton button;
         button.type = InterfaceButton::Research;
 
         button.index = std::max(tech->ButtonID - 1, 0);
         button.tech = tech;
         button.iconId = tech->IconID;
-
-        // DEBUG: log age tech icon IDs (age techs have IconID 30-32)
-        if (tech->IconID >= 30 && tech->IconID <= 32) {
-            DBG << "Age tech: Name=" << tech->Name
-                << " IconID=" << tech->IconID << " ButtonID=" << tech->ButtonID;
-        }
 
         currentButtons.push_back(button);
 

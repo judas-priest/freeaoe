@@ -19,6 +19,7 @@ private:
     UnitManager *m_unitManager;
     Time m_lastUpdate = 0;
 
+    void scoutMap();
     void trainVillagers();
     void buildHouses();
     void assignIdleVillagers();

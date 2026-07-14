@@ -52,6 +52,7 @@ void BasicAI::update(Time time)
 
     if (!m_player || !m_player->alive) return;
 
+    scoutMap();
     trainVillagers();
     buildHouses();
     buildDropOffSites();
@@ -61,6 +62,28 @@ void BasicAI::update(Time time)
     researchTechs();
     trainMilitary();
     attackWithArmy();
+}
+
+void BasicAI::scoutMap()
+{
+    // Send idle scouts to random map positions for exploration
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 448 && unit->data()->ID != 546) continue; // Scout/LightCav
+        if (unit->actions.currentAction()) continue; // Already moving
+
+        // Pick a random position on the map
+        float mapW = m_unitManager->map()->pixelWidth();
+        float mapH = m_unitManager->map()->pixelHeight();
+        float margin = Constants::TILE_SIZE * 5;
+        MapPos scoutTarget(
+            margin + (rand() % int(mapW - margin * 2)),
+            margin + (rand() % int(mapH - margin * 2))
+        );
+
+        unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, scoutTarget));
+        return; // One scout command per update
+    }
 }
 
 void BasicAI::trainVillagers()

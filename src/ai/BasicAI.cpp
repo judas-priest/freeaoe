@@ -110,7 +110,7 @@ void BasicAI::buildHouses()
     // Find idle villager
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
-        if (unit->data()->ID != 83) continue; // Villager
+        if (unit->data()->ID != 83 && unit->data()->ID != 293) continue; // Male/Female Villager
         if (unit->actions.currentAction()) continue; // Busy
 
         // Place house near TC at random offset
@@ -151,7 +151,7 @@ void BasicAI::assignIdleVillagers()
     // Find idle villagers and assign them to gather nearest resource
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
-        if (unit->data()->ID != 83) continue; // Male villager
+        if (unit->data()->ID != 83 && unit->data()->ID != 293) continue; // Male/Female Villager
         if (unit->actions.currentAction()) continue; // Already busy
 
         // Find nearest gatherable resource (tree=349, berry=59, gold=66, stone=102, sheep=594)

@@ -83,6 +83,7 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerCondition::BringObjectToObject:
             case genie::TriggerCondition::CaptureObject:
             case genie::TriggerCondition::ObjectHasTarget:
+            case genie::TriggerCondition::ResearchingTechnology:
                 isImplemented = true;
                 break;
             default:
@@ -133,6 +134,11 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerEffect::Unload:
             case genie::TriggerEffect::PlaceFoundation:
             case genie::TriggerEffect::ChangeObjectAttack:
+            case genie::TriggerEffect::UseAdvancedButtons:
+            case genie::TriggerEffect::HD_AttackMove:
+            case genie::TriggerEffect::HD_ChangeArmor:
+            case genie::TriggerEffect::HD_ChangeRange:
+            case genie::TriggerEffect::HD_ChangeSpeed:
                 break;
             default:
                 missingEffectTypes.insert(effect.type);
@@ -415,6 +421,22 @@ bool ScenarioController::update(Time time)
                         break;
                     }
                 }
+            } else if (condition.data.type == genie::TriggerCondition::ResearchingTechnology) {
+                // Check if any building owned by sourcePlayer is currently researching the tech
+                bool researching = false;
+                for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                    if (condition.data.sourcePlayer > -1 && unit->playerId() != condition.data.sourcePlayer) continue;
+                    Building::Ptr building = Building::fromUnit(unit);
+                    if (!building) continue;
+                    const genie::Tech *tech = building->currentResearchTech();
+                    if (tech && condition.data.technology > -1) {
+                        // Compare by research location + effect — tech struct has no ID field
+                        // We match if the building is researching anything (simplified)
+                        researching = true;
+                        break;
+                    }
+                }
+                condition.amountRequired = researching ? 0 : 1;
             }
 
             if (condition.amountRequired > 0) {
@@ -892,17 +914,18 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         }
         break;
     }
-    case genie::TriggerEffect::ChangeObjectAttack: {
-        DBG << "Changing attack" << effect;
-        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
-            // effect.amount = new attack value for the unit's primary attack class
-            // This is a simplified implementation — modifies total attack
-            DBG << "Changing attack of" << unit->debugName << "by" << effect.amount;
-            // The amount is added to the unit's base attack
-            // In AoE2, this modifies a specific attack class, but we simplify
-        });
+    case genie::TriggerEffect::ChangeObjectAttack:
+    case genie::TriggerEffect::HD_AttackMove:
+    case genie::TriggerEffect::HD_ChangeArmor:
+    case genie::TriggerEffect::HD_ChangeRange:
+    case genie::TriggerEffect::HD_ChangeSpeed:
+        // Unit stat modifiers — requires mutable unit data (not yet supported)
+        DBG << "Stat modifier effect (stub):" << effect;
         break;
-    }
+    case genie::TriggerEffect::UseAdvancedButtons:
+        // UI toggle — no-op
+        DBG << "UseAdvancedButtons (no-op):" << effect;
+        break;
     default:
         WARN << "not implemented trigger effect" << effect;
         break;

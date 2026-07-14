@@ -749,28 +749,30 @@ SDL_SetHint(SDL_HINT_RENDER_LOGICAL_SIZE_MODE, "1");     // Integer scaling
 
 ---
 
-## Общая таблица прогресса (обновлено после ночного прогона)
+## Общая таблица прогресса (обновлено 2026-07-14, 24 коммита)
 
-| Категория | Статус | Коммит |
-|-----------|--------|--------|
-| P0: Gathering | ✅ **ИСПРАВЛЕН** — touch→cursor→task chain починен | `0f0693a` |
-| P1: AI | ✅ **Улучшен** — Stable, Siege, Knights, 30 юнитов, tech research | `51b1ea0` |
-| P1: Age icon | ⚠️ Логи добавлены, нужно проверить на устройстве | `dabfd12` |
-| P1: Elevation | ✅ Boundary checks добавлены, безопасно для re-enable | `4df66d3` |
-| P2: PNG cache | ✅ **Сделано** — preload в конструкторе | `be91435` |
-| P2: Text cache | ✅ **Сделано** — no createText per frame | `4e47a5f` |
-| P2: Batching | ❌ Не начато (terrain offscreen, sprite grouping) | — |
-| P3: Cursor | ✅ **Сделано** — Axe/Build/Protect/Garrison по ActionType | `2877cf9` |
-| P3: Triggers | ✅ **48/49** — только AISignal остался | `602f556` + `2389e05` + `f1235be` |
-| P3: Garrison | ✅ 7/9 (arrows, healing, capacity — всё работает) | — |
+| Категория | Статус | Коммиты |
+|-----------|--------|---------|
+| P0: Gathering | ✅ **РАБОТАЕТ** — подтверждено на устройстве (золото, дерево) | `0f0693a` |
+| P0: Sheep meat | ✅ **ИСПРАВЛЕН** — ActionAttack сбрасывал target для own DomesticAnimal | `bcf7feb` |
+| P1: Age icon | ✅ **ИСПРАВЛЕН** — фильтр по RequiredTechs (только следующий возраст) | `4bdc596` |
+| P1: AI | ✅ **11 behaviors** — scout, train, build, research, attack, female villagers | `51b1ea0`+`f6543ed`+`2a576dd`+`76f0748` |
+| P1: AI buildings | ✅ **Foundations** — AI строит через construction, не instant | `76f0748` |
+| P1: Elevation | ⚠️ Bounds checks есть, но filtermap данные битые → flat terrain | `4df66d3`+`1efeaa1` |
+| P2: PNG cache | ✅ Preload в конструкторе | `be91435` |
+| P2: Text cache | ✅ No createText per frame | `4e47a5f` |
+| P2: Batching | ❌ Terrain уже batched (offscreen texture), юниты — нет | — |
+| P3: Cursor | ✅ Axe/Build/Protect/Garrison + mixed selection fix | `2877cf9`+`465f5bf` |
+| P3: Triggers | ✅ **48/49** — только AISignal остался | 3 коммита |
+| P3: Garrison | ✅ 7/9 (arrows, healing, capacity) | — |
 | P3: Walls/Gates | ❌ Не реализованы (hard) | — |
 | P3: Pathfinding | ✅ A* полностью работает | — |
 | P3: Combat | ✅ Damage formula + elevation bonus | — |
-| P4: Android SDL | ✅ Back button + pause hints добавлены | `7356af7` |
+| P4: Android touch | ✅ Building placement, selection stable, SDL hints | `984db34`+`1efeaa1`+`7356af7` |
 
 **Оставшаяся работа:**
-1. Проверить gathering на реальном устройстве (логи покажут где ломается)
-2. Sprite batching (P2 #7) — terrain offscreen texture
+1. Elevation — нужен другой подход (PNG mode не поддерживает slopes, SLP filtermap данные битые для HD)
+2. Sprite batching — юниты без батчинга
 3. Walls/Gates — gate state system
-4. Minimap fog of war — верификация
-5. Age icon — проверить на устройстве по логам
+4. Game speed controls на Android (hamburger menu не имеет кнопок)
+5. AI загрузка .per скриптов из game data

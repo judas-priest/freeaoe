@@ -55,6 +55,7 @@ void Player::applyResearch(const int researchId)
         return;
     }
 
+    m_researchedTechs.insert(researchId);
     applyTechEffect(DataManager::Inst().getTech(researchId).EffectID);
 
     // Apply all implicit research

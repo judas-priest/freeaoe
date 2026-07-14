@@ -21,6 +21,9 @@
 #include "mechanics/GameState.h"
 #include "mechanics/UnitFactory.h"
 #include "mechanics/Player.h"
+#include "mechanics/Building.h"
+#include "actions/ActionMove.h"
+#include "actions/IAction.h"
 
 #include "resource/LanguageManager.h"
 
@@ -73,6 +76,10 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerCondition::AccumulateAttribute:
             case genie::TriggerCondition::PlayerDefeated:
             case genie::TriggerCondition::DifficultyLevel:
+            case genie::TriggerCondition::ResearchTechnology:
+            case genie::TriggerCondition::ObjectVisible:
+            case genie::TriggerCondition::ObjectNotVisible:
+            case genie::TriggerCondition::UnitsGarrisoned:
                 isImplemented = true;
                 break;
             default:
@@ -115,6 +122,11 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerEffect::SendTribute:
             case genie::TriggerEffect::DeclareVictory:
             case genie::TriggerEffect::HD_HealObject:
+            case genie::TriggerEffect::KillObject:
+            case genie::TriggerEffect::ChangeOwnership:
+            case genie::TriggerEffect::StopUnit:
+            case genie::TriggerEffect::Patrol:
+            case genie::TriggerEffect::ClearInstructions:
                 break;
             default:
                 missingEffectTypes.insert(effect.type);
@@ -321,6 +333,48 @@ bool ScenarioController::update(Time time)
                 // Check if the specified player has been defeated (result != Running)
                 // For now, mark as not satisfied (player alive)
                 // Will be set to 0 by onPlayerDefeated when it fires
+            } else if (condition.data.type == genie::TriggerCondition::ResearchTechnology) {
+                Player::Ptr player = m_gameState->player(condition.data.sourcePlayer);
+                if (player && player->hasResearched(condition.data.technology)) {
+                    condition.amountRequired = 0;
+                }
+            } else if (condition.data.type == genie::TriggerCondition::ObjectVisible ||
+                       condition.data.type == genie::TriggerCondition::ObjectNotVisible) {
+                // Check if a specific unit is visible to the source player
+                bool visible = false;
+                if (condition.data.setObject >= 0) {
+                    for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                        if (unit->spawnId == condition.data.setObject) {
+                            visible = unit->isVisible;
+                            break;
+                        }
+                    }
+                }
+                bool wantVisible = (condition.data.type == genie::TriggerCondition::ObjectVisible);
+                if (visible == wantVisible) {
+                    condition.amountRequired = 0;
+                } else {
+                    condition.amountRequired = 1;
+                }
+            } else if (condition.data.type == genie::TriggerCondition::UnitsGarrisoned) {
+                // Check if a building has enough garrisoned units
+                int garrisoned = 0;
+                if (condition.data.setObject >= 0) {
+                    for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                        if (unit->spawnId == condition.data.setObject) {
+                            Building::Ptr building = Building::fromUnit(unit);
+                            if (building) {
+                                garrisoned = building->garrisonedUnits.size();
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (garrisoned >= condition.data.amount) {
+                    condition.amountRequired = 0;
+                } else {
+                    condition.amountRequired = 1;
+                }
             }
 
             if (condition.amountRequired > 0) {
@@ -712,6 +766,53 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
     case genie::TriggerEffect::DeclareVictory: {
         DBG << "DeclareVictory for player" << effect.sourcePlayer;
         m_gameState->onPlayerWin(effect.sourcePlayer);
+        break;
+    }
+    case genie::TriggerEffect::KillObject: {
+        DBG << "Killing unit" << effect;
+        forEachMatchingUnit(effect, [](const Unit::Ptr &unit) {
+            DBG << "Killing" << unit->debugName;
+            unit->kill();
+        });
+        break;
+    }
+    case genie::TriggerEffect::ChangeOwnership: {
+        DBG << "Changing ownership" << effect;
+        Player::Ptr newOwner = m_gameState->player(effect.targetPlayer);
+        if (!newOwner) {
+            WARN << "couldn't get target player for ownership change";
+            break;
+        }
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            DBG << "Changing ownership of" << unit->debugName << "to player" << effect.targetPlayer;
+            unit->setPlayer(newOwner);
+        });
+        break;
+    }
+    case genie::TriggerEffect::StopUnit: {
+        DBG << "Stopping unit" << effect;
+        forEachMatchingUnit(effect, [](const Unit::Ptr &unit) {
+            DBG << "Stopping" << unit->debugName;
+            unit->actions.clearActionQueue();
+        });
+        break;
+    }
+    case genie::TriggerEffect::Patrol: {
+        // WARNING: flipped x and y
+        MapPos targetPos(effect.location.y + 0.5, effect.location.x + 0.5);
+        targetPos *= Constants::TILE_SIZE;
+        DBG << "Patrol to" << targetPos;
+        forEachMatchingUnit(effect, [this, &targetPos](const Unit::Ptr &unit) {
+            DBG << "Patrolling" << unit->debugName;
+            m_gameState->unitManager()->moveUnitTo(unit, targetPos);
+        });
+        break;
+    }
+    case genie::TriggerEffect::ClearInstructions: {
+        DBG << "Clearing instructions";
+        if (m_engine) {
+            m_engine->clearMessages();
+        }
         break;
     }
     default:

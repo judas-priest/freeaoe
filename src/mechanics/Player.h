@@ -161,6 +161,7 @@ struct Player : public EventListener
     ///////////////////
     /// Tech
     bool researchAvailable(const int researchId) { return m_currentlyAvailableTechs.count(researchId); }
+    bool hasResearched(const int researchId) const { return m_researchedTechs.count(researchId); }
     void applyResearch(const int researchId);
     void applyTechEffect(const int effectId);
     void applyTechEffectCommand(const genie::EffectCommand &effect);
@@ -250,6 +251,7 @@ private:
     ResourceMap m_resourcesAvailable;
     std::unordered_set<Unit*> m_units;
     std::unordered_set<int> m_activeTechs;
+    std::unordered_set<int> m_researchedTechs;
     std::vector<DiplomaticStance> m_diplomaticStances;
     std::unordered_map<int, genie::Tech> m_currentlyAvailableTechs;
 

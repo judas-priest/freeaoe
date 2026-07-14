@@ -171,7 +171,7 @@ public:
     bool update(Time time);
 
     bool onLeftClick(const ScreenPos &screenPos, const CameraPtr &camera);
-    void onRightClick(const ScreenPos &screenPos, const CameraPtr &camera);
+    void onRightClick(const ScreenPos &screenPos, const CameraPtr &camera, bool shiftHeld = false);
     void onMouseMove(const MapPos &mapPos);
     bool onMouseRelease();
 

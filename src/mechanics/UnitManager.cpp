@@ -548,9 +548,11 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
     return true;
 }
 
-void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &camera)
+void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &camera, bool shiftHeld)
 {
-    m_buildingsToPlace.clear();
+    if (!shiftHeld) {
+        m_buildingsToPlace.clear();
+    }
 
     if (m_selectedUnits.isEmpty()) {
         return;
@@ -562,6 +564,9 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
         return;
     }
     bool foundTasks = false;
+    const IAction::AssignType assignType = shiftHeld
+        ? IAction::AssignType::Queue
+        : IAction::AssignType::Replace;
 
     DBG << "onRightClick: tasksUnderCursor=" << m_tasksUnderCursor.size()
         << "selectedUnits=" << m_selectedUnits.size();
@@ -586,7 +591,7 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
                     AudioPlayer::instance().playSound(unit->data()->Action.AttackSound, humanPlayer->civilization.id());
                 }
 
-                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+                IAction::assignTask(task, unit, assignType);
                 Unit::Ptr target = task.target.lock();
                 if (target) {
                     m_targetBlinkTimeLeft[target->id] = 3000;
@@ -666,8 +671,12 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
             formationTarget = formationTarget.clamped(m_map->pixelSize());
         }
 
-        unit->actions.clearActionQueue();
-        moveUnitTo(unit, formationTarget);
+        if (shiftHeld) {
+            unit->actions.queueAction(ActionMove::moveUnitTo(unit, formationTarget));
+        } else {
+            unit->actions.clearActionQueue();
+            moveUnitTo(unit, formationTarget);
+        }
         movedSomeone = true;
         unitIndex++;
 

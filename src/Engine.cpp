@@ -1378,7 +1378,8 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     if (event.mouseButton.button == input::MouseButton::Right) {
         // Ensure tasks under cursor are evaluated at click position
         state->unitManager()->onCursorPositionChanged(mousePos, renderTarget_->camera());
-        state->unitManager()->onRightClick(mousePos, renderTarget_->camera());
+        const bool shiftHeld = (SDL_GetModState() & KMOD_SHIFT) != 0;
+        state->unitManager()->onRightClick(mousePos, renderTarget_->camera(), shiftHeld);
     }
 
     return false;

@@ -1429,6 +1429,8 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0"); // handle touch via state machine, no mouse synthesis
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0"); // don't generate touch from mouse
+    SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1"); // handle back button in SDL
+    SDL_SetHint(SDL_HINT_ANDROID_BLOCK_ON_PAUSE, "0");   // don't block when app paused
     m_sdlWindow = std::make_unique<SdlWindow>(Size(0, 0), "freeaoe");
     SDL_SetWindowFullscreen(m_sdlWindow->sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     // Get actual window size after fullscreen

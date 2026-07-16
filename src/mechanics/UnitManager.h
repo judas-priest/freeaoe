@@ -150,6 +150,7 @@ public:
         SelectingHealTarget,
         SelectingRallyTarget,
         SelectingAttackMoveTarget,
+        SelectingFlareTarget,
         Default
     };
 
@@ -213,6 +214,7 @@ public:
     void selectHealTarget();
     void selectRallyTarget();
     void selectAttackMoveTarget();
+    void selectFlareTarget();
 
     State state() const { return m_state; }
 
@@ -284,6 +286,14 @@ inline LogPrinter operator <<(LogPrinter os, const UnitManager::State state)
     case UnitManager::State::SelectingAttackTarget: os << "SelectingAttackTarget"; break;
     case UnitManager::State::SelectingGarrisonTarget: os << "SelectingGarrisonTarget"; break;
     case UnitManager::State::SelectingRallyTarget: os << "SelectingRallyTarget"; break;
+    case UnitManager::State::SelectingFlareTarget: os << "SelectingFlareTarget"; break;
+    case UnitManager::State::SelectingPatrolTarget: os << "SelectingPatrolTarget"; break;
+    case UnitManager::State::SelectingGuardTarget: os << "SelectingGuardTarget"; break;
+    case UnitManager::State::SelectingFollowTarget: os << "SelectingFollowTarget"; break;
+    case UnitManager::State::SelectingRepairTarget: os << "SelectingRepairTarget"; break;
+    case UnitManager::State::SelectingConvertTarget: os << "SelectingConvertTarget"; break;
+    case UnitManager::State::SelectingHealTarget: os << "SelectingHealTarget"; break;
+    case UnitManager::State::SelectingAttackMoveTarget: os << "SelectingAttackMoveTarget"; break;
     }
 
     os << separator;

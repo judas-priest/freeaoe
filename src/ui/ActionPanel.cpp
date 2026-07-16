@@ -996,6 +996,12 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             }
             break;
         }
+        case Command::SignalFlare: {
+            if (m_unitManager) {
+                m_unitManager->selectFlareTarget();
+            }
+            break;
+        }
         case Command::FindIdleVillager: {
             if (!m_unitManager) break;
             static int lastIdleIdx = -1;

@@ -639,6 +639,11 @@ bool UnitManager::onLeftClick(const ScreenPos &screenPos, const CameraPtr &camer
         }
         break;
     }
+    case State::SelectingFlareTarget: {
+        MapPos targetPos = camera->absoluteMapPos(screenPos);
+        m_moveTargetMarker->moveTo(targetPos);
+        break;
+    }
     case State::SelectingRallyTarget: {
         MapPos targetPos = camera->absoluteMapPos(screenPos);
         Unit::Ptr targetUnit = unitAt(screenPos, camera, NoAlignment);
@@ -1325,6 +1330,11 @@ void UnitManager::selectRallyTarget()
 void UnitManager::selectAttackMoveTarget()
 {
     m_state = State::SelectingAttackMoveTarget;
+}
+
+void UnitManager::selectFlareTarget()
+{
+    m_state = State::SelectingFlareTarget;
 }
 
 int UnitManager::targetBlinkTimeLeft(int unitID) const noexcept

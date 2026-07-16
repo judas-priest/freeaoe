@@ -2088,6 +2088,19 @@ void Engine::loadNextCampaignScenario()
 
 void Engine::onChatMessage(const int sourcePlayer, const int /*targetPlayer*/, const std::string &message)
 {
+    // Handle cheat codes
+    if (message == "marco") {
+        auto state = state_manager_.getActiveState();
+        if (state) {
+            const Player::Ptr &human = state->humanPlayer();
+            if (human && human->visibility) {
+                human->visibility->revealAll();
+                addMessage("Map revealed!");
+                return;
+            }
+        }
+    }
+
     std::string display = "Player " + std::to_string(sourcePlayer) + ": " + message;
     addMessage(display);
 }

@@ -108,6 +108,11 @@ struct VisibilityMap
     }
     int edgeTileNum(const int tileX, const int tileY, const Visibility type) const;
 
+    void revealAll() {
+        m_visibility.fill(Visible);
+        isDirty = true;
+    }
+
 private:
     int m_playerId;
     std::array<int, Constants::MAP_MAX_SIZE * Constants::MAP_MAX_SIZE> m_visibility;

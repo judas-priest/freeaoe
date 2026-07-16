@@ -1120,9 +1120,32 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
             unit->actions.clearActionQueue();
         }
         return true;
-    case input::Key::A: // Attack-move
-        if (!state->unitManager()->selected().isEmpty()) {
-            state->unitManager()->selectAttackMoveTarget();
+    case input::Key::A:
+        if (event.key.shift) {
+            // Shift+A: select all visible military units
+            const Player::Ptr &human = state->humanPlayer();
+            if (human) {
+                UnitVector military;
+                for (const Unit::Ptr &unit : state->unitManager()->units()) {
+                    if (!unit || unit->isDead() || unit->isDying()) continue;
+                    if (unit->playerId() != human->playerId) continue;
+                    if (unit->isBuilding()) continue;
+                    if (unit->data()->Class == genie::Unit::Civilian) continue;
+                    if (unit->data()->Speed <= 0) continue;
+                    military.push_back(unit);
+                }
+                if (!military.empty()) {
+                    state->unitManager()->setSelectedUnits(military);
+                    addMessage("Selected " + std::to_string(military.size()) + " military units");
+                } else {
+                    addMessage("No military units");
+                }
+            }
+        } else {
+            // Attack-move
+            if (!state->unitManager()->selected().isEmpty()) {
+                state->unitManager()->selectAttackMoveTarget();
+            }
         }
         return true;
     case input::Key::Delete: // Delete selected units

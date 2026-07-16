@@ -33,7 +33,13 @@ ActionConvert::UpdateResult ActionConvert::update(Time time)
         // Recharge faith passively
         float &f = monk->resources[genie::ResourceType::Faith];
         if (f < FAITH_MAX) {
-            const float delta = (time - m_prevTime) * FAITH_RECHARGE_PER_MS;
+            // Illumination (tech 233): monk's owner has researched — double recharge rate
+            float rechargeRate = FAITH_RECHARGE_PER_MS;
+            auto monkOwner = monk->player().lock();
+            if (monkOwner && monkOwner->hasResearched(233)) {
+                rechargeRate *= 2.0f;
+            }
+            const float delta = (time - m_prevTime) * rechargeRate;
             f = std::min(FAITH_MAX, f + delta);
         }
         m_prevTime = time;
@@ -80,6 +86,15 @@ ActionConvert::UpdateResult ActionConvert::update(Time time)
             m_maxConvertTime += 5000;
         }
 
+        // Faith (tech 45): target's owner has researched — 50% longer conversion
+        {
+            auto targetOwner = target->player().lock();
+            if (targetOwner && targetOwner->hasResearched(45)) {
+                m_minConvertTime = m_minConvertTime * 3 / 2;
+                m_maxConvertTime = m_maxConvertTime * 3 / 2;
+            }
+        }
+
         DBG << monk->debugName << "starting conversion of" << target->debugName
             << "window=[" << m_minConvertTime << "," << m_maxConvertTime << "]ms";
         return UpdateResult::Updated;
@@ -120,6 +135,15 @@ void ActionConvert::doConvert(const Unit::Ptr &monk, const Unit::Ptr &target)
 {
     auto monkOwner = monk->player().lock();
     if (!monkOwner) return;
+
+    // Heresy (tech 439): target's owner has researched — unit dies instead of converting
+    auto targetOwner = target->player().lock();
+    if (targetOwner && targetOwner->hasResearched(439)) {
+        DBG << "Heresy: killing" << target->debugName << "instead of converting";
+        target->kill();
+        monk->resources[genie::ResourceType::Faith] = 0.f;
+        return;
+    }
 
     DBG << "Converted" << target->debugName << "to player" << monkOwner->playerId;
     target->setPlayer(monkOwner);

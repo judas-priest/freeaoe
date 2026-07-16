@@ -239,6 +239,7 @@ public:
         PreviousPage,
         Garrison,
         AutoScout,
+        FindIdleVillager,
 
         Undefined
     };
@@ -425,6 +426,7 @@ inline LogPrinter &operator <<(LogPrinter &os, const ActionPanel::Command &cmd)
     case ActionPanel::Command::PreviousPage: os << "PreviousPage"; break;
     case ActionPanel::Command::Garrison: os << "Garrison"; break;
     case ActionPanel::Command::AutoScout: os << "AutoScout"; break;
+    case ActionPanel::Command::FindIdleVillager: os << "FindIdleVillager"; break;
     case ActionPanel::Command::Undefined: os << "Undefined"; break;
     default: os << "Invalid"; break;
     }

@@ -363,6 +363,9 @@ bool ActionPanel::loadButtons(const int playerCiv)
     // Auto-scout uses the patrol icon (compass)
     m_commandIcons[Command::AutoScout] = m_commandIcons[Command::Patrol];
 
+    // Idle villager uses the CollectFood icon as a stand-in
+    m_commandIcons[Command::FindIdleVillager] = m_commandIcons[Command::CollectFood];
+
     { // can't find this icon anywhere else
         genie::SlpFilePtr cursorsSlp = AssetManager::Inst()->getSlp("mcursors.shp", AssetManager::ResourceType::Interface);
         if (!cursorsSlp) {
@@ -383,6 +386,13 @@ void ActionPanel::updateButtons()
     currentButtons.clear();
 
     if (m_selectedUnits.empty()) {
+        // Show idle villager button even with no selection
+        InterfaceButton idleBtn;
+        idleBtn.type = InterfaceButton::Other;
+        idleBtn.action = Command::FindIdleVillager;
+        idleBtn.index = 0;
+        idleBtn.interfacePage = 0;
+        currentButtons.push_back(idleBtn);
         return;
     }
     if (m_unitManagerState != UnitManager::State::Default) {
@@ -983,6 +993,31 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
                 unit->actions.clearActionQueue();
                 unit->actions.setCurrentAction(
                     std::make_shared<ActionAutoScout>(unit));
+            }
+            break;
+        }
+        case Command::FindIdleVillager: {
+            if (!m_unitManager) break;
+            static int lastIdleIdx = -1;
+            int startIdx = lastIdleIdx + 1;
+            const auto &allUnits = m_unitManager->units();
+            bool found = false;
+            for (size_t i = 0; i < allUnits.size(); i++) {
+                int idx = (startIdx + i) % allUnits.size();
+                const Unit::Ptr &unit = allUnits[idx];
+                if (!unit || unit->playerId() != m_humanPlayerId) continue;
+                if (unit->data()->Type < genie::Unit::CombatantType) continue;
+                if (unit->data()->Speed <= 0) continue;
+                if (!unit->actions.currentAction()) {
+                    lastIdleIdx = idx;
+                    m_unitManager->setSelectedUnits({unit});
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                lastHelpText = "No idle villagers";
+                lastHelpTextTime = 5000;
             }
             break;
         }

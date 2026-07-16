@@ -786,59 +786,70 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
         case Command::Heal:
             m_unitManager->selectHealTarget();
             break;
-        // Market buy/sell — trade 100 of resource for gold at ~70/130% rate
+        // Market buy/sell — dynamic prices shift by 3 per transaction
         case Command::SellWood: {
             auto player = m_unitManager->humanPlayer();
             if (player && player->resourcesAvailable(genie::ResourceType::WoodStorage) >= 100) {
+                int revenue = player->marketPrices.sellPrice(1); // 1=Wood
                 player->setAvailableResource(genie::ResourceType::WoodStorage,
                     player->resourcesAvailable(genie::ResourceType::WoodStorage) - 100);
                 player->setAvailableResource(genie::ResourceType::GoldStorage,
-                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + 70);
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + revenue);
+                player->marketPrices.onSell(1);
             }
             break;
         }
         case Command::SellFood: {
             auto player = m_unitManager->humanPlayer();
             if (player && player->resourcesAvailable(genie::ResourceType::FoodStorage) >= 100) {
+                int revenue = player->marketPrices.sellPrice(0); // 0=Food
                 player->setAvailableResource(genie::ResourceType::FoodStorage,
                     player->resourcesAvailable(genie::ResourceType::FoodStorage) - 100);
                 player->setAvailableResource(genie::ResourceType::GoldStorage,
-                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + 70);
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + revenue);
+                player->marketPrices.onSell(0);
             }
             break;
         }
         case Command::SellStone: {
             auto player = m_unitManager->humanPlayer();
             if (player && player->resourcesAvailable(genie::ResourceType::StoneStorage) >= 100) {
+                int revenue = player->marketPrices.sellPrice(2); // 2=Stone
                 player->setAvailableResource(genie::ResourceType::StoneStorage,
                     player->resourcesAvailable(genie::ResourceType::StoneStorage) - 100);
                 player->setAvailableResource(genie::ResourceType::GoldStorage,
-                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + 70);
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) + revenue);
+                player->marketPrices.onSell(2);
             }
             break;
         }
         case Command::CollectWood:
-        case Command::BuyFood: // BuyFood is an alias used in some versions
+        case Command::BuyFood:
         case Command::CollectFood: {
             auto player = m_unitManager->humanPlayer();
-            if (player && player->resourcesAvailable(genie::ResourceType::GoldStorage) >= 130) {
+            // CollectWood buys wood, CollectFood/BuyFood buys food
+            int resIdx = (button.action == Command::CollectWood) ? 1 : 0;
+            int cost = player ? player->marketPrices.buyPrice(resIdx) : 130;
+            if (player && player->resourcesAvailable(genie::ResourceType::GoldStorage) >= cost) {
                 player->setAvailableResource(genie::ResourceType::GoldStorage,
-                    player->resourcesAvailable(genie::ResourceType::GoldStorage) - 130);
-                // CollectWood buys wood, CollectFood buys food
-                genie::ResourceType res = (button.action == Command::CollectWood)
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) - cost);
+                genie::ResourceType res = (resIdx == 1)
                     ? genie::ResourceType::WoodStorage : genie::ResourceType::FoodStorage;
                 player->setAvailableResource(res, player->resourcesAvailable(res) + 100);
+                player->marketPrices.onBuy(resIdx);
             }
             break;
         }
         case Command::CollectStone:
         case Command::BuyStone: {
             auto player = m_unitManager->humanPlayer();
-            if (player && player->resourcesAvailable(genie::ResourceType::GoldStorage) >= 130) {
+            int cost = player ? player->marketPrices.buyPrice(2) : 130;
+            if (player && player->resourcesAvailable(genie::ResourceType::GoldStorage) >= cost) {
                 player->setAvailableResource(genie::ResourceType::GoldStorage,
-                    player->resourcesAvailable(genie::ResourceType::GoldStorage) - 130);
+                    player->resourcesAvailable(genie::ResourceType::GoldStorage) - cost);
                 player->setAvailableResource(genie::ResourceType::StoneStorage,
                     player->resourcesAvailable(genie::ResourceType::StoneStorage) + 100);
+                player->marketPrices.onBuy(2);
             }
             break;
         }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <algorithm>
 #include <array>
 #include <limits>
 #include <memory>
@@ -148,6 +149,18 @@ struct Player : public EventListener
 
     bool alive = true;
     std::shared_ptr<VisibilityMap> visibility;
+
+    // Dynamic market prices (AoE2: base price shifts by 3 per transaction)
+    struct MarketPrices {
+        // Base price for each resource: 0=Food, 1=Wood, 2=Stone
+        int basePrice[3] = {100, 100, 100};
+
+        int buyPrice(int res) const { return std::max(20, basePrice[res] * 130 / 100); }
+        int sellPrice(int res) const { return std::max(20, basePrice[res] * 70 / 100); }
+
+        void onBuy(int res) { basePrice[res] = std::min(9999, basePrice[res] + 3); }
+        void onSell(int res) { basePrice[res] = std::max(20, basePrice[res] - 3); }
+    } marketPrices;
 
     // Score tracking
     int unitsKilled = 0;

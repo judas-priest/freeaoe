@@ -242,6 +242,9 @@ private:
     int m_lastGroupKey = -1;
     int64_t m_lastGroupKeyTime = 0;
 
+    // Camera follow
+    std::weak_ptr<Unit> m_followUnit;
+
     float m_gameSpeed = 1.0f;
     bool m_paused = false;
     int64_t m_lastAmbientUpdate = 0;

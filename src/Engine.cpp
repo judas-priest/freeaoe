@@ -1068,15 +1068,19 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
     switch(event.key.code) {
     case input::Key::Left:
         cameraScreenPos.x -= 20;
+        m_followUnit.reset();
         break;
     case input::Key::Right:
         cameraScreenPos.x += 20;
+        m_followUnit.reset();
         break;
     case input::Key::Down:
         cameraScreenPos.y -= 20;
+        m_followUnit.reset();
         break;
     case input::Key::Up:
         cameraScreenPos.y += 20;
+        m_followUnit.reset();
         break;
 
     // Game speed
@@ -1113,6 +1117,23 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
     case input::Key::F11:
         m_objectivesVisible = !m_objectivesVisible;
         return true;
+
+    case input::Key::F6: {
+        // Toggle camera follow on selected unit
+        if (auto existing = m_followUnit.lock()) {
+            m_followUnit.reset();
+            addMessage("Camera follow OFF");
+        } else {
+            const auto &sel = state->unitManager()->selected();
+            if (!sel.isEmpty()) {
+                m_followUnit = sel.units.front();
+                addMessage("Camera following unit");
+            } else {
+                addMessage("No unit selected");
+            }
+        }
+        return true;
+    }
 
     // Unit commands
     case input::Key::S: // Stop
@@ -1973,6 +1994,15 @@ bool Engine::updateUi(const std::shared_ptr<GameState> &state)
 
 bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
 {
+    // Camera follow: track the followed unit
+    if (auto followUnit = m_followUnit.lock()) {
+        if (followUnit->isDead() || followUnit->isDying()) {
+            m_followUnit.reset();
+        } else {
+            renderTarget_->camera()->setTargetPosition(followUnit->position());
+        }
+    }
+
 #ifdef ANDROID
     return false; // Camera controlled by touch drag
 #endif
@@ -2004,6 +2034,9 @@ bool Engine::updateCamera(const std::shared_ptr<GameState> &state)
     if (m_cameraDeltaX == 0 && m_cameraDeltaY == 0) {
         return false;
     }
+
+    // Manual camera movement cancels follow
+    m_followUnit.reset();
 
     ScreenPos cameraScreenPos = renderTarget_->camera()->targetPosition().toScreen();
 

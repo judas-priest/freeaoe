@@ -284,6 +284,8 @@ set(MECHANICS_SRC
     src/mechanics/Civilization.h
     src/mechanics/Farm.cpp
     src/mechanics/Farm.h
+    src/mechanics/FormationHelper.cpp
+    src/mechanics/FormationHelper.h
     src/mechanics/GameState.cpp
     src/mechanics/GameState.h
     src/mechanics/Map.cpp

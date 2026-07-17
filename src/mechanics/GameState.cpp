@@ -55,6 +55,7 @@
 #include "global/EventManager.h"
 #include "global/Config.h"
 #include "mechanics/Building.h"
+#include "mechanics/FormationHelper.h"
 #include "mechanics/UnitManager.h"
 #include "mechanics/Player.h"
 #include "mechanics/Map.h"
@@ -359,9 +360,33 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
         switch (cmd.type) {
         case CommandType::Move: {
             MapPos targetPos(cmd.x, cmd.y, 0);
+
+            std::vector<Unit::Ptr> units;
             for (int unitId : cmd.unitIds) {
                 Unit::Ptr unit = m_unitManager->unitById(static_cast<size_t>(unitId));
                 if (unit && unit->isAlive()) {
+                    units.push_back(unit);
+                }
+            }
+
+            if (units.size() > 1) {
+                MapPos center;
+                for (auto &u : units) {
+                    center.x += u->position().x;
+                    center.y += u->position().y;
+                }
+                center.x /= units.size();
+                center.y /= units.size();
+                float angle = std::atan2(targetPos.y - center.y, targetPos.x - center.x);
+
+                auto positions = FormationHelper::computePositions(
+                    units, targetPos, Unit::s_formation, angle);
+
+                for (size_t i = 0; i < units.size(); ++i) {
+                    m_unitManager->moveUnitTo(units[i], positions[i]);
+                }
+            } else {
+                for (auto &unit : units) {
                     m_unitManager->moveUnitTo(unit, targetPos);
                 }
             }
@@ -556,6 +581,14 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
                 sender->removeResource(resType, amount);
                 float received = amount * 0.75f; // 25% tribute tax
                 receiver->addResource(resType, received);
+            }
+            break;
+        }
+
+        case CommandType::SetFormation: {
+            int formIdx = cmd.amount;
+            if (formIdx >= 0 && formIdx <= 3) {
+                Unit::s_formation = static_cast<Unit::Formation>(formIdx);
             }
             break;
         }

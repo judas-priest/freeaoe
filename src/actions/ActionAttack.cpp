@@ -1,6 +1,7 @@
 #include "ActionAttack.h"
 
 #include "ActionMove.h"
+#include "ActionTransform.h"
 #include "ai/AiPlayer.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
@@ -64,6 +65,19 @@ IAction::UpdateResult ActionAttack::update(Time time)
     if (!unit) {
         // Our unit died
         return IAction::UpdateResult::Completed;
+    }
+
+    // Packed trebuchet (331) must unpack (to 42) before attacking
+    constexpr int PackedTrebuchetId = 331;
+    constexpr int UnpackedTrebuchetId = 42;
+    constexpr Time TrebuchetTransformMs = 11100;
+    if (unit->data()->ID == PackedTrebuchetId) {
+        static genie::Task transformTask;
+        transformTask.ActionType = genie::ActionType::Pack;
+        Task task(&transformTask, -1);
+        auto unpack = std::make_shared<ActionTransform>(unit, task, UnpackedTrebuchetId, TrebuchetTransformMs);
+        unit->actions.prependAction(unpack);
+        return IAction::UpdateResult::NotUpdated;
     }
 
     Unit::Ptr targetUnit = m_targetUnit.lock();
@@ -196,6 +210,12 @@ IAction::UpdateResult ActionAttack::update(Time time)
         }
         totalDamage = std::max(totalDamage * elevMult, 1.f);
         targetUnit->takeDamage(totalDamage);
+
+        // Petard self-destruct: kill the unit after dealing melee damage
+        if (unit->data()->Class == genie::Unit::Petard) {
+            unit->takeDamage(unit->healthLeft());
+            return IAction::UpdateResult::Completed;
+        }
 
         // Report threat to AI player if target belongs to one
         if (auto targetPlayer = std::dynamic_pointer_cast<AiPlayer>(targetUnit->player().lock())) {

@@ -1032,6 +1032,20 @@ void UnitManager::selectUnitsByType(int unitTypeId, int playerId, const ScreenRe
     }
 }
 
+void UnitManager::toggleUnitInSelection(const Unit::Ptr &unit)
+{
+    if (!unit) return;
+
+    if (m_selectedUnits.contains(unit)) {
+        m_selectedUnits.remove(unit);
+    } else {
+        m_selectedUnits.add(unit);
+    }
+
+    m_availableActionsChanged = true;
+    emit(ActionsChanged);
+}
+
 void UnitManager::setMap(const MapPtr &map)
 {
     m_map = map;

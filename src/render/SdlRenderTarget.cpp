@@ -941,6 +941,7 @@ bool SdlWindow::pollEvent(input::Event &event)
         event.type = input::Event::MouseButtonPressed;
         event.mouseButton.x = sdlEvent.button.x;
         event.mouseButton.y = sdlEvent.button.y;
+        event.mouseButton.clicks = sdlEvent.button.clicks;
         switch (sdlEvent.button.button) {
         case SDL_BUTTON_LEFT:   event.mouseButton.button = input::MouseButton::Left; break;
         case SDL_BUTTON_RIGHT:  event.mouseButton.button = input::MouseButton::Right; break;
@@ -953,6 +954,7 @@ bool SdlWindow::pollEvent(input::Event &event)
         event.type = input::Event::MouseButtonReleased;
         event.mouseButton.x = sdlEvent.button.x;
         event.mouseButton.y = sdlEvent.button.y;
+        event.mouseButton.clicks = sdlEvent.button.clicks;
         switch (sdlEvent.button.button) {
         case SDL_BUTTON_LEFT:   event.mouseButton.button = input::MouseButton::Left; break;
         case SDL_BUTTON_RIGHT:  event.mouseButton.button = input::MouseButton::Right; break;

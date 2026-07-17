@@ -1914,6 +1914,33 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
         if (selectRect.width < 15 && selectRect.height < 15) {
             selectRect = ScreenRect(mousePos - ScreenPos(15, 15), mousePos + ScreenPos(15, 15));
         }
+
+        // Ctrl+click: toggle a single unit in the selection
+        const bool ctrlHeld = (SDL_GetModState() & KMOD_CTRL) != 0;
+        if (ctrlHeld) {
+            Unit::Ptr clicked = state->unitManager()->clickedUnitAt(mousePos, renderTarget_->camera());
+            if (clicked && clicked->playerId() == state->unitManager()->humanPlayerID()) {
+                state->unitManager()->toggleUnitInSelection(clicked);
+                m_selectionRect = ScreenRect();
+                m_selecting = false;
+                return true;
+            }
+        }
+
+        // Double-click: select all visible units of same type
+        if (event.mouseButton.clicks >= 2) {
+            Unit::Ptr clicked = state->unitManager()->clickedUnitAt(mousePos, renderTarget_->camera());
+            if (clicked && clicked->playerId() == state->unitManager()->humanPlayerID()) {
+                // Use the full viewport as the area
+                const Size viewSize = renderTarget_->getSize();
+                ScreenRect viewArea(0, 0, viewSize.width, viewSize.height);
+                state->unitManager()->selectUnitsByType(clicked->data()->ID, clicked->playerId(), viewArea, renderTarget_->camera());
+                m_selectionRect = ScreenRect();
+                m_selecting = false;
+                return true;
+            }
+        }
+
         state->unitManager()->selectUnits(selectRect, renderTarget_->camera());
         m_selectionRect = ScreenRect();
         m_selecting = false;

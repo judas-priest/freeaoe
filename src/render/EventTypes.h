@@ -47,6 +47,7 @@ struct Event {
         MouseButton button;
         int x = 0;
         int y = 0;
+        int clicks = 1;
     };
 
     struct MouseMoveEvent {

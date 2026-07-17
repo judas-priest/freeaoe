@@ -162,6 +162,12 @@ bool DiplomacyScreen::handleEvent(const input::Event &event)
         isTap = true;
     }
 
+    // Escape closes the screen
+    if (event.type == input::Event::KeyPressed && event.key.code == input::Key::Escape) {
+        hide();
+        return true;
+    }
+
     if (!isTap) return true; // consume all events while visible
 
     Size screenSize = m_renderTarget->getSize();

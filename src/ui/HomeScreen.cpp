@@ -394,6 +394,9 @@ void HomeScreen::render()
         }
         break;
     }
+    case Button::MapEditor:
+        // "Coming soon" shown via m_description text
+        break;
     case -1:
         break;
     default:
@@ -447,8 +450,12 @@ bool HomeScreen::handleMouseEvent(const input::Event &event)
         case Button::Exit:
         case Button::History:
         case Button::Tutorial:
-        case Button::MapEditor:
             return true;
+        case Button::MapEditor:
+            m_description.setString("Scenario Editor: Coming soon!");
+            m_description.setCharacterSize(14);
+            m_selectedButton = m_hoveredButton;
+            return false;
         default:
             break;
         }

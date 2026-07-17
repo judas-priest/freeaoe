@@ -70,6 +70,17 @@ std::shared_ptr<Unit> Unit::fromEntity(const EntityPtr &entity) noexcept
     return std::static_pointer_cast<Unit>(entity);
 }
 
+float Unit::effectiveRange() const noexcept
+{
+    return m_data ? m_data->Combat.MaxRange + statOverrides.rangeBonus : statOverrides.rangeBonus;
+}
+
+float Unit::effectiveSpeed() const noexcept
+{
+    if (statOverrides.speedOverride > 0.f) return statOverrides.speedOverride;
+    return m_data ? m_data->Speed : 0.f;
+}
+
 Unit::Unit(const genie::Unit &data_, const std::shared_ptr<Player> &player_, UnitManager &unitManager) :
     Entity(Type::Unit, LanguageManager::getString(data_.LanguageDLLName) + " (" + std::to_string(data_.ID) + ")"),
     actions(this),
@@ -300,7 +311,13 @@ void Unit::receiveAttack(const genie::unit::AttackOrArmor &attack, const float d
             continue;
         }
 
-        newDamage += std::max(attack.Amount - armor.Amount, 0);
+        int armAmount = armor.Amount;
+        if (armor.Class == 4) { // melee armor class
+            armAmount += effectiveMeleeArmor();
+        } else if (armor.Class == 3) { // pierce armor class
+            armAmount += effectivePiercingArmor();
+        }
+        newDamage += std::max(attack.Amount - armAmount, 0);
     }
     newDamage *= damageMultiplier;
     newDamage = std::max(newDamage, 1.f);

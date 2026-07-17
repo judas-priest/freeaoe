@@ -36,6 +36,7 @@ Missile::Missile(const genie::Unit &data, const Unit::Ptr &sourceUnit, const Map
     m_targetPosition(target)
 {
     m_attacks = sourceUnit->data()->Combat.Attacks;
+    m_attackBonus = sourceUnit->effectiveAttackBonus();
     sourceUnit->activeMissiles++;
     defaultGraphics = AssetManager::Inst()->getGraphic(data.StandingGraphic.first);
     m_renderer->setSprite(defaultGraphics);
@@ -303,11 +304,19 @@ bool Missile::update(Time time) noexcept
         }
         DBG << debugName << "hit a unit" << hitUnit->debugName << "damage multiplier" << damageMultiplier;
         // Sum damage from all attack classes, minimum 1 total
+        // Apply per-unit stat overrides from trigger effects
         float totalDamage = 0;
         for (const genie::unit::AttackOrArmor &attack : m_attacks) {
             for (const genie::unit::AttackOrArmor &armor : hitUnit->data()->Combat.Armours) {
                 if (attack.Class == armor.Class) {
-                    totalDamage += std::max(attack.Amount - armor.Amount, 0);
+                    int atkAmount = attack.Amount + m_attackBonus;
+                    int armAmount = armor.Amount;
+                    if (armor.Class == 4) { // melee armor class
+                        armAmount += hitUnit->effectiveMeleeArmor();
+                    } else if (armor.Class == 3) { // pierce armor class
+                        armAmount += hitUnit->effectivePiercingArmor();
+                    }
+                    totalDamage += std::max(atkAmount - armAmount, 0);
                 }
             }
         }

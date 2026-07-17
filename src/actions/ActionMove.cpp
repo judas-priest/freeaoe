@@ -119,7 +119,7 @@ ActionMove::ActionMove(MapPos destination, const Unit::Ptr &unit, const Task &ta
     m_destination = destination;
 
     m_terrainMoveMultipliers = DataManager::Inst().getTerrainRestriction(unit->data()->TerrainRestriction).PassableBuildableDmgMultiplier;
-    m_speed = unit->data()->Speed;
+    m_speed = unit->effectiveSpeed();
 }
 
 MapPos ActionMove::findClosestWalkableBorder(const MapPos &start, const MapPos &target, int coarseness) noexcept
@@ -589,7 +589,7 @@ IAction::UpdateResult ActionMove::update(Time time) noexcept
 
 std::shared_ptr<ActionMove> ActionMove::moveUnitTo(const UnitPtr &unit, const Task &task) noexcept
 {
-    if (!unit->data()->Speed) {
+    if (!unit->effectiveSpeed()) {
         DBG << "Handed unit that can't move" << unit->debugName;
         return nullptr;
     }
@@ -609,7 +609,7 @@ std::shared_ptr<ActionMove> ActionMove::moveUnitTo(const UnitPtr &unit, const Ta
 
 std::shared_ptr<ActionMove> ActionMove::moveUnitTo(const Unit::Ptr &unit, MapPos destination, const Task &task) noexcept
 {
-    if (!unit->data()->Speed) {
+    if (!unit->effectiveSpeed()) {
         DBG << "Handed unit that can't move" << unit->debugName;
         return nullptr;
     }

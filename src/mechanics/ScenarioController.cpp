@@ -22,6 +22,7 @@
 #include "mechanics/UnitFactory.h"
 #include "mechanics/Player.h"
 #include "mechanics/Building.h"
+#include "mechanics/Gate.h"
 #include "actions/ActionMove.h"
 #include "actions/IAction.h"
 
@@ -156,6 +157,10 @@ void ScenarioController::setScenario(const std::shared_ptr<genie::ScnFile> &scen
             case genie::TriggerEffect::HD_ChangeRange:
             case genie::TriggerEffect::HD_ChangeSpeed:
             case genie::TriggerEffect::AIScriptGoal:
+            case genie::TriggerEffect::LockGate:
+            case genie::TriggerEffect::UnlockGate:
+            case genie::TriggerEffect::HD_TeleportObject:
+            case genie::TriggerEffect::HD_ChangeUnitStance:
                 break;
             default:
                 missingEffectTypes.insert(effect.type);
@@ -803,10 +808,14 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         });
         break;
     }
-    case genie::TriggerEffect::ChangeObjectName:
-        // debugName is const, so we can't change it. Log for now.
+    case genie::TriggerEffect::ChangeObjectName: {
         DBG << "ChangeObjectName:" << effect.message;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            unit->nameOverride = effect.message;
+            DBG << "Set name override for" << unit->debugName << "to" << effect.message;
+        });
         break;
+    }
 
         ////////////////////
         // Player stuff
@@ -960,16 +969,60 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         }
         break;
     }
-    case genie::TriggerEffect::ChangeObjectAttack:
-    case genie::TriggerEffect::HD_AttackMove:
-    case genie::TriggerEffect::HD_ChangeArmor:
-    case genie::TriggerEffect::HD_ChangeRange:
-    case genie::TriggerEffect::HD_ChangeSpeed:
-        // Unit stat modifiers — requires mutable unit data (not yet supported)
-        DBG << "Stat modifier effect (stub):" << effect;
+    case genie::TriggerEffect::ChangeObjectAttack: {
+        DBG << "ChangeObjectAttack:" << effect;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            unit->statOverrides.attackBonus += effect.amount;
+            DBG << "Attack bonus for" << unit->debugName << "now" << unit->statOverrides.attackBonus;
+        });
         break;
+    }
+    case genie::TriggerEffect::HD_AttackMove: {
+        DBG << "HD_AttackMove/ChangeSpeed:" << effect;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            if (effect.amount > 0) {
+                unit->statOverrides.speedOverride = effect.amount / 100.f;
+            } else {
+                unit->statOverrides.speedOverride = 0.f;
+            }
+            DBG << "Speed override for" << unit->debugName << "now" << unit->effectiveSpeed();
+        });
+        break;
+    }
+    case genie::TriggerEffect::HD_ChangeArmor: {
+        DBG << "HD_ChangeArmor:" << effect;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            if (effect.boundedValue == 0) {
+                unit->statOverrides.armorMelee += effect.amount;
+                DBG << "Melee armor bonus for" << unit->debugName << "now" << unit->statOverrides.armorMelee;
+            } else {
+                unit->statOverrides.armorPiercing += effect.amount;
+                DBG << "Pierce armor bonus for" << unit->debugName << "now" << unit->statOverrides.armorPiercing;
+            }
+        });
+        break;
+    }
+    case genie::TriggerEffect::HD_ChangeRange: {
+        DBG << "HD_ChangeRange:" << effect;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            unit->statOverrides.rangeBonus += effect.amount;
+            DBG << "Range bonus for" << unit->debugName << "now" << unit->statOverrides.rangeBonus;
+        });
+        break;
+    }
+    case genie::TriggerEffect::HD_ChangeSpeed: {
+        DBG << "HD_ChangeSpeed:" << effect;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            if (effect.amount > 0) {
+                unit->statOverrides.speedOverride = effect.amount / 100.f;
+            } else {
+                unit->statOverrides.speedOverride = 0.f;
+            }
+            DBG << "Speed override for" << unit->debugName << "now" << unit->effectiveSpeed();
+        });
+        break;
+    }
     case genie::TriggerEffect::UseAdvancedButtons:
-        // UI toggle — no-op
         DBG << "UseAdvancedButtons (no-op):" << effect;
         break;
     case genie::TriggerEffect::AIScriptGoal:
@@ -978,6 +1031,68 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
             DBG << "AIScriptGoal: set signal" << effect.aiGoal;
         }
         break;
+    case genie::TriggerEffect::LockGate: {
+        DBG << "LockGate:" << effect;
+        forEachMatchingUnit(effect, [](const Unit::Ptr &unit) {
+            Gate::Ptr gate = Gate::fromUnit(unit);
+            if (gate) {
+                gate->isLocked = true;
+                DBG << "Locked gate" << unit->debugName;
+            } else {
+                WARN << "LockGate: unit is not a gate" << unit->debugName;
+            }
+        });
+        break;
+    }
+    case genie::TriggerEffect::UnlockGate: {
+        DBG << "UnlockGate:" << effect;
+        forEachMatchingUnit(effect, [](const Unit::Ptr &unit) {
+            Gate::Ptr gate = Gate::fromUnit(unit);
+            if (gate) {
+                gate->isLocked = false;
+                DBG << "Unlocked gate" << unit->debugName;
+            } else {
+                WARN << "UnlockGate: unit is not a gate" << unit->debugName;
+            }
+        });
+        break;
+    }
+    case genie::TriggerEffect::HD_TeleportObject: {
+        MapPos targetPos(effect.location.y * Constants::TILE_SIZE, effect.location.x * Constants::TILE_SIZE);
+        DBG << "HD_TeleportObject to" << targetPos;
+        forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+            DBG << "Teleporting" << unit->debugName << "to" << targetPos;
+            unit->setPosition(targetPos);
+        });
+        break;
+    }
+    case genie::TriggerEffect::HD_ChangeUnitStance: {
+        Unit::Stance stance = Unit::Stance::Invalid;
+        switch(effect.amount) {
+        case 0:
+            stance = Unit::Stance::Aggressive;
+            break;
+        case 1:
+            stance = Unit::Stance::Defensive;
+            break;
+        case 2:
+            stance = Unit::Stance::StandGround;
+            break;
+        case 3:
+            stance = Unit::Stance::NoAttack;
+            break;
+        default:
+            WARN << "HD_ChangeUnitStance: invalid stance" << effect.amount;
+            break;
+        }
+        if (stance != Unit::Stance::Invalid) {
+            forEachMatchingUnit(effect, [&](const Unit::Ptr &unit) {
+                unit->stance = stance;
+                DBG << "Set stance of" << unit->debugName << "to" << stance;
+            });
+        }
+        break;
+    }
     default:
         WARN << "not implemented trigger effect" << effect;
         break;
@@ -1158,6 +1273,22 @@ void ScenarioController::onPlayerDefeated(Player *player)
         m_gameState->result = GameState::Result::Lost;
     } else {
         DBG << "Player" << player->playerId << "defeated";
+    }
+
+    // Scan triggers for PlayerDefeated conditions matching this player
+    for (Trigger &trigger : m_triggers) {
+        if (!trigger.enabled) {
+            continue;
+        }
+        for (Condition &condition : trigger.conditions) {
+            if (condition.data.type != genie::TriggerCondition::PlayerDefeated) {
+                continue;
+            }
+            if (condition.data.sourcePlayer == player->playerId) {
+                condition.amountRequired = 0;
+                DBG << "PlayerDefeated condition satisfied for player" << player->playerId;
+            }
+        }
     }
 }
 

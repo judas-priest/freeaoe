@@ -103,16 +103,16 @@ IAction::UpdateResult ActionAttack::update(Time time)
                                        unit->mapRect().contains(m_targetPosition);
 
     // Check if we are too far away
-    if (!overlaps && distance > unit->data()->Combat.MaxRange) {
-        if (!unit->data()->Speed) {
+    if (!overlaps && distance > unit->effectiveRange()) {
+        if (!unit->effectiveSpeed()) {
             DBG << "this unit can't move...";
             return IAction::UpdateResult::Failed;
         }
-        DBG << unit->debugName << "is too far away" << distance << unit->data()->Combat.MaxRange;
+        DBG << unit->debugName << "is too far away" << distance << unit->effectiveRange();
 
         std::shared_ptr<ActionMove> moveAction = ActionMove::moveUnitTo(unit, targetUnit);
 
-        moveAction->maxDistance = unit->data()->Combat.MaxRange * Constants::TILE_SIZE;
+        moveAction->maxDistance = unit->effectiveRange() * Constants::TILE_SIZE;
         unit->actions.prependAction(moveAction);
 
         return IAction::UpdateResult::NotUpdated;
@@ -121,7 +121,7 @@ IAction::UpdateResult ActionAttack::update(Time time)
     // Check if we are too close
     const float minDistance = unit->data()->Combat.MinRange * Constants::TILE_SIZE;
     if (minDistance > 0.f && m_targetPosition.distance(unit->position()) < minDistance) {
-        if (!unit->data()->Speed) { // Too close, and the unit is stationary
+        if (!unit->effectiveSpeed()) { // Too close, and the unit is stationary
             DBG << "this unit can't move...";
             return IAction::UpdateResult::Failed;
         }
@@ -200,11 +200,19 @@ IAction::UpdateResult ActionAttack::update(Time time)
             elevMult = 0.75f;
         }
         // Sum damage from all attack classes, then apply minimum 1
+        // Apply per-unit stat overrides from trigger effects
         float totalDamage = 0;
         for (const genie::unit::AttackOrArmor &attack : unit->data()->Combat.Attacks) {
             for (const genie::unit::AttackOrArmor &armor : targetUnit->data()->Combat.Armours) {
                 if (attack.Class == armor.Class) {
-                    totalDamage += std::max(attack.Amount - armor.Amount, 0);
+                    int atkAmount = attack.Amount + unit->effectiveAttackBonus();
+                    int armAmount = armor.Amount;
+                    if (armor.Class == 4) { // melee armor class
+                        armAmount += targetUnit->effectiveMeleeArmor();
+                    } else if (armor.Class == 3) { // pierce armor class
+                        armAmount += targetUnit->effectivePiercingArmor();
+                    }
+                    totalDamage += std::max(atkAmount - armAmount, 0);
                 }
             }
         }

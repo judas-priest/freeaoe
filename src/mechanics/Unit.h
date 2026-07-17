@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 #include <deque>
 #include <functional>
 #include <iosfwd>
@@ -142,6 +143,24 @@ struct Unit : public Entity
         SpreadOut
     };
     static inline Formation s_formation = Formation::Line;
+
+    /// Per-unit stat overrides from trigger effects
+    struct StatOverrides {
+        int attackBonus = 0;       // added to base attack
+        int armorMelee = 0;       // added to melee armor (class 4)
+        int armorPiercing = 0;    // added to pierce armor (class 3)
+        float rangeBonus = 0.f;   // added to max range
+        float speedOverride = 0.f; // if > 0, overrides base speed
+    } statOverrides;
+
+    std::string nameOverride; // trigger-set name
+
+    /// Effective stat accessors that apply overrides on top of base data
+    int effectiveAttackBonus() const noexcept { return statOverrides.attackBonus; }
+    int effectiveMeleeArmor() const noexcept { return statOverrides.armorMelee; }
+    int effectivePiercingArmor() const noexcept { return statOverrides.armorPiercing; }
+    float effectiveRange() const noexcept;
+    float effectiveSpeed() const noexcept;
 
     UnitActionHandler actions;
     std::vector<Annex> annexes;

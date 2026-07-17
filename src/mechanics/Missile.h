@@ -66,6 +66,7 @@ private:
     Time m_previousSmokeTime = 0.f;
     BlastType m_blastType = DamageTargetOnly;
     std::vector<genie::unit::AttackOrArmor> m_attacks;
+    int m_attackBonus = 0; // per-unit attack override from trigger effects
 
     float m_blastRadius = 0.f;
 

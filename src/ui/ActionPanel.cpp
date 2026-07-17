@@ -481,6 +481,30 @@ void ActionPanel::updateButtons()
     if (unit->data()->InterfaceKind == genie::Unit::SoldiersInterface) {
         addMilitaryButtons(unit);
     }
+
+    // Building-specific buttons: Ungarrison and Town Bell
+    if (unit->data()->Type >= genie::Unit::BuildingType) {
+        Building::Ptr building = Building::fromUnit(unit);
+        if (building) {
+            // Ungarrison button if building has garrisoned units
+            if (!building->garrisonedUnits.empty()) {
+                InterfaceButton ungarrisonBtn;
+                ungarrisonBtn.action = Command::Ungarrison;
+                ungarrisonBtn.index = 5;
+                ungarrisonBtn.interfacePage = 0;
+                currentButtons.push_back(ungarrisonBtn);
+            }
+
+            // Town Bell / Abort Town Bell for Town Centers (ID 109)
+            if (unit->data()->ID == Unit::TownCenter) {
+                InterfaceButton bellBtn;
+                bellBtn.action = m_bellActive ? Command::AbortTownBell : Command::RingTownBell;
+                bellBtn.index = 6;
+                bellBtn.interfacePage = 0;
+                currentButtons.push_back(bellBtn);
+            }
+        }
+    }
 }
 
 void ActionPanel::addCreateButtons(const std::shared_ptr<Unit> &unit)

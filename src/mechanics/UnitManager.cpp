@@ -1171,7 +1171,9 @@ void UnitManager::enqueueResearch(const genie::Tech *techData, const UnitVector 
         return;
     }
 
-    producer->enqueueProduceResearch(techData);
+    Player::Ptr owner = producer->player().lock();
+    int techIdx = owner ? owner->civilization.techIndex(techData) : -1;
+    producer->enqueueProduceResearch(techData, techIdx);
 }
 
 Unit::Ptr UnitManager::unitAt(const ScreenPos &pos, const CameraPtr &camera, const PlayerAlignment alignment) const

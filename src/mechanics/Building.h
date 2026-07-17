@@ -35,7 +35,7 @@ struct Building : public Unit
     static std::shared_ptr<Building> fromUnit(const std::weak_ptr<Unit> &unit) noexcept;
 
     bool enqueueProduceUnit(const genie::Unit *data) noexcept;
-    bool enqueueProduceResearch(const genie::Tech *data) noexcept;
+    bool enqueueProduceResearch(const genie::Tech *data, int techIndex = -1) noexcept;
     void abortProduction(size_t index) noexcept;
     size_t productionQueueLength() const noexcept { return m_productionQueue.size() + (m_currentProduct != nullptr ? 1 : 0); }
 
@@ -70,6 +70,7 @@ private:
         } type;
 
         ResourceMap cost;
+        int techIndex = -1; // index into global Techs vector
 
         union {
             const genie::Unit *unit = nullptr;

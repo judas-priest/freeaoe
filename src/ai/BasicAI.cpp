@@ -360,7 +360,7 @@ void BasicAI::researchLoom()
 
         const genie::Tech &loom = m_player->civilization.tech(loomId);
         if (loom.ResearchTime > 0) {
-            building->enqueueProduceResearch(&loom);
+            building->enqueueProduceResearch(&loom, loomId);
         }
         return;
     }
@@ -388,7 +388,7 @@ void BasicAI::advanceAge()
             if (m_player->canAffordResearch(techId)) {
                 const genie::Tech &tech = m_player->civilization.tech(techId);
                 if (tech.ResearchTime > 0) { // valid tech
-                    building->enqueueProduceResearch(&tech);
+                    building->enqueueProduceResearch(&tech, techId);
                     return;
                 }
             }
@@ -1209,7 +1209,7 @@ void BasicAI::researchTechs()
             auto building = Building::fromUnit(unit);
             if (!building || building->isProducing() || building->isResearching()) continue;
 
-            building->enqueueProduceResearch(&tech);
+            building->enqueueProduceResearch(&tech, techId);
             return; // One research at a time
         }
     }

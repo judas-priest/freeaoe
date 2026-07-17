@@ -373,7 +373,7 @@ void ai::Actions::Research::execute(ai::AiRule *rule)
             continue;
         }
         ::Building *building = static_cast<::Building*>(unit);
-        building->enqueueProduceResearch(tech);
+        building->enqueueProduceResearch(tech, m_researchId);
         return;
     }
     WARN << "Failed to find a location to produce";

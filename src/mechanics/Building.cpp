@@ -141,7 +141,7 @@ bool Building::enqueueProduceUnit(const genie::Unit *data) noexcept
     return true;
 }
 
-bool Building::enqueueProduceResearch(const genie::Tech *data) noexcept
+bool Building::enqueueProduceResearch(const genie::Tech *data, int techIndex) noexcept
 {
     if (!data) {
         WARN << "trying to enqueue null unit";
@@ -157,6 +157,7 @@ bool Building::enqueueProduceResearch(const genie::Tech *data) noexcept
     std::unique_ptr<Product> product = std::make_unique<Product>();
     product->type = Product::Research;
     product->tech = data;
+    product->techIndex = techIndex;
 
     for (const genie::Resource<int16_t, int8_t> &cost : data->ResourceCosts) {
         if (!cost.Paid) {
@@ -491,8 +492,12 @@ void Building::finalizeResearch() noexcept
         WARN << "building owner went away";
         return;
     }
-    owner->applyResearch(m_currentProduct->tech->EffectID);
-
+    if (m_currentProduct->techIndex >= 0) {
+        owner->applyResearch(m_currentProduct->techIndex);
+    } else {
+        // Fallback: apply effect directly
+        owner->applyTechEffect(m_currentProduct->tech->EffectID);
+    }
 }
 
 void Building::attemptStartProduction() noexcept

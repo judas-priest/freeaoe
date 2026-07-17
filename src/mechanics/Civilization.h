@@ -31,6 +31,13 @@ public:
     const genie::Tech &tech(const uint16_t id) const;
     const std::unordered_map<uint16_t, genie::Tech> &availableTechs() const { return m_techs; }
 
+    int techIndex(const genie::Tech *tech) const {
+        for (const auto &[idx, t] : m_techs) {
+            if (&t == tech) return idx;
+        }
+        return -1;
+    }
+
     const std::vector<const genie::Unit *> &swappableUnits(const uint16_t taskSwapGroup) const;
 
     const ResourceMap &startingResources() const { return m_startingResources; }

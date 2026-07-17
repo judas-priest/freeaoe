@@ -741,12 +741,12 @@ void GameState::setupScenario()
     // Apply team bonuses to allied players
     for (const Player::Ptr &player : m_players) {
         if (player->playerId == 0) continue; // skip gaia
-        const genie::Civ &civData = DataManager::Inst().civilization(player->civilization.id());
-        if (civData.TeamBonusID < 0) continue;
+        const int16_t bonusId = player->civilization.teamBonusId();
+        if (bonusId < 0) continue;
         for (Player::Ptr &ally : m_players) {
             if (ally->playerId == 0) continue;
             if (!ally->isAllied(player->playerId)) continue;
-            ally->applyTechEffect(civData.TeamBonusID);
+            ally->applyTechEffect(bonusId);
         }
     }
 
@@ -952,12 +952,12 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount,
     // Apply team bonuses to allied players
     for (const Player::Ptr &player : m_players) {
         if (player->playerId == 0) continue; // skip gaia
-        const genie::Civ &civData = DataManager::Inst().civilization(player->civilization.id());
-        if (civData.TeamBonusID < 0) continue;
+        const int16_t bonusId = player->civilization.teamBonusId();
+        if (bonusId < 0) continue;
         for (Player::Ptr &ally : m_players) {
             if (ally->playerId == 0) continue;
             if (!ally->isAllied(player->playerId)) continue;
-            ally->applyTechEffect(civData.TeamBonusID);
+            ally->applyTechEffect(bonusId);
         }
     }
 

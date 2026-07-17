@@ -375,7 +375,11 @@ bool BasicAI::isMilitaryUnit(int unitId) const
         4, 24, 7, 6, 39,                   // archery
         448, 546, 38, 283, 569, 329,       // stable
         280, 279, 35, 550, 422,            // siege
-        125                                 // monk
+        125,                                // monk
+        21, 442, 539,                       // galley line
+        529, 532,                           // fire ship line
+        527, 528,                           // demolition ship line
+        420, 691                            // cannon galleon line
     };
     for (int id : ids) {
         if (unitId == id) return true;
@@ -697,6 +701,50 @@ void BasicAI::buildStructureWithCost(int buildingId, int woodCost, int stoneCost
                 }
                 return;
             }
+        }
+    }
+}
+
+bool BasicAI::isWaterMap() const
+{
+    // A map is considered a water map if there are 3+ fish units (ocean, deep sea, or shore)
+    int fishCount = 0;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->isDead()) continue;
+        int cls = unit->data()->Class;
+        if (cls == genie::Unit::OceanFish || cls == genie::Unit::DeepSeaFish ||
+            cls == genie::Unit::ShoreFish) {
+            fishCount++;
+            if (fishCount >= 3) return true;
+        }
+    }
+    return false;
+}
+
+void BasicAI::buildNaval()
+{
+    if (!isWaterMap()) return;
+
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float gold = m_player->resourcesAvailable(genie::ResourceType::GoldStorage);
+
+    // Build Dock (ID 45, 150W) if none exists
+    if (countBuildingsOfType(45) == 0) {
+        if (wood >= 150) {
+            buildStructure(45, 150);
+        }
+        return; // Wait until dock is built
+    }
+
+    // Train fishing ships (ID 13, 75W) up to 5
+    if (countUnitsOfType(13) < 5 && wood >= 75) {
+        trainFromBuilding(45, 13);
+    }
+
+    // In Castle Age, train war galleys (ID 21, 90W 30G) up to 5
+    if (m_player->currentAge() >= Player::CastleAge) {
+        if (countUnitsOfType(21) < 5 && wood >= 90 && gold >= 30) {
+            trainFromBuilding(45, 21);
         }
     }
 }

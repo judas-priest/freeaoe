@@ -25,6 +25,8 @@ private:
     void scoutMap();
     void defendAgainstThreats();
     void retreatInjuredUnits();
+    void garrisonVillagersUnderAttack();
+    void ungarrisonWhenSafe();
     void trainVillagers();
     void buildHouses();
     void assignIdleVillagers();

@@ -56,6 +56,8 @@ void BasicAI::update(Time time)
     scoutMap();
     defendAgainstThreats();
     retreatInjuredUnits();
+    garrisonVillagersUnderAttack();
+    ungarrisonWhenSafe();
     trainVillagers();
     buildHouses();
     buildDropOffSites();
@@ -582,6 +584,70 @@ void BasicAI::retreatInjuredUnits()
 
         // Send to TC
         unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, tcPos));
+    }
+}
+
+void BasicAI::garrisonVillagersUnderAttack()
+{
+    if (m_player->m_activeThreats.empty()) return;
+
+    // Find TC (building ID 109)
+    Unit::Ptr tc;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit && unit->playerId() == m_player->playerId && unit->data()->ID == 109) {
+            tc = unit;
+            break;
+        }
+    }
+    if (!tc) return;
+
+    // Check if any threat is within 15 tiles of TC
+    const float garrisonRadius = 15.f * Constants::TILE_SIZE;
+    bool threatNearTC = false;
+    for (const ThreatInfo &threat : m_player->m_activeThreats) {
+        if (tc->position().distance(threat.location) < garrisonRadius) {
+            threatNearTC = true;
+            break;
+        }
+    }
+    if (!threatNearTC) return;
+
+    auto building = Building::fromUnit(tc);
+    if (!building) return;
+
+    // Garrison idle/gathering villagers within 15 tiles of TC
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 83 && unit->data()->ID != 293) continue; // Male/Female Villager
+        if (unit->garrisonedIn.lock()) continue; // Already garrisoned
+
+        float dist = unit->position().distance(tc->position());
+        if (dist > garrisonRadius) continue;
+
+        // Only garrison idle or gathering villagers (not builders)
+        const auto &action = unit->actions.currentAction();
+        if (action && action->type != IAction::Type::Gather) continue;
+
+        Task task = unit->actions.findTaskWithTarget(tc);
+        if (task.isValid()) {
+            IAction::assignTask(task, unit, IAction::AssignType::Replace);
+        }
+    }
+}
+
+void BasicAI::ungarrisonWhenSafe()
+{
+    if (!m_player->m_activeThreats.empty()) return;
+
+    // Ungarrison all TCs owned by this AI player
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 109) continue; // Town Center
+        auto building = Building::fromUnit(unit);
+        if (!building) continue;
+        if (building->garrisonedUnits.empty()) continue;
+
+        building->ungarrisonAll();
     }
 }
 

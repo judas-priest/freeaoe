@@ -502,6 +502,22 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
             break;
         }
 
+        case CommandType::Garrison: {
+            Unit::Ptr target = m_unitManager->unitById(static_cast<size_t>(cmd.targetId));
+            if (!target || !target->isAlive()) break;
+
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr unit = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (!unit || !unit->isAlive()) continue;
+
+                Task task = unit->actions.findAnyTask(genie::ActionType::Garrison, target->data()->ID);
+                if (!task.data) continue;
+                task.target = target;
+                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+            }
+            break;
+        }
+
         case CommandType::Ungarrison: {
             for (int unitId : cmd.unitIds) {
                 Unit::Ptr container = m_unitManager->unitById(static_cast<size_t>(unitId));

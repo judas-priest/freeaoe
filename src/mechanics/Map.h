@@ -140,6 +140,48 @@ public:
     }
 
     [[nodiscard]] MapPos snapPositionToGrid(const MapPos &position, const Size unitSize) noexcept; // how big is size? does it fit in a register, or should it be passed by reference? noone knows...
+
+    static bool isWaterTerrain(int terrainId) {
+        return terrainId == 1 || terrainId == 2 || terrainId == 3 ||
+               terrainId == 4 || terrainId == 22 || terrainId == 26;
+    }
+
+    bool isWaterTile(unsigned col, unsigned row) const {
+        if (!isValidTile(col, row)) return false;
+        return isWaterTerrain(getTileAt(col, row).terrainId);
+    }
+
+    bool isShoreTile(unsigned col, unsigned row) const {
+        if (!isWaterTile(col, row)) return false;
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                if (dx == 0 && dy == 0) continue;
+                unsigned nc = col + dx, nr = row + dy;
+                if (isValidTile(nc, nr) && !isWaterTile(nc, nr)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    MapPos nearestLandTile(const MapPos &waterPos) const {
+        int cx = static_cast<int>(waterPos.x) / Constants::TILE_SIZE;
+        int cy = static_cast<int>(waterPos.y) / Constants::TILE_SIZE;
+        for (int r = 1; r <= 5; ++r) {
+            for (int dx = -r; dx <= r; ++dx) {
+                for (int dy = -r; dy <= r; ++dy) {
+                    unsigned nc = cx + dx, nr = cy + dy;
+                    if (isValidTile(nc, nr) && !isWaterTile(nc, nr)) {
+                        return MapPos(nc * Constants::TILE_SIZE + Constants::TILE_SIZE / 2,
+                                      nr * Constants::TILE_SIZE + Constants::TILE_SIZE / 2, 0);
+                    }
+                }
+            }
+        }
+        return waterPos;
+    }
+
 private:
     void updateTileBlend(int tileX, int tileY) noexcept;
     void updateTileSlopes(int tileX, int tileY) noexcept;

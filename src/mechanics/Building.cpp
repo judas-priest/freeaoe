@@ -104,15 +104,59 @@ bool Building::enqueueProduceUnit(const genie::Unit *data) noexcept
         return false;
     }
 
+    if (productionQueueLength() >= 5) {
+        DBG << "Production queue full";
+        return false;
+    }
+
     Player::Ptr owner = player().lock();
     if (!owner) {
         WARN << "building owner went away";
         return false;
     }
 
-    if (!owner->canAffordUnit(data->ID)) { // also checks housing TODO: make this more obvious
+    if (!owner->canAffordUnit(data->ID)) {
         DBG << "Can't afford" << data->Name;
         return false;
+    }
+
+    // Population headroom check: account for pop already committed in queue
+    float unitPop = 0.f;
+    for (const genie::Unit::ResourceStorage &res : data->ResourceStorages) {
+        if (genie::ResourceType(res.Type) == genie::ResourceType::PopulationHeadroom && res.Amount < 0) {
+            unitPop = -res.Amount;
+            break;
+        }
+    }
+    if (unitPop > 0.f) {
+        float popUsed = owner->resourcesUsed(genie::ResourceType::PopulationHeadroom);
+        float popCap = owner->resourcesAvailable(genie::ResourceType::PopulationHeadroom);
+
+        // Count pop already committed in production queue
+        float queuedPop = 0.f;
+        if (m_currentProduct && m_currentProduct->type == Product::Unit) {
+            for (const genie::Unit::ResourceStorage &res : m_currentProduct->unit->ResourceStorages) {
+                if (genie::ResourceType(res.Type) == genie::ResourceType::PopulationHeadroom && res.Amount < 0) {
+                    queuedPop += -res.Amount;
+                    break;
+                }
+            }
+        }
+        for (const auto &queued : m_productionQueue) {
+            if (queued->type == Product::Unit) {
+                for (const genie::Unit::ResourceStorage &res : queued->unit->ResourceStorages) {
+                    if (genie::ResourceType(res.Type) == genie::ResourceType::PopulationHeadroom && res.Amount < 0) {
+                        queuedPop += -res.Amount;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (popUsed + queuedPop + unitPop > popCap) {
+            DBG << "Not enough population headroom for" << data->Name;
+            return false;
+        }
     }
 
     DBG << debugName << "enqueueing production of unit" << data->Name;
@@ -145,6 +189,11 @@ bool Building::enqueueProduceResearch(const genie::Tech *data, int techIndex) no
 {
     if (!data) {
         WARN << "trying to enqueue null unit";
+        return false;
+    }
+
+    if (productionQueueLength() >= 5) {
+        DBG << "Production queue full";
         return false;
     }
 

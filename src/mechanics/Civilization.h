@@ -23,6 +23,7 @@ public:
     Civilization(const int civId);
 
     int id() const { return m_civId; }
+    int16_t teamBonusId() const noexcept { return m_teamBonusId; }
 
     const std::vector<const genie::Unit *> &creatableUnits(int16_t creator) const;
     const std::vector<const genie::Tech *> &researchAvailableAt(int16_t creator) const;
@@ -69,6 +70,7 @@ private:
     std::vector<std::vector<const genie::Unit*>> m_taskSwapUnits;
 
     const int m_civId;
+    int16_t m_teamBonusId = -1;
     const genie::Civ &m_data;
     std::vector<genie::Unit> m_unitsData;
 

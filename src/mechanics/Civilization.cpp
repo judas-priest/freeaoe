@@ -182,6 +182,8 @@ void Civilization::applyData(const genie::Civ &data)
         m_unitsData.resize(data.Units.size());
     }
 
+    m_teamBonusId = data.TeamBonusID;
+
     for (size_t i=0; i<data.Units.size(); i++) {
         if (data.Units[i].ID == -1) {
             continue;

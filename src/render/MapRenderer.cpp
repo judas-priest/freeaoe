@@ -192,7 +192,7 @@ void MapRenderer::updateTexture()
         return;
     }
 
-    if (!m_textureTarget || m_textureTarget->getSize() == renderTarget_->getSize()) {
+    if (!m_textureTarget || m_textureTarget->getSize() != renderTarget_->getSize()) {
         m_textureTarget = renderTarget_->createTextureTarget(renderTarget_->getSize());
     }
 

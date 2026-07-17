@@ -113,6 +113,7 @@ void SignalEmitter<Emitter>::disconnect(Signal sig, Receiver *receiver)
         ReceptacleVector &receptacles = d->connections[receptacleSig];
         for (typename ReceptacleVector::iterator it = receptacles.begin(); it != receptacles.end();) {
             if (it->targetObject != receiver) {
+                ++it;
                 continue;
             }
 

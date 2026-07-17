@@ -14,7 +14,8 @@ bool AiScript::update(const Time time)
 
     bool foundExpired = false;
     while (it != m_activeTimers.end()) {
-        if (it->time < time) {
+        if (it->time >= time) {
+            ++it;
             continue;
         }
         m_expiredTimers.insert(it->id);

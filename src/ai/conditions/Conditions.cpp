@@ -246,6 +246,7 @@ bool CanTrainOrBuildCondition::checkCanBuild(const AiPlayer *player) const
         if (!player->findUnitByTypeID(trainlocationId)) {
             continue;
         }
+        return true;
     }
     return false;
 

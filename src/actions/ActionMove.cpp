@@ -59,7 +59,7 @@ struct SimplePathPoint {
     int y = 0;
 
     bool operator==(const SimplePathPoint &other) const noexcept {
-        return x == other.x || y == other.y;
+        return x == other.x && y == other.y;
     }
 };
 
@@ -179,7 +179,7 @@ MapPos ActionMove::findClosestWalkableBorder(const MapPos &start, const MapPos &
                     continue;
                 }
 
-                if (otherUnit->distanceTo(otherUnit) < 0.1f) {// radius + otherUnit->clearanceSize().width) {
+                if (unit->distanceTo(otherUnit) < 0.1f) {// radius + otherUnit->clearanceSize().width) {
                     const Size targetSize = otherUnit->clearanceSize();
                     const float targetRadius = std::max(targetSize.width, targetSize.height);
                     clearanceLength = std::max(targetRadius + std::max(targetRadius, radius), clearanceLength);
@@ -847,7 +847,7 @@ std::vector<MapPos> ActionMove::findPath(MapPos start, MapPos end, int coarsenes
                 }
 
                 pathPoint.dx = dx;
-                pathPoint.dy = dx;
+                pathPoint.dy = dy;
 
                 const int diagCost = 3;
                 const int straightCost = 2;

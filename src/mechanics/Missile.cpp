@@ -45,7 +45,9 @@ Missile::Missile(const genie::Unit &data, const Unit::Ptr &sourceUnit, const Map
     setBlastType(Missile::BlastType(data.Combat.BlastAttackLevel), data.Combat.BlastWidth);
 
     DBG << "Firing at" << target;
-    DBG << "Target unit at" << targetUnit->position();
+    if (targetUnit) {
+        DBG << "Target unit at" << targetUnit->position();
+    }
 }
 
 Missile::~Missile()

@@ -154,8 +154,8 @@ void Map::create(const genie::ScnMap &mapDescription)
     DBG << "size:" << mapDescription.width << "x" << mapDescription.height;
     tiles_.clear();
 
-    rows_ = mapDescription.width;
-    cols_ = mapDescription.height;
+    cols_ = mapDescription.width;
+    rows_ = mapDescription.height;
 
     if (cols_ <= 0 || cols_ >= 46340) {
         throw std::out_of_range("Map width (" + std::to_string(cols_) + ") out of range");
@@ -171,11 +171,11 @@ void Map::create(const genie::ScnMap &mapDescription)
 
     for (size_t i = 0; i < tiles_.size(); i++) {
         const int col = i % cols_;
-        const int row = i / rows_;
+        const int row = i / cols_;
         genie::MapTile tile = mapDescription.tiles[i];
 
-        getTileAt(row, col).elevation = tile.elevation;
-        getTileAt(row, col).terrainId = tile.terrainID;
+        getTileAt(col, row).elevation = tile.elevation;
+        getTileAt(col, row).terrainId = tile.terrainID;
     }
 }
 
@@ -273,7 +273,7 @@ bool Map::updateTileAt(const int col, const int row, unsigned id) noexcept
     }
     for (int col_ = std::max(col - 1, 0); col_ < std::min(col + 2, cols_); col_++) {
         for (int row_ = std::max(row - 1, 0); row_ < std::min(row + 2, rows_); row_++) {
-            updateTileSlopes(col, row);
+            updateTileSlopes(col_, row_);
         }
     }
 

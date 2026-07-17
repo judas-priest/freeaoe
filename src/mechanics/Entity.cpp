@@ -150,7 +150,7 @@ DecayingEntity::DecayingEntity(const int graphicId, float decayTime, const Size 
 
 bool DecayingEntity::update(Time time) noexcept
 {
-    if (!shouldBeRemoved()) {
+    if (shouldBeRemoved()) {
         return false;
     }
 

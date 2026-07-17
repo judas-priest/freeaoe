@@ -116,9 +116,9 @@ struct Slope {
         case NorthWestEastUp:
             return "NorthWestEastUp";
         case NorthSouthWestUp:
-            return "NorthWestEastUp";
+            return "NorthSouthWestUp";
         case NorthSouthEastUp:
-            return "NorthWestEastUp";
+            return "NorthSouthEastUp";
         default:
             return "Unknown (" + std::to_string(int(direction)) + ")";
         }
@@ -226,7 +226,7 @@ struct Blend  {
 
     uint32_t bits = 0;
 
-    uint16_t terrainId;
+    uint16_t terrainId = 0;
     int8_t frame = 0;
     uint8_t blendMode = 0;
 };
@@ -248,7 +248,7 @@ struct MapTile
 
     int yOffset = 0;
 
-    uint32_t terrainId;
+    uint32_t terrainId = 0;
     std::vector<Blend> blends;
     TileSlopes slopes;
 
@@ -336,10 +336,10 @@ inline LogPrinter operator <<(LogPrinter os, const Slope &slope)
         os << "NorthWestEastUp";
         break;
     case Slope::NorthSouthWestUp:
-        os << "NorthWestEastUp";
+        os << "NorthSouthWestUp";
         break;
     case Slope::NorthSouthEastUp:
-        os << "NorthWestEastUp";
+        os << "NorthSouthEastUp";
         break;
     default:
         os << "Unknown (" << int(slope.direction);

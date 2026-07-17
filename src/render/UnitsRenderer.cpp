@@ -45,6 +45,7 @@ void UnitsRenderer::begin(const std::shared_ptr<IRenderTarget> &renderTarget)
             }
         }
     }
+    m_previousCameraPos = camera->targetPosition();
 }
 
 void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, const std::vector<std::shared_ptr<Entity>> &visible)

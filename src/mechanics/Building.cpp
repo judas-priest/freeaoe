@@ -449,13 +449,13 @@ bool Building::canPlace(const MapPos &position, const MapPtr &map, const genie::
     const int tileY = position.y / Constants::TILE_SIZE;
 
     const int valid1 = data->PlacementTerrain.first;
-    const int valid2 = data->PlacementTerrain.first;
+    const int valid2 = data->PlacementTerrain.second;
 
     const int width = std::max(static_cast<int>(std::ceil(data->ClearanceSize.x + data->Size.x)), 2);
     const int height = std::max(static_cast<int>(std::ceil(data->ClearanceSize.y + data->Size.y)), 2);
 
 
-    if (!map->isValidTile(tileX - width/2, tileY - width/2)) {
+    if (!map->isValidTile(tileX - width/2, tileY - height/2)) {
         return false;
     }
 

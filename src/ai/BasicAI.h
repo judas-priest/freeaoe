@@ -44,6 +44,8 @@ private:
     void buildHouses();
     void assignIdleVillagers();
     void buildDropOffSites();
+    void buildMill();
+    void buildFarms();
     void buildDefenses();
     void buildWalls();
     void researchLoom();

@@ -121,6 +121,8 @@ void BasicAI::update(Time time)
     trainVillagers();
     buildHouses();
     buildDropOffSites();
+    buildMill();
+    buildFarms();
     buildNaval();
     buildDefenses();
     buildWalls();
@@ -336,6 +338,61 @@ void BasicAI::buildDropOffSites()
     if (countBuildingsOfType(584) == 0 && wood >= 100) {
         buildStructure(584, 100);
     }
+}
+
+void BasicAI::buildMill()
+{
+    // Build a Mill (ID 68, 100 wood) if none exists and berry bushes are nearby
+    if (countBuildingsOfType(68) > 0) return;
+
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    if (wood < 100) return;
+
+    // Check if there are berry bushes (Gaia, ID 59) on the map
+    bool berriesFound = false;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->isDead()) continue;
+        if (unit->playerId() == 0 && unit->data()->ID == 59) {
+            berriesFound = true;
+            break;
+        }
+    }
+
+    if (berriesFound) {
+        buildStructure(68, 100);
+    }
+}
+
+void BasicAI::buildFarms()
+{
+    // Build Farms (ID 50, 60 wood) when villager count > 6 and farms < 40% of villagers
+    int villagerCount = countUnitsOfType(83) + countUnitsOfType(293);
+    if (villagerCount <= 6) return;
+
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    if (wood < 60) return;
+
+    int farmCount = countBuildingsOfType(50);
+    int desiredFarms = villagerCount * 40 / 100;
+
+    if (farmCount >= desiredFarms) return;
+
+    // Check if natural food sources are running low
+    int naturalFoodCount = 0;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->isDead()) continue;
+        if (unit->playerId() != 0) continue;
+        // Berry bushes (59), deer (65), shore fish (69)
+        int id = unit->data()->ID;
+        if (id == 59 || id == 65 || id == 69) {
+            naturalFoodCount++;
+        }
+    }
+
+    // Only build farms when natural food is scarce (< 3 sources)
+    if (naturalFoodCount >= 3) return;
+
+    buildStructure(50, 60);
 }
 
 void BasicAI::researchLoom()

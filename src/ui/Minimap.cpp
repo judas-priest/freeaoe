@@ -149,6 +149,25 @@ void Minimap::updateCamera()
     m_cameraRect.y = m_rect.y + cameraPos.y * scaleY + center.y - m_cameraRect.height / 2;
 }
 
+static Drawable::Color playerMinimapColor(int playerId)
+{
+    // Standard AoE2 player colors (1-indexed, 0 = gaia)
+    static const Drawable::Color colors[8] = {
+        Drawable::Color(0,   0,   255),  // player 1 -- blue
+        Drawable::Color(255, 0,   0),    // player 2 -- red
+        Drawable::Color(0,   255, 0),    // player 3 -- green
+        Drawable::Color(255, 255, 0),    // player 4 -- yellow
+        Drawable::Color(0,   255, 255),  // player 5 -- cyan
+        Drawable::Color(255, 0,   255),  // player 6 -- magenta
+        Drawable::Color(128, 128, 128),  // player 7 -- grey
+        Drawable::Color(255, 128, 0),    // player 8 -- orange
+    };
+    if (playerId >= 1 && playerId <= 8) {
+        return colors[playerId - 1];
+    }
+    return Drawable::Color(128, 192, 128); // gaia / fallback
+}
+
 Drawable::Color Minimap::unitColor(const std::shared_ptr<Unit> &unit)
 {
     if (m_unitManager->selected().contains(unit)) {
@@ -167,13 +186,30 @@ Drawable::Color Minimap::unitColor(const std::shared_ptr<Unit> &unit)
 
     case MinimapMode::Normal:
         if (isGaia) return Drawable::Color(128, 192, 128);
-        if (unit->data()->Class == genie::Unit::Civilian) {
-            return isHuman ? Drawable::Color(255, 220, 0) : Drawable::Color(200, 100, 0);
-        }
-        return isHuman ? Drawable::Blue : Drawable::Red;
+        return playerMinimapColor(unit->playerId());
 
     case MinimapMode::Economic:
-        if (isGaia) return Drawable::Color(128, 192, 128);
+        if (isGaia) {
+            // Gaia resources get distinct colors
+            const int cls = unit->data()->Class;
+            if (cls == genie::Unit::Tree || cls == genie::Unit::TreeStump) {
+                return Drawable::Color(0, 160, 0);     // trees -- green
+            }
+            if (unit->data()->MinimapColor == 1) {     // gold ore
+                return Drawable::Color(255, 215, 0);    // gold -- yellow
+            }
+            if (unit->data()->MinimapColor == 2) {     // stone ore
+                return Drawable::Color(180, 180, 180);  // stone -- grey
+            }
+            if (cls == genie::Unit::BerryBush) {
+                return Drawable::Color(220, 50, 50);    // berries -- red
+            }
+            if (cls == genie::Unit::Livestock || cls == genie::Unit::PreyAnimal ||
+                cls == genie::Unit::PredatorAnimal) {
+                return Drawable::Color(210, 180, 140);  // animals -- tan
+            }
+            return Drawable::Color(128, 192, 128);      // other gaia
+        }
         if (!isHuman) return Drawable::Red;
         // Own units: color by carried resource
         if (unit->resources[genie::ResourceType::WoodStorage]  > 0) return Drawable::Color(0, 192, 0);
@@ -187,6 +223,16 @@ Drawable::Color Minimap::unitColor(const std::shared_ptr<Unit> &unit)
     }
 }
 
+static const char *modeString(Minimap::MinimapMode mode)
+{
+    switch (mode) {
+    case Minimap::MinimapMode::Normal:     return "Normal";
+    case Minimap::MinimapMode::Economic:   return "Economic";
+    case Minimap::MinimapMode::Diplomatic: return "Diplomatic";
+    }
+    return "";
+}
+
 void Minimap::cycleMode()
 {
     switch (m_mode) {
@@ -195,6 +241,11 @@ void Minimap::cycleMode()
     case MinimapMode::Normal:     m_mode = MinimapMode::Diplomatic; break;
     }
     m_unitsUpdated = true;
+    m_terrainUpdated = true;
+
+    if (m_modeLabel) {
+        m_modeLabel->string = modeString(m_mode);
+    }
 }
 
 
@@ -203,6 +254,13 @@ bool Minimap::init()
     m_terrainTexture = m_renderTarget->createTextureTarget(m_rect.size());
     DBG << "creating texture target with size" << m_rect.size();
     m_terrainUpdated = true;
+
+    m_modeLabel = m_renderTarget->createText(Drawable::Text::Plain);
+    m_modeLabel->pointSize = 10;
+    m_modeLabel->color = Drawable::White;
+    m_modeLabel->outlineColor = Drawable::Black;
+    m_modeLabel->string = modeString(m_mode);
+
     return m_terrainTexture != nullptr;
 }
 
@@ -305,7 +363,27 @@ bool Minimap::update(Time /*time*/)
                 const MapTile &tile = m_map->getTileAt(col, row);
                 const genie::Terrain &terrain = DataManager::Inst().getTerrain(tile.terrainId);
                 const genie::Color &color = colors[terrain.Colors[0]];
-                if (visibility == VisibilityMap::Explored) {
+
+                // Economic mode terrain tints
+                const bool isWater = (tile.terrainId == 1 || tile.terrainId == 2 || tile.terrainId == 3 ||
+                                      tile.terrainId == 4 || tile.terrainId == 22 || tile.terrainId == 26);
+                const bool isFarm = (tile.terrainId == 7);
+
+                if (m_mode == MinimapMode::Economic && isWater) {
+                    // Brighter blue for water in economic mode
+                    if (visibility == VisibilityMap::Explored) {
+                        tileShape.fillColor = Drawable::Color(30, 60, 120);
+                    } else {
+                        tileShape.fillColor = Drawable::Color(60, 120, 240);
+                    }
+                } else if (m_mode == MinimapMode::Economic && isFarm) {
+                    // Yellow for farmland in economic mode
+                    if (visibility == VisibilityMap::Explored) {
+                        tileShape.fillColor = Drawable::Color(100, 100, 0);
+                    } else {
+                        tileShape.fillColor = Drawable::Color(200, 200, 0);
+                    }
+                } else if (visibility == VisibilityMap::Explored) {
                     tileShape.fillColor = Drawable::Color(color.r/2, color.g/2, color.b/2);
                 } else {
                     tileShape.fillColor = Drawable::Color(color.r, color.g, color.b);
@@ -368,7 +446,8 @@ bool Minimap::update(Time /*time*/)
                 continue;
             }
 
-            if (mode != genie::Unit::MinimapUnit && mode != genie::Unit::MinimapBuilding && mode != genie::Unit::MinimapLargeTerrain) {
+            if (mode != genie::Unit::MinimapUnit && mode != genie::Unit::MinimapBuilding &&
+                mode != genie::Unit::MinimapLargeTerrain && mode != genie::Unit::MinimapLargeTerrain2) {
                 DBG << "Unhandled minimap mode" << int(mode) << unit->data()->MinimapColor;
                 continue;
             }
@@ -390,7 +469,7 @@ bool Minimap::update(Time /*time*/)
                 diamondSprite.center = pos;
                 diamondSprite.radius = size;
                 m_unitsTexture->draw(diamondSprite);
-            } else if (mode == genie::Unit::MinimapLargeTerrain) {
+            } else if (mode == genie::Unit::MinimapLargeTerrain || mode == genie::Unit::MinimapLargeTerrain2) {
                 rectangleSprite.rect = ScreenRect(pos, Size(size, size));
                 const genie::Color &color = colors[unit->data()->MinimapColor];
                 rectangleSprite.fillColor = Drawable::Color(color.r, color.g, color.b);
@@ -407,6 +486,12 @@ void Minimap::draw()
 {
     m_renderTarget->draw(m_terrainTexture, m_rect.topLeft());
     m_renderTarget->draw(m_unitsTexture, m_rect.topLeft());
+
+    // Draw mode label above minimap
+    if (m_modeLabel) {
+        m_modeLabel->position = ScreenPos(m_rect.x + 2, m_rect.y - 14);
+        m_renderTarget->draw(m_modeLabel);
+    }
 
     if (m_rect.isEmpty()) {
         return;

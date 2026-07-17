@@ -65,5 +65,7 @@ private:
     Size m_windowSize;
 
     MinimapMode m_mode = MinimapMode::Diplomatic; // easiest, so sue me
+
+    Drawable::Text::Ptr m_modeLabel;
 };
 

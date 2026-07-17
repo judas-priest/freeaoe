@@ -46,12 +46,40 @@ int BasicAI::countBuildingsOfType(int buildingId) const
     return count;
 }
 
+void BasicAI::chooseStrategy()
+{
+    int roll = rand() % 100;
+    if (roll < 25) {
+        m_strategy = Strategy::Rush;
+    } else if (roll < 50) {
+        m_strategy = Strategy::Boom;
+    } else if (roll < 70) {
+        m_strategy = Strategy::Turtle;
+    } else {
+        m_strategy = Strategy::Balanced;
+    }
+
+    const char *name = "Balanced";
+    switch (m_strategy) {
+        case Strategy::Rush:     name = "Rush"; break;
+        case Strategy::Boom:     name = "Boom"; break;
+        case Strategy::Turtle:   name = "Turtle"; break;
+        case Strategy::Balanced: name = "Balanced"; break;
+    }
+    DBG << "AI player" << m_player->playerId << "chose strategy:" << name;
+}
+
 void BasicAI::update(Time time)
 {
     if (time - m_lastUpdate < static_cast<Time>(m_params.updateIntervalMs)) return;
     m_lastUpdate = time;
 
     if (!m_player || !m_player->alive) return;
+
+    if (!m_strategyChosen) {
+        chooseStrategy();
+        m_strategyChosen = true;
+    }
 
     scoutMap();
     defendAgainstThreats();
@@ -61,6 +89,7 @@ void BasicAI::update(Time time)
     trainVillagers();
     buildHouses();
     buildDropOffSites();
+    buildDefenses();
     assignIdleVillagers();
     researchLoom();
     advanceAge();
@@ -93,9 +122,20 @@ void BasicAI::scoutMap()
 
 void BasicAI::trainVillagers()
 {
-    // Train villagers up to 20, max 1 in queue at a time
+    // Train villagers up to cap, max 1 in queue at a time
     int villagerCount = countUnitsOfType(83);
-    if (villagerCount >= m_params.villagerCap) return;
+    int cap = m_params.villagerCap;
+
+    // Rush: cap villagers at 15 to focus on military
+    if (m_strategy == Strategy::Rush) {
+        cap = std::min(cap, 15);
+    }
+    // Boom: increase villager cap by 20 (up to 130) to maximize economy
+    else if (m_strategy == Strategy::Boom) {
+        cap = std::min(cap + 20, 130);
+    }
+
+    if (villagerCount >= cap) return;
 
     // Find TC that isn't already producing
     for (const Unit::Ptr &unit : m_unitManager->units()) {
@@ -302,7 +342,12 @@ void BasicAI::advanceAge()
         if (unit->data()->ID != 109) continue; // Town Center
         auto building = Building::fromUnit(unit);
         if (!building) continue;
-        if (building->isProducing() || building->isResearching()) continue;
+        // Boom: prioritize age advancement — advance even while producing villagers
+        if (m_strategy == Strategy::Boom) {
+            if (building->isResearching()) continue;
+        } else {
+            if (building->isProducing() || building->isResearching()) continue;
+        }
 
         for (int techId : ageTechs) {
             if (m_player->canAffordResearch(techId)) {
@@ -345,7 +390,12 @@ void BasicAI::attackWithArmy()
         if (unit->actions.currentAction()) continue;
         idleMilitary++;
     }
-    if (idleMilitary < m_params.attackThreshold) return;
+    // Rush: attack with fewer units (half threshold)
+    int threshold = m_params.attackThreshold;
+    if (m_strategy == Strategy::Rush) {
+        threshold = std::max(threshold / 2, 2);
+    }
+    if (idleMilitary < threshold) return;
 
     // Find enemy target — prefer TC, otherwise any enemy building/unit
     Unit::Ptr target;
@@ -389,19 +439,27 @@ void BasicAI::trainFromBuilding(int buildingId, int unitId)
 
 void BasicAI::trainMilitary()
 {
+    // Boom: no military until Castle Age — focus on economy
+    if (m_strategy == Strategy::Boom && m_player->currentAge() < Player::CastleAge) {
+        return;
+    }
+
     float food = m_player->resourcesAvailable(genie::ResourceType::FoodStorage);
     float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
     float gold = m_player->resourcesAvailable(genie::ResourceType::GoldStorage);
 
-    // Build barracks (12, 175W) if we don't have one
-    if (countBuildingsOfType(12) == 0) {
+    // Rush: build 2 barracks immediately
+    int targetBarracks = (m_strategy == Strategy::Rush) ? 2 : 1;
+    if (countBuildingsOfType(12) < targetBarracks) {
         if (wood >= 175) buildStructure(12, 175);
-        return;
+        if (countBuildingsOfType(12) == 0) return; // Need at least one before proceeding
     }
 
-    // Build archery range (87, 175W) after barracks
+    // Build archery range (87, 175W) after barracks (not for Rush in Dark/Feudal)
     if (countBuildingsOfType(87) == 0 && countBuildingsOfType(12) > 0) {
-        if (wood >= 175) buildStructure(87, 175);
+        if (m_strategy != Strategy::Rush || m_player->currentAge() >= Player::CastleAge) {
+            if (wood >= 175) buildStructure(87, 175);
+        }
     }
 
     // Build stable (101, 175W) in Castle Age
@@ -424,9 +482,22 @@ void BasicAI::trainMilitary()
     if (totalMilitary >= m_params.militaryCap) return;
 
     // Train from barracks: militia (74, 60F) or spearman (93, 35F 25W)
+    // Rush: train militia aggressively from all barracks
     if (food >= 60) {
-        int unitId = (countUnitsOfType(74) > countUnitsOfType(93)) ? 93 : 74;
-        trainFromBuilding(12, unitId);
+        if (m_strategy == Strategy::Rush) {
+            // Train militia from every barracks
+            for (const Unit::Ptr &unit : m_unitManager->units()) {
+                if (!unit || unit->playerId() != m_player->playerId) continue;
+                if (unit->data()->ID != 12) continue; // Barracks
+                auto building = Building::fromUnit(unit);
+                if (!building || building->isProducing()) continue;
+                const genie::Unit &data = m_player->civilization.unitData(74);
+                building->enqueueProduceUnit(&data);
+            }
+        } else {
+            int unitId = (countUnitsOfType(74) > countUnitsOfType(93)) ? 93 : 74;
+            trainFromBuilding(12, unitId);
+        }
     }
 
     // Train from archery range: archer (4, 25W 45G) or skirmisher (7, 25F 35W)
@@ -449,6 +520,114 @@ void BasicAI::trainMilitary()
     if (m_params.buildSiege && countBuildingsOfType(49) > 0 && wood >= 160 && gold >= 75) {
         if (countUnitsOfType(35) < 3) { // Max 3 rams
             trainFromBuilding(49, 35);
+        }
+    }
+}
+
+void BasicAI::buildDefenses()
+{
+    // Turtle: build Watch Towers and Palisade Walls near TC
+    // Balanced: build some defenses in Castle Age
+    bool shouldBuild = false;
+    if (m_strategy == Strategy::Turtle) {
+        shouldBuild = true;
+    } else if (m_strategy == Strategy::Balanced && m_player->currentAge() >= Player::CastleAge) {
+        shouldBuild = true;
+    }
+    if (!shouldBuild) return;
+
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float stone = m_player->resourcesAvailable(genie::ResourceType::StoneStorage);
+
+    // Build Watch Towers (ID 79, costs 125 stone + 25 wood) — up to 3
+    int towerCount = countBuildingsOfType(79);
+    int maxTowers = (m_strategy == Strategy::Turtle) ? 3 : 2;
+    if (towerCount < maxTowers && stone >= 125 && wood >= 25) {
+        buildStructureWithCost(79, 25, 125);
+        return; // One defense structure per update
+    }
+
+    // Build Palisade Walls (ID 72, costs 2 wood) — up to 20 segments
+    int wallCount = countBuildingsOfType(72);
+    int maxWalls = (m_strategy == Strategy::Turtle) ? 20 : 8;
+    if (wallCount < maxWalls && wood >= 2) {
+        buildStructureWithCost(72, 2, 0);
+    }
+}
+
+void BasicAI::buildStructureWithCost(int buildingId, int woodCost, int stoneCost)
+{
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float stone = m_player->resourcesAvailable(genie::ResourceType::StoneStorage);
+    if (wood < woodCost || stone < stoneCost) return;
+
+    // Find TC for reference position
+    MapPos tcPos;
+    bool foundTC = false;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit && unit->playerId() == m_player->playerId && unit->data()->ID == 109) {
+            tcPos = unit->position();
+            foundTC = true;
+            break;
+        }
+    }
+    if (!foundTC) return;
+
+    // Find valid placement — spiral outward from TC
+    for (int radius = 3; radius < 12; radius++) {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            float angle = attempt * M_PI / 4.0f + (rand() % 100) / 100.f;
+            float ox = cos(angle) * radius * Constants::TILE_SIZE;
+            float oy = sin(angle) * radius * Constants::TILE_SIZE;
+            MapPos buildPos(tcPos.x + ox, tcPos.y + oy);
+
+            // Check bounds
+            if (buildPos.x < Constants::TILE_SIZE * 5 || buildPos.y < Constants::TILE_SIZE * 5) continue;
+            if (buildPos.x >= m_unitManager->map()->pixelWidth() - Constants::TILE_SIZE * 5) continue;
+            if (buildPos.y >= m_unitManager->map()->pixelHeight() - Constants::TILE_SIZE * 5) continue;
+
+            // Check for existing buildings/units at this position
+            int tileX = buildPos.x / Constants::TILE_SIZE;
+            int tileY = buildPos.y / Constants::TILE_SIZE;
+            bool blocked = false;
+            for (int dy = -2; dy <= 2 && !blocked; dy++) {
+                for (int dx = -2; dx <= 2 && !blocked; dx++) {
+                    const auto &entities = m_unitManager->map()->entitiesAt(tileX + dx, tileY + dy);
+                    for (const auto &e : entities) {
+                        if (e.lock()) { blocked = true; break; }
+                    }
+                }
+            }
+            if (blocked) continue;
+
+            // Place building
+            auto owner = std::const_pointer_cast<Player>(
+                std::static_pointer_cast<const Player>(
+                    std::shared_ptr<Player>(m_player, [](Player*){})));
+
+            Unit::Ptr building = UnitFactory::createUnit(buildingId, owner, *m_unitManager);
+            if (building) {
+                building->setCreationProgress(0);
+                m_unitManager->add(building, buildPos);
+                m_player->setAvailableResource(genie::ResourceType::WoodStorage, wood - woodCost);
+                if (stoneCost > 0) {
+                    m_player->setAvailableResource(genie::ResourceType::StoneStorage, stone - stoneCost);
+                }
+                DBG << "AI built defense" << buildingId << "at" << buildPos.x << buildPos.y;
+
+                // Find idle villager to build it
+                for (const Unit::Ptr &vill : m_unitManager->units()) {
+                    if (!vill || vill->playerId() != m_player->playerId) continue;
+                    if (vill->data()->ID != 83 && vill->data()->ID != 293) continue;
+                    if (vill->actions.currentAction()) continue;
+                    Task buildTask = vill->actions.findTaskWithTarget(building);
+                    if (buildTask.isValid()) {
+                        IAction::assignTask(buildTask, vill, IAction::AssignType::Replace);
+                    }
+                    break;
+                }
+                return;
+            }
         }
     }
 }

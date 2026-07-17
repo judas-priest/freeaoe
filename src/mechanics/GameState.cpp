@@ -492,6 +492,74 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
             break;
         }
 
+        case CommandType::BuyResource: {
+            Player::Ptr owner = player(cmd.playerId);
+            if (!owner) break;
+            int resType = cmd.resourceType; // 0=Food, 1=Wood, 2=Stone
+            if (resType < 0 || resType > 2) break;
+
+            int buyPrice = owner->marketPrices.buyPrice(resType);
+            float goldAvailable = owner->resourcesAvailable(genie::ResourceType::GoldStorage);
+
+            if (goldAvailable >= buyPrice) {
+                owner->removeResource(genie::ResourceType::GoldStorage, buyPrice);
+                genie::ResourceType targetRes;
+                switch (resType) {
+                    case 0: targetRes = genie::ResourceType::FoodStorage; break;
+                    case 1: targetRes = genie::ResourceType::WoodStorage; break;
+                    default: targetRes = genie::ResourceType::StoneStorage; break;
+                }
+                owner->addResource(targetRes, 100);
+                owner->marketPrices.onBuy(resType);
+            }
+            break;
+        }
+
+        case CommandType::SellResource: {
+            Player::Ptr owner = player(cmd.playerId);
+            if (!owner) break;
+            int resType = cmd.resourceType;
+            if (resType < 0 || resType > 2) break;
+
+            genie::ResourceType sourceRes;
+            switch (resType) {
+                case 0: sourceRes = genie::ResourceType::FoodStorage; break;
+                case 1: sourceRes = genie::ResourceType::WoodStorage; break;
+                default: sourceRes = genie::ResourceType::StoneStorage; break;
+            }
+
+            float available = owner->resourcesAvailable(sourceRes);
+            if (available >= 100) {
+                owner->removeResource(sourceRes, 100);
+                int sellPrice = owner->marketPrices.sellPrice(resType);
+                owner->addResource(genie::ResourceType::GoldStorage, sellPrice);
+                owner->marketPrices.onSell(resType);
+            }
+            break;
+        }
+
+        case CommandType::Tribute: {
+            Player::Ptr sender = player(cmd.playerId);
+            Player::Ptr receiver = player(cmd.targetId);
+            if (!sender || !receiver) break;
+
+            genie::ResourceType resType;
+            switch (cmd.resourceType) {
+                case 0: resType = genie::ResourceType::FoodStorage; break;
+                case 1: resType = genie::ResourceType::WoodStorage; break;
+                case 2: resType = genie::ResourceType::StoneStorage; break;
+                default: resType = genie::ResourceType::GoldStorage; break;
+            }
+
+            float amount = static_cast<float>(cmd.amount);
+            if (sender->resourcesAvailable(resType) >= amount) {
+                sender->removeResource(resType, amount);
+                float received = amount * 0.75f; // 25% tribute tax
+                receiver->addResource(resType, received);
+            }
+            break;
+        }
+
         default:
             DBG << "executeCommands: unhandled command type" << static_cast<int>(cmd.type);
             break;

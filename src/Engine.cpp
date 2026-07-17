@@ -1922,7 +1922,14 @@ bool Engine::handleTouchEvent(const input::Event &event, const std::shared_ptr<G
         } else if (clickedButton == IconButton::Diplo) {
             if (m_diplomacyScreen) m_diplomacyScreen->show(state_manager_.getActiveState());
         } else if (clickedButton == IconButton::Chat) {
-            addMessage("Chat: not yet implemented");
+            if (!m_chat.active) {
+                m_chat.active = true;
+                m_chat.buffer.clear();
+                m_chat.target = -1;
+#ifdef USE_SDL2
+                SDL_StartTextInput();
+#endif
+            }
         } else if (clickedButton == IconButton::TechTree) {
             if (m_techTreeScreen) m_techTreeScreen->show(state_manager_.getActiveState());
         } else if (clickedButton == IconButton::Settings) {
@@ -2049,7 +2056,14 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
     } else if (clickedButton == IconButton::Diplo) {
         addMessage("Diplomacy: not yet implemented");
     } else if (clickedButton == IconButton::Chat) {
-        addMessage("Chat: not yet implemented");
+        if (!m_chat.active) {
+            m_chat.active = true;
+            m_chat.buffer.clear();
+            m_chat.target = -1;
+#ifdef USE_SDL2
+            SDL_StartTextInput();
+#endif
+        }
     } else if (clickedButton == IconButton::TechTree) {
         addMessage("Tech Tree: not yet implemented");
     } else if (clickedButton == IconButton::Settings) {
@@ -2567,20 +2581,48 @@ void Engine::onChatMessage(const int sourcePlayer, const int /*targetPlayer*/, c
 
     // Chat taunts (1-42): numeric message maps to taunt text
     static const char *s_taunts[42] = {
-        "Yes", "No", "I need food", "I need wood", "I need gold",
-        "I need stone", "Ahh!", "All hail, king of the losers!", "Ooh!",
-        "I'll beat you back to Age of Empires", "Nice town, I'll take it",
-        "Raiding party!", "Blame your isp", "Start the game already!",
-        "Don't point that thing at me!", "Enemy sighted!",
-        "It is good to be the king", "Monk! I need a monk!",
-        "Long time, no siege", "My granny could scrap better than that",
-        "Nice town, I'll take it", "Attack an enemy now",
-        "Cease creating extra villagers", "Create extra villagers",
-        "Build a navy", "Stop buying food", "Buy food",
-        "Stop buying wood", "Buy wood", "Stop buying gold", "Buy gold",
-        "Stop buying stone", "Buy stone", "Ally", "Enemy", "Neutral",
-        "What age are you in?", "What is your strategy?",
-        "How many resources?", "We are under attack!", "Flare!", "I resign"
+        /*  1 */ "Yes",
+        /*  2 */ "No",
+        /*  3 */ "Food please",
+        /*  4 */ "Wood please",
+        /*  5 */ "Gold please",
+        /*  6 */ "Stone please",
+        /*  7 */ "Ahh!",
+        /*  8 */ "All hail, king of the losers!",
+        /*  9 */ "Oooh!",
+        /* 10 */ "I'll beat you back to Age of Empires",
+        /* 11 */ "Hahahah!",
+        /* 12 */ "Ack! He rushed!",
+        /* 13 */ "Sure, blame it on your ISP",
+        /* 14 */ "Start the game already!",
+        /* 15 */ "Don't point that thing at me!",
+        /* 16 */ "Enemy sighted!",
+        /* 17 */ "It is good to be the king",
+        /* 18 */ "Monk! I need a monk!",
+        /* 19 */ "Long time, no siege",
+        /* 20 */ "My granny could scrap better than that",
+        /* 21 */ "Nice town, I'll take it",
+        /* 22 */ "Quit touching me!",
+        /* 23 */ "Raiding party!",
+        /* 24 */ "Dadgum",
+        /* 25 */ "Eh, smite me",
+        /* 26 */ "The wonder, the wonder, the... no!",
+        /* 27 */ "You played two hours to die like this?",
+        /* 28 */ "Yeah, well, you should see the other guy",
+        /* 29 */ "Rogan?",
+        /* 30 */ "Wololo",
+        /* 31 */ "Attack an enemy now!",
+        /* 32 */ "Cease creating extra villagers",
+        /* 33 */ "Create extra villagers",
+        /* 34 */ "Build a navy",
+        /* 35 */ "Stop building a navy",
+        /* 36 */ "Wait for my signal to attack",
+        /* 37 */ "Build a wonder",
+        /* 38 */ "Give me your extra resources",
+        /* 39 */ "(Ally sound)",
+        /* 40 */ "(Enemy sound)",
+        /* 41 */ "(Neutral sound)",
+        /* 42 */ "What age are you in?"
     };
 
     // Check if message is a number 1-42

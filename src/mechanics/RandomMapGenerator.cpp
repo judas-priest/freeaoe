@@ -69,6 +69,13 @@ void RandomMapGenerator::generateTerrain(const Settings &settings, const std::sh
                 // Mostly grass with some dirt patches
                 if (n > 0.6f) tile.terrainId = 6;  // Dirt1
                 if (n > 0.8f) tile.terrainId = 11; // Dirt3
+                // Occasional desert patches
+                {
+                    float desertNoise = noise(col * 0.03f + 100.f, row * 0.03f + 100.f);
+                    if (desertNoise > 0.75f && tile.terrainId == 0) {
+                        tile.terrainId = 14; // Desert
+                    }
+                }
                 break;
 
             case BlackForest:
@@ -103,8 +110,16 @@ void RandomMapGenerator::generateTerrain(const Settings &settings, const std::sh
                 break;
             }
 
-            // Elevation — flat (slopes cause black tile artifacts in filtermap rendering)
-            tile.elevation = 2;
+            // Gentle hills using low-frequency noise — values 1-3
+            float elevNoise = noise(col * 0.05f, row * 0.05f);
+            int elevation = 2; // Default flat
+            if (elevNoise > 0.6f) elevation = 3;
+            else if (elevNoise < 0.3f) elevation = 1;
+
+            // Water and beach stay at water level
+            if (tile.terrainId == 1 || tile.terrainId == 2) elevation = 0;
+
+            tile.elevation = std::clamp(elevation, 0, 7);
         }
     }
 }

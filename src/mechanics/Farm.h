@@ -56,6 +56,7 @@ private:
 
     int m_currentTerrain = -1;
     bool m_updated = true;
+    bool m_pendingReseed = false;
     FarmRender m_farmRenderer;
 };
 

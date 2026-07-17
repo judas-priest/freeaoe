@@ -55,16 +55,21 @@ bool Farm::update(Time time) noexcept
     // We really don't want the building update()
     bool updated = Unit::update(time); // NOLINT
 
-    if (util::floatsEquals(resources[genie::ResourceType::FoodStorage], 0)) {
+    if (util::floatsEquals(resources[genie::ResourceType::FoodStorage], 0) || m_pendingReseed) {
         // Auto-reseed: if player can afford, reset farm
+        // Fish traps (ID 199) cost 100 wood, farms cost 60
+        const float reseedCost = (data()->ID == 199) ? 100.f : 60.f;
         Player::Ptr owner = player().lock();
-        if (owner && owner->resourcesAvailable(genie::ResourceType::WoodStorage) >= 60) {
+        if (owner && owner->resourcesAvailable(genie::ResourceType::WoodStorage) >= reseedCost) {
             owner->setAvailableResource(genie::ResourceType::WoodStorage,
-                owner->resourcesAvailable(genie::ResourceType::WoodStorage) - 60);
+                owner->resourcesAvailable(genie::ResourceType::WoodStorage) - reseedCost);
             resources[genie::ResourceType::FoodStorage] = data()->ResourceStorages[0].Amount;
             setTerrain(FarmFinished);
+            m_pendingReseed = false;
             DBG << "Auto-reseeded farm";
-        } else {
+        } else if (!m_pendingReseed) {
+            // Can't afford now — queue for later
+            m_pendingReseed = true;
             setTerrain(FarmDead);
         }
     }

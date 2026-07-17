@@ -53,8 +53,12 @@ private:
     Drawable::Text::Ptr m_titleText;
     Drawable::Text::Ptr m_labelText;
 
-    static constexpr int MAP_TYPE_COUNT = 5;
-    static constexpr const char *MAP_TYPE_NAMES[] = {"Arabia", "Black Forest", "Islands", "Arena", "Nomad"};
+    static constexpr int MAP_TYPE_COUNT = 15;
+    static constexpr const char *MAP_TYPE_NAMES[] = {
+        "Arabia", "Black Forest", "Islands", "Arena", "Nomad",
+        "Coastal", "Rivers", "Baltic", "Mediterranean", "Highland",
+        "Gold Rush", "Fortress", "Oasis", "Mega Random", "Team Islands"
+    };
     static constexpr int MAP_SIZE_COUNT = 5;
     static constexpr int MAP_SIZES[] = {72, 100, 144, 200, 220};
     static constexpr const char *MAP_SIZE_NAMES[] = {"Tiny", "Small", "Medium", "Large", "Giant"};

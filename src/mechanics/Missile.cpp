@@ -322,6 +322,7 @@ bool Missile::update(Time time) noexcept
             }
         }
         totalDamage = std::max(totalDamage * damageMultiplier, 1.f);
+        hitUnit->m_lastAttackerPlayerId = playerId;
         hitUnit->takeDamage(totalDamage);
 
         // Report threat to AI player if target belongs to one

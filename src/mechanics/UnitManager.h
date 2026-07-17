@@ -230,6 +230,8 @@ public:
 
     int targetBlinkTimeLeft(int unitID) const noexcept;
 
+    std::shared_ptr<Player> player(int playerId) const;
+
     /// Multiplayer support
     void setMultiplayer(bool mp) { m_isMultiplayer = mp; }
     bool isMultiplayer() const { return m_isMultiplayer; }

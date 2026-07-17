@@ -247,6 +247,7 @@ IAction::UpdateResult ActionAttack::update(Time time)
             }
         }
         totalDamage = std::max(totalDamage * elevMult, 1.f);
+        targetUnit->m_lastAttackerPlayerId = unit->playerId();
         targetUnit->takeDamage(totalDamage);
 
         // Petard self-destruct: kill the unit after dealing melee damage

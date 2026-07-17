@@ -388,6 +388,18 @@ void Unit::kill() noexcept
         owner->unitsLost++;
     }
 
+    // Track score: attacker killed a unit/building
+    if (m_lastAttackerPlayerId >= 0) {
+        Player::Ptr attacker = m_unitManager.player(m_lastAttackerPlayerId);
+        if (attacker && attacker != owner) {
+            if (isBuilding()) {
+                attacker->buildingsRazed++;
+            } else {
+                attacker->unitsKilled++;
+            }
+        }
+    }
+
     m_renderer->setPlaySounds(true);
     m_renderer->setSprite(m_data->DyingGraphic);
 

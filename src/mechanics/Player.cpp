@@ -94,6 +94,7 @@ void Player::applyResearch(const int researchId)
     }
 
     m_researchedTechs.insert(researchId);
+    techsResearched++;
     int previousAge = static_cast<int>(m_resourcesAvailable[genie::ResourceType::CurrentAge]);
     applyTechEffect(DataManager::Inst().getTech(researchId).EffectID);
     int newAge = static_cast<int>(m_resourcesAvailable[genie::ResourceType::CurrentAge]);

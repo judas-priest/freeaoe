@@ -163,6 +163,14 @@ UnitManager::~UnitManager()
 {
 }
 
+std::shared_ptr<Player> UnitManager::player(int playerId) const
+{
+    if (playerId >= 0 && playerId < static_cast<int>(m_players.size())) {
+        return m_players[playerId].lock();
+    }
+    return nullptr;
+}
+
 void UnitManager::add(const Unit::Ptr &unit, const MapPos &position)
 {
     if (IS_UNLIKELY(!unit)) {

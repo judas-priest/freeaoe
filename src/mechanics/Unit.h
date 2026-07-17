@@ -158,6 +158,7 @@ struct Unit : public Entity
     } statOverrides;
 
     std::string nameOverride; // trigger-set name
+    int m_lastAttackerPlayerId = -1; // for kill/building raze tracking
 
     /// Effective stat accessors that apply overrides on top of base data
     int effectiveAttackBonus() const noexcept { return statOverrides.attackBonus; }

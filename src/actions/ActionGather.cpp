@@ -277,6 +277,7 @@ IAction::UpdateResult ActionDropOff::update(Time /*time*/)
 
     DBG << "dropping off" << unit->resources[m_resourceType] << "resource of type" << m_resourceType;
 
+    targetPlayer->totalResourcesGathered += unit->resources[m_resourceType];
     targetPlayer->addResource(m_resourceType, unit->resources[m_resourceType]);
     unit->resources[m_resourceType] = 0;
 

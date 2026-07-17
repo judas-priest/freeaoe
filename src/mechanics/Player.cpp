@@ -70,7 +70,12 @@ void Player::applyResearch(const int researchId)
     }
 
     m_researchedTechs.insert(researchId);
+    int previousAge = static_cast<int>(m_resourcesAvailable[genie::ResourceType::CurrentAge]);
     applyTechEffect(DataManager::Inst().getTech(researchId).EffectID);
+    int newAge = static_cast<int>(m_resourcesAvailable[genie::ResourceType::CurrentAge]);
+    if (newAge != previousAge) {
+        setAge(static_cast<Age>(newAge));
+    }
 
     // Apply all implicit research
     for (const genie::Tech &research : DataManager::Inst().allTechs()) {

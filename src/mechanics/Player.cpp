@@ -49,6 +49,11 @@ Player::Player(const int id, const int civId, const std::shared_ptr<Map> &map, c
         if (civData.TechTreeID >= 0) {
             applyTechEffect(civData.TechTreeID);
         }
+
+        DBG << "Player" << id << "civ" << civilization.name()
+            << "TechTreeID=" << civData.TechTreeID
+            << "TeamBonusID=" << civData.TeamBonusID
+            << "available techs=" << civilization.availableTechs().size();
     }
 }
 

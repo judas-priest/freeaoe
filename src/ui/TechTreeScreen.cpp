@@ -2,10 +2,8 @@
 
 #include "mechanics/GameState.h"
 #include "mechanics/Player.h"
-#include "resource/DataManager.h"
 #include "core/Logger.h"
 
-#include <genie/dat/DatFile.h>
 #include <genie/dat/Research.h>
 
 #include <algorithm>
@@ -42,11 +40,10 @@ void TechTreeScreen::buildTechList()
     const Player::Ptr &human = m_state->humanPlayer();
     if (!human) return;
 
-    // Get all researches from data file
-    const std::vector<genie::Tech> &allTechs = DataManager::Inst().allTechs();
+    // Get civ-specific techs (only those not disabled by TechTreeID)
+    const auto &civTechs = human->civilization.availableTechs();
 
-    for (size_t i = 0; i < allTechs.size(); i++) {
-        const genie::Tech &tech = allTechs[i];
+    for (const auto &[techId, tech] : civTechs) {
         if (tech.Name.empty() || tech.Name[0] == '\0') continue;
         if (tech.ResearchTime < 0) continue; // not a real research
 
@@ -68,8 +65,8 @@ void TechTreeScreen::buildTechList()
             else entry.age = 1;
         }
 
-        entry.available = human->researchAvailable(i);
-        entry.researched = false; // TODO: track completed researches per player
+        entry.available = human->researchAvailable(techId);
+        entry.researched = human->hasResearched(techId);
 
         m_techs.push_back(std::move(entry));
     }
@@ -103,7 +100,11 @@ void TechTreeScreen::render()
         Drawable::Transparent, Drawable::Color(100, 80, 40, 255));
 
     // Title
-    m_titleText->string = "Technology Tree";
+    if (m_state && m_state->humanPlayer()) {
+        m_titleText->string = "Technology Tree - " + m_state->humanPlayer()->civilization.name();
+    } else {
+        m_titleText->string = "Technology Tree";
+    }
     m_titleText->position = ScreenPos(panelX + 15, panelY + 10);
     m_renderTarget->draw(m_titleText);
 

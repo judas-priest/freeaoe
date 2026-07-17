@@ -146,6 +146,8 @@ struct Unit : public Entity
     UnitActionHandler actions;
     std::vector<Annex> annexes;
     std::weak_ptr<Building> garrisonedIn;
+    std::weak_ptr<Unit> garrisonedInUnit; // For non-building garrison (transport ships, rams)
+    std::vector<std::weak_ptr<Unit>> garrisonedUnits; // Units garrisoned inside this unit
     ResourceMap resources;
     int activeMissiles = 0;
     Time lastAttackTime = 0;
@@ -259,6 +261,11 @@ struct Unit : public Entity
 
     /// Is neither dead nor dying (showing the death animation)
     bool isAlive() const noexcept { return !isDying() && !isDead(); }
+
+    /// Garrison support for non-building units (transport ships, rams)
+    bool ungarrisonUnit(const std::shared_ptr<Unit> &unit);
+    void ungarrisonAllUnits();
+    bool isGarrisoned() const noexcept { return garrisonedIn.lock() != nullptr || garrisonedInUnit.lock() != nullptr; }
 
 
     ////////////////////////////////

@@ -67,7 +67,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
         if (entity->isUnit()) {
             Unit::Ptr unit = Unit::fromEntity(entity);
 
-            if (unit->garrisonedIn.lock() != nullptr) {
+            if (unit->isGarrisoned()) {
                 continue;
             }
 

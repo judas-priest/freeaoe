@@ -505,6 +505,17 @@ void ActionPanel::updateButtons()
             }
         }
     }
+
+    // Non-building units with garrison capacity (transport ships, rams)
+    if (unit->data()->Type < genie::Unit::BuildingType && unit->data()->GarrisonCapacity > 0) {
+        if (!unit->garrisonedUnits.empty()) {
+            InterfaceButton disembarkBtn;
+            disembarkBtn.action = Command::Disembark;
+            disembarkBtn.index = 5;
+            disembarkBtn.interfacePage = 0;
+            currentButtons.push_back(disembarkBtn);
+        }
+    }
 }
 
 void ActionPanel::addCreateButtons(const std::shared_ptr<Unit> &unit)
@@ -884,11 +895,13 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
             break;
         }
         case Command::Ungarrison: {
-            // Eject all garrisoned units from selected buildings
+            // Eject all garrisoned units from selected buildings/units
             for (const Unit::Ptr &unit : m_selectedUnits) {
                 auto building = std::dynamic_pointer_cast<Building>(unit);
                 if (building) {
                     building->ungarrisonAll();
+                } else {
+                    unit->ungarrisonAllUnits();
                 }
             }
             break;
@@ -899,6 +912,8 @@ void ActionPanel::handleButtonClick(const ActionPanel::InterfaceButton &button)
                 auto building = std::dynamic_pointer_cast<Building>(unit);
                 if (building) {
                     building->ungarrisonAll();
+                } else {
+                    unit->ungarrisonAllUnits();
                 }
             }
             break;

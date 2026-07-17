@@ -15,7 +15,9 @@ public:
     UpdateResult update(Time time) override;
 
 private:
-    std::weak_ptr<Building> m_target;
+    std::weak_ptr<Building> m_buildingTarget;
+    std::weak_ptr<Unit> m_unitTarget; // For non-building garrison (transport ships, rams)
+    bool m_isUnitTarget = false;
 };
 
 

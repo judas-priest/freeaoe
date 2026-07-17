@@ -1144,7 +1144,7 @@ void BasicAI::garrisonVillagersUnderAttack()
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
         if (unit->data()->ID != 83 && unit->data()->ID != 293) continue; // Male/Female Villager
-        if (unit->garrisonedIn.lock()) continue; // Already garrisoned
+        if (unit->isGarrisoned()) continue; // Already garrisoned
 
         float dist = unit->position().distance(tc->position());
         if (dist > garrisonRadius) continue;

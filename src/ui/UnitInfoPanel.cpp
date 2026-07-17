@@ -191,6 +191,13 @@ bool UnitInfoPanel::handleEvent(input::Event event)
         }
     }
 
+    // Non-building unit garrison (transport ships, rams)
+    if (singleUnit && !singleUnit->garrisonedUnits.empty()) {
+        if (singleUnit->ungarrisonUnit(clickedUnit)) {
+            return true;
+        }
+    }
+
     std::shared_ptr<UnitManager> unitManager = m_unitManager.lock();
     unitManager->setSelectedUnits({clickedUnit});
 
@@ -312,12 +319,18 @@ void UnitInfoPanel::drawSingleUnit()
     pos.y += size.height + 5;
 
     // Render garrisoned and garrison capacity
-    if (unit->isBuilding() && unit->data()->GarrisonCapacity) {
-        Building::Ptr building = Building::fromUnit(unit);
+    if (unit->data()->GarrisonCapacity) {
+        size_t garrisonCount = 0;
+        if (unit->isBuilding()) {
+            Building::Ptr building = Building::fromUnit(unit);
+            if (building) garrisonCount = building->garrisonedUnits.size();
+        } else {
+            garrisonCount = unit->garrisonedUnits.size();
+        }
         StatItem &item = m_statItems[StatItem::GarrisonCapacity];
         m_renderTarget->draw(item.icon, ScreenPos(pos));
         item.text->position = ScreenPos(rightX, pos.y);
-        item.text->string = std::to_string(building->garrisonedUnits.size()) + '/' + std::to_string(unit->data()->GarrisonCapacity);
+        item.text->string = std::to_string(garrisonCount) + '/' + std::to_string(unit->data()->GarrisonCapacity);
         m_renderTarget->draw(item.text);
         pos.y += item.icon->size.height + 5;
     }
@@ -423,37 +436,46 @@ void UnitInfoPanel::drawSingleUnit()
 
     // Render player name and civ, only if building is not producing and don't have any units garrisoned
     Building::Ptr building = Building::fromUnit(unit);
-    if (!building || (!building->isProducing() && building->garrisonedUnits.empty())) {
-        std::shared_ptr<Player> player = unit->player().lock();
-        if (!player) {
-            WARN << "Unit missing player";
+    bool hasGarrisonedUnits = false;
+    if (building) {
+        hasGarrisonedUnits = !building->garrisonedUnits.empty();
+    } else {
+        hasGarrisonedUnits = !unit->garrisonedUnits.empty();
+    }
+
+    if (!building || (!building->isProducing() && !hasGarrisonedUnits)) {
+        if (!hasGarrisonedUnits) {
+            std::shared_ptr<Player> player = unit->player().lock();
+            if (!player) {
+                WARN << "Unit missing player";
+                return;
+            }
+
+            m_civilizationName->string = player->civilization.name();
+            m_playerName->string = player->name;
+
+            m_civilizationName->position = (rect().center() - ScreenPos(0, m_civilizationName->size().height + m_playerName->size().height + 10));
+            m_playerName->position = (rect().center() - ScreenPos(0, m_playerName->size().height));
+
+            m_renderTarget->draw(m_civilizationName);
+            m_renderTarget->draw(m_playerName);
+
             return;
         }
-
-        m_civilizationName->string = player->civilization.name();
-        m_playerName->string = player->name;
-
-        m_civilizationName->position = (rect().center() - ScreenPos(0, m_civilizationName->size().height + m_playerName->size().height + 10));
-        m_playerName->position = (rect().center() - ScreenPos(0, m_playerName->size().height));
-
-        m_renderTarget->draw(m_civilizationName);
-        m_renderTarget->draw(m_playerName);
-
-
-        return;
     }
 
     // Draw production and production queue
-    if (building->isProducing()) {
+    if (building && building->isProducing()) {
         drawConstructionInfo(building);
     }
 
-    // Render garrisoned units
+    // Render garrisoned units (from building or unit)
     UnitSet garrisoned;
-    for (const std::weak_ptr<Unit> &garrisonedWeak : building->garrisonedUnits) {
+    const auto &garrisonList = building ? building->garrisonedUnits : unit->garrisonedUnits;
+    for (const std::weak_ptr<Unit> &garrisonedWeak : garrisonList) {
         Unit::Ptr garrisonedUnit = garrisonedWeak.lock();
         if (!garrisonedUnit) {
-            WARN << "Expired unit garrisoned in" << building->debugName;
+            WARN << "Expired unit garrisoned in" << unit->debugName;
             continue;
         }
         garrisoned.add(garrisonedUnit);

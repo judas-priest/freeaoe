@@ -417,6 +417,38 @@ bool Unit::isDead() const noexcept
     return true;
 }
 
+bool Unit::ungarrisonUnit(const std::shared_ptr<Unit> &unit)
+{
+    for (auto it = garrisonedUnits.begin(); it != garrisonedUnits.end(); ) {
+        Unit::Ptr garrisoned = it->lock();
+        if (!garrisoned) {
+            WARN << "dead unit in garrison list";
+            it = garrisonedUnits.erase(it);
+            continue;
+        }
+
+        if (garrisoned == unit) {
+            unit->garrisonedInUnit.reset();
+            it = garrisonedUnits.erase(it);
+            return true;
+        }
+        ++it;
+    }
+
+    return false;
+}
+
+void Unit::ungarrisonAllUnits()
+{
+    for (auto &weakUnit : garrisonedUnits) {
+        Unit::Ptr unit = weakUnit.lock();
+        if (unit) {
+            unit->garrisonedInUnit.reset();
+        }
+    }
+    garrisonedUnits.clear();
+}
+
 Size Unit::selectionSize() const noexcept
 {
     return Size(data()->OutlineSize.x * Constants::TILE_SIZE, data()->OutlineSize.y * Constants::TILE_SIZE);

@@ -911,9 +911,9 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
     case genie::TriggerEffect::Unload: {
         DBG << "Unloading/ungarrisoning" << effect;
         forEachMatchingUnit(effect, [this](const Unit::Ptr &unit) {
+            // Try building garrison first
             Building::Ptr building = Building::fromUnit(unit);
-            if (building) {
-                // Ungarrison all units at the building's position
+            if (building && !building->garrisonedUnits.empty()) {
                 for (auto &weak : building->garrisonedUnits) {
                     Unit::Ptr garrisoned = weak.lock();
                     if (garrisoned) {
@@ -921,9 +921,24 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
                         exitPos.x += Constants::TILE_SIZE;
                         m_gameState->unitManager()->moveUnitTo(garrisoned, exitPos);
                         garrisoned->isVisible = true;
+                        garrisoned->garrisonedIn.reset();
                     }
                 }
                 building->garrisonedUnits.clear();
+            }
+            // Also handle non-building garrison (transport ships, rams)
+            if (!unit->garrisonedUnits.empty()) {
+                for (auto &weak : unit->garrisonedUnits) {
+                    Unit::Ptr garrisoned = weak.lock();
+                    if (garrisoned) {
+                        MapPos exitPos = unit->position();
+                        exitPos.x += Constants::TILE_SIZE;
+                        m_gameState->unitManager()->moveUnitTo(garrisoned, exitPos);
+                        garrisoned->isVisible = true;
+                        garrisoned->garrisonedInUnit.reset();
+                    }
+                }
+                unit->garrisonedUnits.clear();
             }
         });
         break;

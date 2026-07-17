@@ -1,6 +1,7 @@
 #include "AiPlayer.h"
 #include "BasicAI.h"
 
+#include "core/Constants.h"
 #include "resource/DataManager.h"
 
 void AiPlayer::setDifficulty(ai::DifficultyLevel level)
@@ -98,4 +99,36 @@ void AiPlayer::onChatMessage(const int sourcePlayer, const int targetPlayer, con
     if (targetPlayer != playerId) {
         return;
     }
+}
+
+void AiPlayer::reportThreat(const MapPos &pos, int attackerPlayerId, Time time)
+{
+    // Merge with existing threat if within 8 tiles distance
+    const float mergeDistance = 8.f * Constants::TILE_SIZE;
+    for (ThreatInfo &threat : m_activeThreats) {
+        if (threat.attackerPlayerId == attackerPlayerId &&
+            pos.distance(threat.location) < mergeDistance) {
+            threat.location = pos;
+            threat.lastSeen = time;
+            threat.severity++;
+            return;
+        }
+    }
+
+    // Add new threat
+    ThreatInfo info;
+    info.location = pos;
+    info.lastSeen = time;
+    info.attackerPlayerId = attackerPlayerId;
+    info.severity = 1;
+    m_activeThreats.push_back(info);
+}
+
+void AiPlayer::clearStaleThreats(Time time)
+{
+    // Remove threats older than 30 seconds (30000 ms)
+    m_activeThreats.erase(
+        std::remove_if(m_activeThreats.begin(), m_activeThreats.end(),
+            [time](const ThreatInfo &t) { return (time - t.lastSeen) > 30000; }),
+        m_activeThreats.end());
 }

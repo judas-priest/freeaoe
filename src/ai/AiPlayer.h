@@ -1,13 +1,22 @@
 #pragma once
 
 #include "mechanics/Player.h"
+#include "core/Types.h"
 #include "gen/enums.h"
 #include "DifficultyParams.h"
 
 #include <memory>
+#include <vector>
 
 namespace ai { struct AiScript; }
 class BasicAI;
+
+struct ThreatInfo {
+    MapPos location;
+    Time lastSeen = 0;
+    int attackerPlayerId = 0;
+    int severity = 0;
+};
 
 struct AiPlayer : public Player
 {
@@ -48,5 +57,10 @@ struct AiPlayer : public Player
     bool canAffordResearchWithEscrow(const int researchId) const;
 
     void onChatMessage(const int sourcePlayer, const int targetPlayer, const std::string &message) override;
+
+    // Threat tracking for AI defensive reactions
+    std::vector<ThreatInfo> m_activeThreats;
+    void reportThreat(const MapPos &pos, int attackerPlayerId, Time time);
+    void clearStaleThreats(Time time);
 };
 

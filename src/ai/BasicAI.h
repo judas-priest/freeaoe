@@ -23,6 +23,8 @@ private:
     ai::DifficultyParams m_params;
 
     void scoutMap();
+    void defendAgainstThreats();
+    void retreatInjuredUnits();
     void trainVillagers();
     void buildHouses();
     void assignIdleVillagers();

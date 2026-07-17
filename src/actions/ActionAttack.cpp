@@ -1,6 +1,7 @@
 #include "ActionAttack.h"
 
 #include "ActionMove.h"
+#include "ai/AiPlayer.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
 #include "mechanics/Building.h"
@@ -195,6 +196,11 @@ IAction::UpdateResult ActionAttack::update(Time time)
         }
         totalDamage = std::max(totalDamage * elevMult, 1.f);
         targetUnit->takeDamage(totalDamage);
+
+        // Report threat to AI player if target belongs to one
+        if (auto targetPlayer = std::dynamic_pointer_cast<AiPlayer>(targetUnit->player().lock())) {
+            targetPlayer->reportThreat(targetUnit->position(), unit->playerId(), time);
+        }
     } else {
         WARN << "No target unit, and not firing missiles";
         return IAction::UpdateResult::Completed;

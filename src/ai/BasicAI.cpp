@@ -54,6 +54,8 @@ void BasicAI::update(Time time)
     if (!m_player || !m_player->alive) return;
 
     scoutMap();
+    defendAgainstThreats();
+    retreatInjuredUnits();
     trainVillagers();
     buildHouses();
     buildDropOffSites();
@@ -519,6 +521,67 @@ void BasicAI::buildStructure(int buildingId, int woodCost)
                 return;
             }
         }
+    }
+}
+
+void BasicAI::defendAgainstThreats()
+{
+    m_player->clearStaleThreats(m_lastUpdate);
+
+    if (m_player->m_activeThreats.empty()) return;
+
+    // Find the most severe threat
+    const ThreatInfo *worst = nullptr;
+    for (const ThreatInfo &threat : m_player->m_activeThreats) {
+        if (!worst || threat.severity > worst->severity) {
+            worst = &threat;
+        }
+    }
+    if (!worst) return;
+
+    // Send up to 5 nearby idle military units (within 40 tiles) to defend
+    const float defendRadius = 40.f * Constants::TILE_SIZE;
+    int sent = 0;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (sent >= 5) break;
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (!isMilitaryUnit(unit->data()->ID)) continue;
+        if (unit->actions.currentAction()) continue; // Already busy
+
+        float dist = unit->position().distance(worst->location);
+        if (dist > defendRadius) continue;
+
+        unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, worst->location));
+        sent++;
+    }
+}
+
+void BasicAI::retreatInjuredUnits()
+{
+    // Find TC position for retreat destination
+    MapPos tcPos;
+    bool foundTC = false;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit && unit->playerId() == m_player->playerId && unit->data()->ID == 109) {
+            tcPos = unit->position();
+            foundTC = true;
+            break;
+        }
+    }
+    if (!foundTC) return;
+
+    // Retreat military units below 20% HP that are in combat
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (!isMilitaryUnit(unit->data()->ID)) continue;
+        if (unit->healthLeft() > 0.2f) continue; // Above 20% HP
+
+        // Check if unit is in combat (current action is Attack)
+        const auto &action = unit->actions.currentAction();
+        if (!action || action->type != IAction::Type::Attack) continue;
+
+        // Send to TC
+        unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, tcPos));
     }
 }
 

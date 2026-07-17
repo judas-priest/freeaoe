@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 
+#include "ai/AiPlayer.h"
 #include "audio/AudioPlayer.h"
 #include "resource/LanguageManager.h"
 #include "resource/AssetManager.h"
@@ -312,6 +313,11 @@ bool Missile::update(Time time) noexcept
         }
         totalDamage = std::max(totalDamage * damageMultiplier, 1.f);
         hitUnit->takeDamage(totalDamage);
+
+        // Report threat to AI player if target belongs to one
+        if (auto aiTarget = std::dynamic_pointer_cast<AiPlayer>(hitUnit->player().lock())) {
+            aiTarget->reportThreat(hitUnit->position(), playerId, time);
+        }
     }
 
 

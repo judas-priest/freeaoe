@@ -169,7 +169,13 @@ struct ResourceValue : public Condition
 
     bool satisfied(AiRule *owner) override
     {
-        m_isSatisfied = CompareCondition::actualCompare(int(m_targetValue), m_relOp, owner->m_owner->m_player->currentAge());
+        float currentValue;
+        if (m_type == genie::ResourceType::CurrentAge) {
+            currentValue = owner->m_owner->m_player->currentAge();
+        } else {
+            currentValue = owner->m_owner->m_player->resourcesAvailable(m_type);
+        }
+        m_isSatisfied = CompareCondition::actualCompare(int(m_targetValue), m_relOp, currentValue);
         return m_isSatisfied;
     }
 

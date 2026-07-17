@@ -32,6 +32,9 @@ void UnitsRenderer::begin(const std::shared_ptr<IRenderTarget> &renderTarget)
     CameraPtr camera = renderTarget->camera();
 
     std::shared_ptr<UnitManager> unitManager = m_unitManager.lock();
+    if (!unitManager) {
+        return;
+    }
     if (camera->targetPosition() != m_previousCameraPos) {
         for (const Unit::Ptr &unit : unitManager->units()) {
             unit->isVisible = false;

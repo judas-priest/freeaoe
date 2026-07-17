@@ -305,10 +305,8 @@ struct ScreenPos {
         return *this;
     }
 
-    inline ScreenPos &operator*(const double d) {
-        x *= d;
-        y *= d;
-        return *this;
+    inline ScreenPos operator*(const double d) const {
+        return ScreenPos(x * d, y * d);
     }
 
     float angleTo(const ScreenPos &other) const {

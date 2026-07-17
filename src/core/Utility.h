@@ -130,12 +130,16 @@ inline float hypot(const float a, const float b, const float c)
 
 inline bool floatsEquals(const float a, const float b)
 {
-    return (std::abs(a - b) * 100000.f <= std::min(std::abs(a), std::abs(b)));
+    const float diff = std::abs(a - b);
+    if (diff <= 1e-6f) return true;
+    return (diff * 100000.f <= std::min(std::abs(a), std::abs(b)));
 }
 
 inline bool floatsEquals(const double a, const double b)
 {
-    return (std::abs(a - b) * 1000000000000. <= std::min(std::abs(a), std::abs(b)));
+    const double diff = std::abs(a - b);
+    if (diff <= 1e-12) return true;
+    return (diff * 1000000000000. <= std::min(std::abs(a), std::abs(b)));
 }
 
 /// The escaping can be escaped if you really try to, so don't use with user input

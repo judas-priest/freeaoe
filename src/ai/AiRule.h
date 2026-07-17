@@ -17,6 +17,7 @@ struct AiRule : public SignalReceiver
     ~AiRule();
 
     AiScript *m_owner = nullptr;
+    bool m_disabled = false;
 
     void onConditionSatisfied();
 

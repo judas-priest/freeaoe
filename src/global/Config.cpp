@@ -507,8 +507,6 @@ bool Config::parseOption(const std::string &option)
 
     setValue(it->second.id, value);
 
-    emit(it->second.id);
-
     return true;
 }
 

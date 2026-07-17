@@ -71,7 +71,7 @@ struct List {
     inline Iterator removeAt(const Iterator &it) { assert(!isEmpty()); return contents.erase(it); }
 
     inline void removeAt(const int position) {
-        assert(position < size());
+        assert(position >= 0 && size_t(position) < size());
         contents.erase(begin() + position);
     }
 
@@ -81,16 +81,17 @@ struct List {
     }
 
     int count(const TYPE &item) const {
-        const ConstIterator it = contents.begin();
+        ConstIterator it = contents.begin();
         int num = 0;
         while ((it = std::find(it, contents.end(), item)) != contents.end()) {
             num++;
+            ++it;
         }
         return num;
     }
 
     bool removeAll(const TYPE &item) {
-        const Iterator it = std::find(contents.begin(), contents.end(), item);
+        Iterator it = std::find(contents.begin(), contents.end(), item);
         if (it == contents.end()) {
             return false;
         }
@@ -103,7 +104,7 @@ struct List {
     }
 
     bool removeIf(const std::function<bool(const TYPE &item)> &function) {
-        const Iterator it = contents.begin();
+        Iterator it = contents.begin();
         bool found = false;
         while (it != contents.end()) {
             if (function(*it)) {
@@ -117,17 +118,18 @@ struct List {
     }
 
     Iterator find(const std::function<bool(const TYPE &item)> &function) {
-        const Iterator it = contents.begin();
+        Iterator it = contents.begin();
         while (it != contents.end()) {
             if (function(*it)) {
                 return it;
             }
+            ++it;
         }
         return end();
     }
 
-    inline void takeAt(const int position) {
-        assert(position < size());
+    inline TYPE takeAt(const int position) {
+        assert(position >= 0 && size_t(position) < size());
         TYPE ret = std::move(contents[position]);
         contents.erase(begin() + position);
         return ret;
@@ -160,7 +162,7 @@ struct List {
     // Let it be used directly with shit that needs a std::vector
     List<TYPE>(const std::vector<TYPE> &other) : contents(other) {}
     List<TYPE>(const TYPE &val) { contents.push_back(val); }
-    inline const List<TYPE> &operator=(const std::vector<TYPE> &other) { contents = other; }
+    inline const List<TYPE> &operator=(const std::vector<TYPE> &other) { contents = other; return *this; }
     //inline operator const std::vector<TYPE> &() { return contents; }
 
     // and in case something needs access to this

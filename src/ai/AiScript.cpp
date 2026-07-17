@@ -3,6 +3,8 @@
 #include "AiPlayer.h"
 #include "AiRule.h"
 
+#include <algorithm>
+
 namespace ai
 {
 
@@ -30,11 +32,14 @@ bool AiScript::update(const Time time)
     // Evaluate all rules — check conditions and fire actions
     bool anyFired = false;
     for (const std::shared_ptr<AiRule> &rule : rules) {
-        if (rule) {
+        if (rule && !rule->m_disabled) {
             rule->onConditionSatisfied(); // checks all conditions, fires actions if all satisfied
             anyFired = true;
         }
     }
+
+    rules.erase(std::remove_if(rules.begin(), rules.end(),
+        [](const std::shared_ptr<AiRule> &r) { return !r || r->m_disabled; }), rules.end());
 
     return anyFired;
 }

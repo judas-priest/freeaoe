@@ -239,7 +239,7 @@ bool Missile::update(Time time) noexcept
 
         Unit::Ptr sourceUnit = m_sourceUnit.lock();
 
-        DBG << debugName << "from" << m_sourceUnit.lock()->debugName << "hit our target" << targetUnit->debugName;
+        DBG << debugName << "from" << (sourceUnit ? sourceUnit->debugName : "destroyed") << "hit our target" << targetUnit->debugName;
         DBG << minDistance << newPos.distance(targetUnit->position());
         DBG << targetUnit->position() << newPos;
 

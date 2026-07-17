@@ -52,7 +52,7 @@ bool Building::ungarrison(const std::shared_ptr<Unit> &unit)
 {
     std::vector<std::weak_ptr<Unit>>::iterator it = garrisonedUnits.begin();
     int index = 0;
-    for (; it != garrisonedUnits.end(); it++) {
+    for (; it != garrisonedUnits.end(); ) {
         Unit::Ptr garrisoned = it->lock();
         if (!garrisoned) {
             WARN << "we have dead garrisoned";
@@ -76,6 +76,7 @@ bool Building::ungarrison(const std::shared_ptr<Unit> &unit)
             return true;
         }
         index++;
+        it++;
     }
 
     return false;

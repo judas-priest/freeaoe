@@ -344,12 +344,12 @@ void Map::addEntityAt(int col, int row, const EntityPtr &entity, int foundationT
     bool gotError = false;
     for (int x = 0; x < width*2; x++) {
         for (int y = 0; y < height*2; y++) {
-            gotError = !updateTileAt(col + x - width, row + y - width, foundationTerrain) || gotError;
+            gotError = !updateTileAt(col + x - width, row + y - height, foundationTerrain) || gotError;
         }
     }
 
     if (gotError) {
-        WARN << "Unit" << entity->debugName << "size extends out of map from" << (col - width) << (row - width) << "to" << (col + width) << (row + width);
+        WARN << "Unit" << entity->debugName << "size extends out of map from" << (col - width) << (row - height) << "to" << (col + width) << (row + height);
     }
 
     for (int col_ = std::max(col - 1, 0); col_ < std::min(col + width + 2, cols_); col_++) {

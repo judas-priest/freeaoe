@@ -21,6 +21,7 @@
 #include <genie/dat/unit/AttackOrArmor.h>
 #include <genie/dat/unit/Combat.h>
 #include <genie/resource/SlpFile.h>
+#include <algorithm>
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
@@ -199,6 +200,7 @@ bool UnitInfoPanel::handleEvent(input::Event event)
     }
 
     std::shared_ptr<UnitManager> unitManager = m_unitManager.lock();
+    if (!unitManager) return false;
     unitManager->setSelectedUnits({clickedUnit});
 
     return true;
@@ -594,7 +596,9 @@ void UnitInfoPanel::drawConstructionInfo(const std::shared_ptr<Building> &buildi
 
     // To get the width of the progress bar
     pos.y += m_productionBottomText->size().height + 4;
-    const size_t currentProgressBar = m_progressBars.size() * building->productionProgress();
+    const size_t currentProgressBar = std::min(
+        static_cast<size_t>(m_progressBars.size() * building->productionProgress()),
+        m_progressBars.size() - 1);
     m_renderTarget->draw(m_progressBars[currentProgressBar], pos);
 //    DBG << building->productionProgress();
 

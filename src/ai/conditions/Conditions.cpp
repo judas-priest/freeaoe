@@ -18,6 +18,7 @@ namespace Conditions {
 
 ResourceValue::ResourceValue(const genie::ResourceType type, const RelOp comparison, const int targetValue, int playerId) :
     m_type(type),
+    m_targetValue(targetValue),
     m_relOp(comparison),
     m_playerId(playerId)
 {

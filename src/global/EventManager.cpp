@@ -55,7 +55,7 @@ void EventManager::unitSelected(Unit *unit)
 
 void EventManager::unitDeselected(const Unit *unit)
 {
-    call(UnitSelected, [=](EventListener *l) { l->onUnitDeselected(unit); });
+    call(UnitDeselected, [=](EventListener *l) { l->onUnitDeselected(unit); });
 }
 
 void EventManager::unitOwnerChanged(Unit *unit, int oldPlayerId, int newPlayerId)

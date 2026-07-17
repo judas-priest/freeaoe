@@ -92,12 +92,12 @@ namespace std {
 template<> struct hash<SpriteState>
 {
     size_t operator()(const SpriteState b) const noexcept {
-        return hash<uint32_t>()(b.frame) ^
-               hash<int>()(b.angle) ^
-               hash<uint8_t>()(b.playerColor) ^
-               hash<int>()(int(b.type)) ^
-               hash<bool>()(b.flipped);
-
+        size_t h = hash<uint32_t>()(b.frame);
+        h ^= hash<int>()(b.angle) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= hash<uint8_t>()(b.playerColor) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= hash<int>()(int(b.type)) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= hash<bool>()(b.flipped) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
     }
 };
 }

@@ -28,14 +28,7 @@ ai::Action::~Action()
 
 void ai::Actions::DisableSelf::execute(ai::AiRule *rule)
 {
-    // goddamn msvc and their slow standard support
-    rule->m_owner->rules.erase(std::remove_if(
-        rule->m_owner->rules.begin(),
-        rule->m_owner->rules.end(),
-        [=](const std::shared_ptr<AiRule> &containedRule) {
-            return containedRule.get() == rule;
-        }
-    ), rule->m_owner->rules.end());
+    rule->m_disabled = true;
 }
 
 ai::Actions::BuyCommodity::BuyCommodity(const Commodity commodity, const int amount) :
@@ -92,7 +85,8 @@ void ai::Actions::BuyCommodity::onTradingPriceChanged(const genie::ResourceType 
     m_tradingPrice = newPrice;
 }
 
-ai::Actions::SellCommodity::SellCommodity(const ai::Commodity commodity, const int amount)
+ai::Actions::SellCommodity::SellCommodity(const ai::Commodity commodity, const int amount) :
+    m_amount(amount)
 {
     if (amount % 100 != 0) {
         WARN << "Invalid amount to sell:" << amount;

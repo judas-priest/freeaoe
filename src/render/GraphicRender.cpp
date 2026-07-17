@@ -281,7 +281,7 @@ int GraphicRender::spriteId() const noexcept
     if (!m_sprite) {
         return -1;
     }
-    return m_sprite->frameCount();
+    return m_sprite->m_spriteId;
 }
 
 ScreenRect GraphicRender::rect() const noexcept

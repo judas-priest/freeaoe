@@ -387,7 +387,7 @@ void Player::setUnitGroup(Unit *unit, int group)
         }
     }
 
-    if (group >= m_units.size()) {
+    if (group >= m_unitGroups.size()) {
         m_unitGroups.resize(group + 1);
     }
     m_unitGroups[group].insert(unit);

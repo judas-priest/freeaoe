@@ -129,6 +129,7 @@ const genie::PalFile &AssetManager_HD::getPalette(uint32_t id)
         m_hdPalFiles[id]->load(filepath);
     } else {
         WARN << "Failed to find palette" << id;
+        m_hdPalFiles[id] = std::make_unique<genie::PalFile>();
     }
     return *m_hdPalFiles[id];
 }

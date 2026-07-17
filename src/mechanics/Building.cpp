@@ -361,9 +361,10 @@ bool Building::update(Time time) noexcept
 
     bool updated = Unit::update(time);
 
-    // Heal garrisoned units (TC/Tower: 0.1 HP/sec, Castle: 0.2 HP/sec)
+    // Heal garrisoned units (rate from data, fallback: TC/Tower 0.1 HP/sec, Castle 0.2 HP/sec)
     if (!garrisonedUnits.empty()) {
-        float healRate = (data()->ID == 82 /*Castle*/) ? 0.2f : 0.1f;
+        float healRate = data()->Building.GarrisonHealRate;
+        if (healRate <= 0.f) healRate = (data()->ID == 82 /*Castle*/) ? 0.2f : 0.1f;
         float healAmount = healRate * deltaTime / 1000.f;
         for (auto it = garrisonedUnits.begin(); it != garrisonedUnits.end(); ) {
             Unit::Ptr garrisoned = it->lock();
@@ -388,8 +389,9 @@ bool Building::update(Time time) noexcept
         if (relicCount > 0) {
             Player::Ptr owner = player().lock();
             if (owner) {
-                float goldPerMs = 0.5f * relicCount; // 0.5 gold/sec per relic
-                float gold = goldPerMs * deltaTime / 1000.f;
+                float goldPerSec = owner->resourcesAvailable(genie::ResourceType::TCRelicGoldProductionRate);
+                if (goldPerSec <= 0.f) goldPerSec = 0.5f; // fallback: 0.5 gold/sec per relic
+                float gold = goldPerSec * relicCount * deltaTime / 1000.f;
                 owner->setAvailableResource(genie::ResourceType::GoldStorage,
                     owner->resourcesAvailable(genie::ResourceType::GoldStorage) + gold);
                 owner->setAvailableResource(genie::ResourceType::RelicsCaptured, relicCount);

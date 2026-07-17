@@ -622,7 +622,11 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
             float amount = static_cast<float>(cmd.amount);
             if (sender->resourcesAvailable(resType) >= amount) {
                 sender->removeResource(resType, amount);
-                float received = amount * 0.75f; // 25% tribute tax
+                float taxRate = sender->resourcesAvailable(genie::ResourceType::TributeInefficiency);
+                if (taxRate < 0.f) taxRate = 0.f;
+                if (taxRate > 1.f) taxRate = 1.f;
+                if (taxRate == 0.f) taxRate = 0.25f; // fallback if dat didn't set it
+                float received = amount * (1.f - taxRate);
                 receiver->addResource(resType, received);
             }
             break;

@@ -54,6 +54,7 @@
 #include "debug/ISampleGame.h"
 #include "global/EventManager.h"
 #include "global/Config.h"
+#include "mechanics/Building.h"
 #include "mechanics/UnitManager.h"
 #include "mechanics/Player.h"
 #include "mechanics/Map.h"
@@ -473,6 +474,21 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
 
         case CommandType::Chat: {
             EventManager::sendChatMessage(cmd.playerId, cmd.targetId, cmd.message);
+            break;
+        }
+
+        case CommandType::Ungarrison: {
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr container = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (!container || !container->isAlive()) continue;
+
+                auto building = Building::fromUnit(container);
+                if (building) {
+                    building->ungarrisonAll();
+                } else {
+                    container->ungarrisonAllUnits();
+                }
+            }
             break;
         }
 

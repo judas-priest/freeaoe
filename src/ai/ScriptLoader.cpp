@@ -185,6 +185,16 @@ std::shared_ptr<Condition> ScriptLoader::createCondition(const Fact type, const 
 
 std::shared_ptr<Condition> ScriptLoader::createCondition(const Fact type, const PlayerNumberType playerNumber, const DiplomaticStance stance)
 {
+    switch(type) {
+    case Fact::PlayersStance:
+    case Fact::StanceToward:
+        // For now return true — full stance comparison would need runtime player resolution
+        DBG << "diplomacy condition" << type << "for player" << playerNumber << "stance" << stance;
+        return std::make_shared<Conditions::ConstantCondition>(true);
+    default:
+        break;
+    }
+
     WARN << "unimplemented condition" << type << playerNumber << stance;
     return nullptr;
 }
@@ -558,7 +568,13 @@ std::shared_ptr<Action> ScriptLoader::createAction(const ActionType type, const 
 
 std::shared_ptr<Action> ScriptLoader::createAction(const ActionType type, const PlayerNumberType playernumber, const DiplomaticStance stance)
 {
-    WARN << "unimplemented action" << type << playernumber << stance;
+    switch(type) {
+    case ActionType::SetStance:
+        return std::make_shared<Actions::SetDiplomaticStance>(playernumber, stance);
+    default:
+        WARN << "unimplemented action" << type << playernumber << stance;
+        break;
+    }
     return nullptr;
 }
 

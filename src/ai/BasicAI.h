@@ -27,6 +27,7 @@ private:
     AiPlayer *m_player;
     UnitManager *m_unitManager;
     Time m_lastUpdate = 0;
+    Time m_lastDiplomacyUpdate = 0;
     ai::DifficultyParams m_params;
 
     Strategy m_strategy = Strategy::Balanced;
@@ -49,6 +50,7 @@ private:
     void trainMilitary();
     void useMonksOffensively();
     void researchTechs();
+    void updateDiplomacy();
     void useMarket();
     void buildNaval();
     bool isWaterMap() const;

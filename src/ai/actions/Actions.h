@@ -165,6 +165,17 @@ private:
     int m_amount;
 };
 
+struct SetDiplomaticStance : public Action
+{
+    SetDiplomaticStance(const PlayerNumberType targetPlayer, const DiplomaticStance stance)
+        : m_targetPlayer(targetPlayer), m_stance(stance) {}
+    void execute(AiRule *rule) override;
+
+private:
+    const PlayerNumberType m_targetPlayer;
+    const DiplomaticStance m_stance;
+};
+
 } //namespace Actions
 
 } //namespace ai

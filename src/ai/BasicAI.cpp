@@ -16,6 +16,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <map>
 
 BasicAI::BasicAI(AiPlayer *player, UnitManager *unitManager)
     : m_player(player), m_unitManager(unitManager),
@@ -99,6 +100,7 @@ void BasicAI::update(Time time)
     trainMilitary();
     useMonksOffensively();
     attackWithArmy();
+    updateDiplomacy();
 }
 
 void BasicAI::scoutMap()
@@ -1052,5 +1054,43 @@ void BasicAI::researchTechs()
             building->enqueueProduceResearch(&tech);
             return; // One research at a time
         }
+    }
+}
+
+void BasicAI::updateDiplomacy()
+{
+    // Only evaluate every 60 seconds
+    if (m_lastUpdate - m_lastDiplomacyUpdate < 60000) return;
+    m_lastDiplomacyUpdate = m_lastUpdate;
+
+    // Count military strength of each player (by counting their military units)
+    // players[] in UnitManager is indexed 0..N, where 0 is Gaia
+    const int myId = m_player->playerId;
+
+    // Build a map of playerId -> military count
+    std::map<int, int> militaryStrength;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->isDead()) continue;
+        int pid = unit->playerId();
+        if (pid == 0 || pid == myId) continue; // skip Gaia and self
+        if (isMilitaryUnit(unit->data()->ID)) {
+            militaryStrength[pid]++;
+        }
+    }
+
+    // Count our own military for comparison
+    int myStrength = 0;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->isDead()) continue;
+        if (unit->playerId() != myId) continue;
+        if (isMilitaryUnit(unit->data()->ID)) {
+            myStrength++;
+        }
+    }
+
+    // Log the evaluation (don't change stances — that's controlled by .per scripts)
+    for (const auto &[pid, strength] : militaryStrength) {
+        DBG << "AI player" << myId << "diplomacy eval: player" << pid
+            << "has" << strength << "military (we have" << myStrength << ")";
     }
 }

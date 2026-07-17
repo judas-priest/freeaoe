@@ -424,3 +424,39 @@ void ai::Actions::CheatAddResource::execute(ai::AiRule *rule)
 {
     rule->m_owner->m_player->addResource(m_resourceType, m_amount);
 }
+
+void ai::Actions::SetDiplomaticStance::execute(ai::AiRule *rule)
+{
+    Player *player = rule->m_owner->m_player;
+
+    // Map AI stance enum to Player's DiplomaticStance enum
+    Player::DiplomaticStance newStance;
+    switch (m_stance) {
+    case ai::DiplomaticStance::Ally:
+        newStance = Player::Allied;
+        break;
+    case ai::DiplomaticStance::Neutral:
+        newStance = Player::Neutral;
+        break;
+    case ai::DiplomaticStance::Enemy:
+    default:
+        newStance = Player::Enemy;
+        break;
+    }
+
+    // Resolve target player number — for now only handle MyPlayerNumber (no-op)
+    // and concrete numbered players via the enum's int value
+    // PlayerNumberType is symbolic (AnyEnemy, AnyAlly, etc.), so we use int cast
+    // as a best-effort for concrete player numbers embedded in the parsed script.
+    int targetId = static_cast<int>(m_targetPlayer);
+
+    // Clamp to valid range (skip Gaia=0 and self)
+    if (targetId <= 0 || targetId == player->playerId) {
+        DBG << "SetDiplomaticStance: skipping invalid target" << targetId;
+        return;
+    }
+
+    DBG << "AI player" << player->playerId << "setting stance toward player"
+        << targetId << "to" << static_cast<int>(newStance);
+    player->setDiplomaticStance(targetId, newStance);
+}

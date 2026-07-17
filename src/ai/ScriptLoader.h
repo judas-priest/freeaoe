@@ -82,6 +82,8 @@ public:
 
     void addRule(const std::vector<std::shared_ptr<Condition>> &conditions, const std::vector<std::shared_ptr<Action>> &actions);
 
+    std::shared_ptr<AiScript> script() const { return m_script; }
+
 private:
     std::shared_ptr<AiScript> m_script;
 };

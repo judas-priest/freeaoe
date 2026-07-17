@@ -20,6 +20,7 @@
 #include "ai/AiPlayer.h"
 #include "ai/AiScript.h"
 #include "ai/BasicAI.h"
+#include "ai/ScriptLoader.h"
 #include "RandomMapGenerator.h"
 #ifdef ANDROID
 #include <android/log.h>
@@ -65,6 +66,8 @@
 #endif
 
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <render/GraphicRender.h>
 
 std::unordered_map<GameType, ResourceMap> GameState::defaultStartingResources = {
@@ -287,6 +290,11 @@ void GameState::setupScenario()
 
     const genie::ScnMainPlayerData &playersData = scenario_->playerData;
 
+    for (const auto &script : scenario_->includedFiles) {
+        if (script.content.empty()) continue;
+        ALOG("Scenario includes AI script: %s (%zu bytes)", script.filename.c_str(), script.content.size());
+    }
+
     int humanPlayerId = 1;
     for (size_t playerNum = 0; playerNum < scenario_->enabledPlayerCount + 1; playerNum++) { // +1 for gaia
         Player::Ptr player;
@@ -313,6 +321,24 @@ void GameState::setupScenario()
                 aiPlayer->setDifficulty(m_difficulty);
                 aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
                 aiPlayer->m_basicAI = std::make_shared<BasicAI>(aiPlayer.get(), m_unitManager.get());
+
+                if (realPlayerNum < static_cast<int>(playersData.aiFiles.size())) {
+                    const genie::AiFile &aiFile = playersData.aiFiles[realPlayerNum];
+                    if (!aiFile.perFile.empty()) {
+                        ALOG("Loading AI .per script for player %d (%zu bytes)", (int)playerNum, aiFile.perFile.size());
+                        ai::ScriptLoader loader(aiPlayer.get());
+                        std::istringstream scriptStream(aiFile.perFile);
+                        std::ostringstream debugOut;
+                        int parseResult = loader.parse(scriptStream, debugOut);
+                        if (parseResult == 0) {
+                            aiPlayer->m_aiScript = loader.script();
+                            ALOG("AI .per script loaded successfully for player %d, %zu rules", (int)playerNum, aiPlayer->m_aiScript->rules.size());
+                        } else {
+                            ALOG("AI .per script parse failed for player %d (result=%d)", (int)playerNum, parseResult);
+                        }
+                    }
+                }
+
                 player = aiPlayer;
                 m_aiPlayers.push_back(aiPlayer);
                 ALOG("Created AI player %d with BasicAI", (int)playerNum);
@@ -469,6 +495,31 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
         aiPlayer->setDifficulty(m_difficulty);
         aiPlayer->m_aiScript = std::make_shared<ai::AiScript>(aiPlayer.get());
         aiPlayer->m_basicAI = std::make_shared<BasicAI>(aiPlayer.get(), m_unitManager.get());
+
+        {
+            std::string aiPath = Config::Inst().getValue(Config::GamePath) + "/Ai/";
+            static const char *defaultScripts[] = {
+                "RandomGame.per", "randomgame.per",
+                "The Horde.per", "the horde.per",
+                nullptr
+            };
+            for (const char **name = defaultScripts; *name; ++name) {
+                std::string fullPath = aiPath + *name;
+                std::ifstream scriptFile(fullPath);
+                if (scriptFile.is_open()) {
+                    ALOG("Loading default AI script: %s", fullPath.c_str());
+                    ai::ScriptLoader loader(aiPlayer.get());
+                    std::ostringstream debugOut;
+                    int result = loader.parse(scriptFile, debugOut);
+                    if (result == 0) {
+                        aiPlayer->m_aiScript = loader.script();
+                        ALOG("Default AI script loaded, %zu rules", aiPlayer->m_aiScript->rules.size());
+                    }
+                    break;
+                }
+            }
+        }
+
         m_players.push_back(aiPlayer);
         m_aiPlayers.push_back(aiPlayer);
     }

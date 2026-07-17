@@ -593,44 +593,52 @@ bool BasicAI::isMilitaryUnit(int unitId) const
 
 void BasicAI::attackWithArmy()
 {
-    // Attack when we have 8+ idle military units
-    int idleMilitary = 0;
+    // Collect idle military units
+    std::vector<Unit::Ptr> idleArmy;
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (!unit || unit->playerId() != m_player->playerId) continue;
         if (!isMilitaryUnit(unit->data()->ID)) continue;
         if (unit->actions.currentAction()) continue;
-        idleMilitary++;
+        idleArmy.push_back(unit);
     }
     // Rush: attack with fewer units (half threshold)
     int threshold = m_params.attackThreshold;
     if (m_strategy == Strategy::Rush) {
         threshold = std::max(threshold / 2, 2);
     }
-    if (idleMilitary < threshold) return;
+    if (static_cast<int>(idleArmy.size()) < threshold) return;
 
-    // Find enemy target — prefer TC, otherwise any enemy building/unit
-    Unit::Ptr target;
+    // Find enemy targets — primary (TC) and secondary (any other building)
+    Unit::Ptr primaryTarget, secondaryTarget;
     for (const Unit::Ptr &enemy : m_unitManager->units()) {
         if (!enemy || enemy->playerId() == m_player->playerId || enemy->playerId() == 0) continue;
         if (enemy->isDead() || enemy->isDying()) continue;
-        if (enemy->data()->ID == 109) { target = enemy; break; } // Enemy TC — priority
-        if (!target) target = enemy;
+        if (enemy->data()->ID == 109 && !primaryTarget) { primaryTarget = enemy; continue; }
+        if (!secondaryTarget && enemy->isBuilding()) secondaryTarget = enemy;
+        if (!primaryTarget && !enemy->isBuilding()) primaryTarget = enemy;
     }
-    if (!target) return;
+    if (!primaryTarget) primaryTarget = secondaryTarget;
+    if (!primaryTarget) return;
 
-    // Send all idle military to attack
-    for (const Unit::Ptr &unit : m_unitManager->units()) {
-        if (!unit || unit->playerId() != m_player->playerId) continue;
-        if (!isMilitaryUnit(unit->data()->ID)) continue;
-        if (unit->actions.currentAction()) continue;
+    // Multi-prong: split army into 2 groups if we have enough units and a secondary target
+    const bool multiProng = secondaryTarget && primaryTarget != secondaryTarget
+                            && idleArmy.size() >= 12;
+    const size_t splitPoint = multiProng ? idleArmy.size() * 2 / 3 : idleArmy.size();
 
-        Task task = unit->actions.findTaskWithTarget(target);
-        if (task.isValid()) {
-            IAction::assignTask(task, unit, IAction::AssignType::Replace);
-        } else {
-            // Just move toward the enemy
-            unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, target->position()));
+    auto sendToTarget = [](const std::vector<Unit::Ptr> &units, size_t from, size_t to, const Unit::Ptr &target) {
+        for (size_t i = from; i < to; i++) {
+            Task task = units[i]->actions.findTaskWithTarget(target);
+            if (task.isValid()) {
+                IAction::assignTask(task, units[i], IAction::AssignType::Replace);
+            } else {
+                units[i]->actions.setCurrentAction(ActionMove::moveUnitTo(units[i], target->position()));
+            }
         }
+    };
+
+    sendToTarget(idleArmy, 0, splitPoint, primaryTarget);
+    if (multiProng) {
+        sendToTarget(idleArmy, splitPoint, idleArmy.size(), secondaryTarget);
     }
 }
 

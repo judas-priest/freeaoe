@@ -49,6 +49,7 @@
 #include <genie/dat/unit/Action.h>
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace genie {
@@ -735,9 +736,23 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
 
     // Calculate formation offsets
     int unitCount = 0;
+    MapPos groupCenter;
     for (const Unit::Ptr &u : m_selectedUnits) {
-        if (u->playerId() == humanPlayer->playerId) unitCount++;
+        if (u->playerId() == humanPlayer->playerId) {
+            unitCount++;
+            groupCenter.x += u->position().x;
+            groupCenter.y += u->position().y;
+        }
     }
+    if (unitCount > 0) {
+        groupCenter.x /= unitCount;
+        groupCenter.y /= unitCount;
+    }
+
+    // Angle from group center to destination — formations orient perpendicular to this
+    const float moveAngle = std::atan2(mapPos.y - groupCenter.y, mapPos.x - groupCenter.x);
+    const float cosA = std::cos(moveAngle);
+    const float sinA = std::sin(moveAngle);
 
     bool movedSomeone = false;
     int unitIndex = 0;
@@ -748,7 +763,7 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
             continue;
         }
 
-        // Calculate formation offset
+        // Calculate formation offset (unrotated: X = perpendicular, Y = along move direction)
         MapPos formationTarget = mapPos;
         if (unitCount > 1) {
             float offsetX = 0, offsetY = 0;
@@ -787,8 +802,12 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
                 break;
             }
             }
-            formationTarget.x += offsetX;
-            formationTarget.y += offsetY;
+            // Rotate offsets so the formation faces perpendicular to movement direction
+            // offsetX is the perpendicular component, offsetY is along the movement axis
+            float rotatedX = offsetX * (-sinA) + offsetY * cosA;
+            float rotatedY = offsetX * cosA + offsetY * sinA;
+            formationTarget.x += rotatedX;
+            formationTarget.y += rotatedY;
             formationTarget = formationTarget.clamped(m_map->pixelSize());
         }
 

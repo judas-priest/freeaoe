@@ -505,6 +505,7 @@ bool ScenarioController::update(Time time)
     checkWonderVictory(time);
     checkRelicVictory(time);
     checkRegicide(time);
+    checkConquestVictory(time);
 
     return updated;
 }
@@ -632,6 +633,68 @@ void ScenarioController::checkRegicide(Time /*time*/)
                 m_gameState->onPlayerWin(lastAlive);
             }
         }
+    }
+}
+
+void ScenarioController::checkConquestVictory(Time /*time*/)
+{
+    const auto &allPlayers = m_gameState->players();
+
+    for (size_t i = 1; i < allPlayers.size(); i++) {
+        if (m_defeatedPlayers.count(i)) {
+            continue;
+        }
+
+        const auto &player = allPlayers[i];
+        if (!player || !player->alive) {
+            continue;
+        }
+
+        bool hasAnything = false;
+        for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+            if (!unit || unit->playerId() != static_cast<int>(i)) {
+                continue;
+            }
+            if (unit->isDead() || unit->isDying()) {
+                continue;
+            }
+            hasAnything = true;
+            break;
+        }
+
+        if (!hasAnything) {
+            m_defeatedPlayers.insert(i);
+            player->alive = false;
+        }
+    }
+
+    auto human = m_gameState->humanPlayer();
+    if (!human || !human->alive) {
+        return;
+    }
+
+    int humanId = human->playerId;
+
+    bool allEnemiesDefeated = true;
+    for (size_t i = 1; i < allPlayers.size(); i++) {
+        if (static_cast<int>(i) == humanId) {
+            continue;
+        }
+        const auto &other = allPlayers[i];
+        if (!other) {
+            continue;
+        }
+        if (human->diplomaticStanceTo(i) == Player::DiplomaticStance::Allied) {
+            continue;
+        }
+        if (other->alive) {
+            allEnemiesDefeated = false;
+            break;
+        }
+    }
+
+    if (allEnemiesDefeated) {
+        m_gameState->onPlayerWin(humanId);
     }
 }
 

@@ -7,6 +7,7 @@
 #include <genie/script/scn/Trigger.h>
 
 #include <functional>
+#include <set>
 #include <unordered_set>
 
 class GameState;
@@ -112,6 +113,7 @@ public:
     static constexpr Time RELIC_VICTORY_TIME = 300000; // 5 min for testing
     void checkRelicVictory(Time time);
     void checkRegicide(Time time);
+    void checkConquestVictory(Time time);
 
 private:
     bool checkUnitMatchingEffect(const std::shared_ptr<Unit> &unit, const genie::TriggerEffect &effect);
@@ -131,6 +133,7 @@ private:
     std::vector<Trigger> m_triggers;
     std::vector<Objective> m_objectives;
     std::unordered_set<int> m_pendingAISignals;
+    std::set<int> m_defeatedPlayers;
     Time m_lastUpdateTime = 0;
 
     GameState *m_gameState = nullptr; // ugly raw pointer, but owned by gamestate, so sue me

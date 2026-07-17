@@ -49,6 +49,7 @@ Building::~Building()
 bool Building::ungarrison(const std::shared_ptr<Unit> &unit)
 {
     std::vector<std::weak_ptr<Unit>>::iterator it = garrisonedUnits.begin();
+    int index = 0;
     for (; it != garrisonedUnits.end(); it++) {
         Unit::Ptr garrisoned = it->lock();
         if (!garrisoned) {
@@ -58,12 +59,21 @@ bool Building::ungarrison(const std::shared_ptr<Unit> &unit)
         }
 
         if (garrisoned == unit) {
-            // TOOD: find a nice position to put the unit
-            // Works ish because the unit preserves the position it was at when getting garrisoned
             unit->garrisonedIn.reset();
             it = garrisonedUnits.erase(it);
+
+            // Place around building perimeter
+            int total = static_cast<int>(garrisonedUnits.size()) + 1;
+            float angle = (2.f * M_PI * index) / std::max(1, total);
+            float radius = std::max(tileSize().width, tileSize().height) * Constants::TILE_SIZE / 2.f + Constants::TILE_SIZE;
+            MapPos exitPos = position();
+            exitPos.x += std::cos(angle) * radius;
+            exitPos.y += std::sin(angle) * radius;
+            unit->setPosition(exitPos);
+
             return true;
         }
+        index++;
     }
 
     return false;
@@ -71,10 +81,19 @@ bool Building::ungarrison(const std::shared_ptr<Unit> &unit)
 
 void Building::ungarrisonAll()
 {
+    int count = static_cast<int>(garrisonedUnits.size());
+    float radius = std::max(tileSize().width, tileSize().height) * Constants::TILE_SIZE / 2.f + Constants::TILE_SIZE;
+    int i = 0;
     for (auto &weakUnit : garrisonedUnits) {
         Unit::Ptr unit = weakUnit.lock();
         if (unit) {
             unit->garrisonedIn.reset();
+            float angle = (2.f * M_PI * i) / std::max(1, count);
+            MapPos exitPos = position();
+            exitPos.x += std::cos(angle) * radius;
+            exitPos.y += std::sin(angle) * radius;
+            unit->setPosition(exitPos);
+            i++;
         }
     }
     garrisonedUnits.clear();

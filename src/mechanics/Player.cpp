@@ -212,8 +212,48 @@ void Player::setAge(const Age age)
         return;
     }
 
-    // TODO: need to recurse and research all dependencies
     applyTechEffect(civilization.startingResource(effectResourceType));
+
+    // Recursively apply all implicit techs whose dependencies are now satisfied
+    bool anyApplied = true;
+    while (anyApplied) {
+        anyApplied = false;
+        for (const genie::Tech &research : DataManager::Inst().allTechs()) {
+            if (research.ResearchLocation != -1) {
+                continue;
+            }
+            if (research.EffectID == -1) {
+                continue;
+            }
+            if (research.Civ != -1 && research.Civ != civilization.id()) {
+                continue;
+            }
+            if (m_activeTechs.count(research.EffectID)) {
+                continue;
+            }
+
+            bool requirementsSatisfied = false;
+            for (const int reqId : research.RequiredTechs) {
+                if (reqId == -1) {
+                    continue;
+                }
+                if (m_activeTechs.count(reqId)) {
+                    requirementsSatisfied = true;
+                } else {
+                    requirementsSatisfied = false;
+                    break;
+                }
+            }
+
+            if (!requirementsSatisfied) {
+                continue;
+            }
+
+            applyTechEffect(research.EffectID);
+            anyApplied = true;
+        }
+    }
+    updateAvailableTechs();
 }
 
 bool Player::canAffordResearch(const int researchId) const

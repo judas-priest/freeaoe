@@ -209,7 +209,7 @@ bool DiplomacyScreen::handleEvent(const input::Event &event)
 
         // Ally
         if (ScreenRect(btnX, rowY + 5, btnW, btnH).contains(pos)) {
-            humanPlayer->setDiplomaticStance(player->playerId, Player::DiplomaticStance::Allied);
+            humanPlayer->setDiplomaticStance(player->playerId, Player::DiplomaticStance::Allied, player.get());
             return true;
         }
         btnX += btnW + btnGap;

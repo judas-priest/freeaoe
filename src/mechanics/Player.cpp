@@ -375,12 +375,24 @@ int Player::canSeeUnitsFor(const int otherID)
     return otherID == playerId || isAllied(otherID);
 }
 
-void Player::setDiplomaticStance(const uint8_t playerId, const Player::DiplomaticStance stance)
+void Player::setDiplomaticStance(const uint8_t playerId, const Player::DiplomaticStance stance, Player *otherPlayer)
 {
     if (playerId >= m_diplomaticStances.size()) {
         m_diplomaticStances.resize(playerId + 1);
     }
     m_diplomaticStances[playerId] = stance;
+
+    // Apply team bonuses when becoming allies (applyTechEffect guards against double-apply)
+    if (stance == Allied && otherPlayer) {
+        const int16_t theirBonus = otherPlayer->civilization.teamBonusId();
+        if (theirBonus >= 0) {
+            applyTechEffect(theirBonus);
+        }
+        const int16_t ourBonus = civilization.teamBonusId();
+        if (ourBonus >= 0) {
+            otherPlayer->applyTechEffect(ourBonus);
+        }
+    }
 }
 
 Player::DiplomaticStance Player::diplomaticStanceTo(uint8_t playerId) const

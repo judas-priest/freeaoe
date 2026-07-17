@@ -893,9 +893,11 @@ void ScenarioController::handleTriggerEffect(const genie::TriggerEffect &effect)
         }
 
         switch(effect.diplomacy) {
-        case 0:
-            player->setDiplomaticStance(effect.targetPlayer, Player::Allied);
+        case 0: {
+            Player::Ptr target = m_gameState->player(effect.targetPlayer);
+            player->setDiplomaticStance(effect.targetPlayer, Player::Allied, target.get());
             break;
+        }
         case 1:
             player->setDiplomaticStance(effect.targetPlayer, Player::Neutral);
             break;

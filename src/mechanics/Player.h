@@ -203,7 +203,7 @@ struct Player : public EventListener
 
     ////////////////////
     /// Diplomacy
-    void setDiplomaticStance(const uint8_t playerId, const DiplomaticStance stance);
+    void setDiplomaticStance(const uint8_t playerId, const DiplomaticStance stance, Player *otherPlayer = nullptr);
     DiplomaticStance diplomaticStanceTo(uint8_t playerId) const;
     bool isAllied(uint8_t playerId);
 

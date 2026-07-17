@@ -47,6 +47,7 @@ class SfmlRenderTarget;
 #endif
 struct Dialog;
 class DiplomacyScreen;
+class LobbyScreen;
 class SettingsScreen;
 class TechTreeScreen;
 struct IconButton;
@@ -134,6 +135,7 @@ private:
 #endif
     std::unique_ptr<Dialog> m_currentDialog;
     std::unique_ptr<DiplomacyScreen> m_diplomacyScreen;
+    std::unique_ptr<LobbyScreen> m_lobbyScreen;
     std::unique_ptr<SettingsScreen> m_settingsScreen;
     std::unique_ptr<TechTreeScreen> m_techTreeScreen;
 

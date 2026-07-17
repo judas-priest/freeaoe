@@ -124,11 +124,17 @@ public:
     void setTradingPrice(const genie::ResourceType type, const int newPrice);
 
     /// Set the lockstep manager for multiplayer synchronization.
-    void setLockstepManager(const std::shared_ptr<LockstepManager> &lockstep) { m_lockstep = lockstep; }
+    void setLockstepManager(const std::shared_ptr<LockstepManager> &lockstep);
     const std::shared_ptr<LockstepManager> &lockstepManager() const { return m_lockstep; }
 
     /// Execute a batch of serialized game commands (from lockstep turns).
     void executeCommands(const std::vector<GameCommand> &commands);
+
+    /// Compute a checksum over game state (unit positions + resources) for desync detection.
+    uint32_t computeSyncChecksum() const;
+
+    /// True if multiplayer mode is active (lockstep manager is set and in MP mode).
+    bool isMultiplayer() const;
 
 private:
     void setupScenario();

@@ -376,6 +376,7 @@ set(NET_SRC
     src/net/NetClient.h
     src/net/LockstepManager.cpp
     src/net/LockstepManager.h
+    src/net/SyncRandom.h
     )
 
 set(SERVER_SRC
@@ -422,6 +423,7 @@ set (UI_SRC
     src/ui/RandomMapSetup.cpp
     src/ui/SettingsScreen.cpp
     src/ui/TechTreeScreen.cpp
+    src/ui/LobbyScreen.cpp
     src/mechanics/SaveGame.cpp
     src/mechanics/RandomMapGenerator.cpp
     src/ui/FileDialog.h

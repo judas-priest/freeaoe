@@ -14,6 +14,8 @@
 #include <genie/dat/Unit.h>
 #include <genie/dat/ResourceType.h>
 
+#include "net/SyncRandom.h"
+
 #include <cmath>
 #include <cstdlib>
 #include <map>
@@ -49,7 +51,7 @@ int BasicAI::countBuildingsOfType(int buildingId) const
 
 void BasicAI::chooseStrategy()
 {
-    int roll = rand() % 100;
+    int roll = SyncRandom::inst().nextInt(100);
     if (roll < 25) {
         m_strategy = Strategy::Rush;
     } else if (roll < 50) {
@@ -146,8 +148,8 @@ void BasicAI::scoutMap()
         float mapH = m_unitManager->map()->pixelHeight();
         float margin = Constants::TILE_SIZE * 5;
         MapPos scoutTarget(
-            margin + (rand() % int(mapW - margin * 2)),
-            margin + (rand() % int(mapH - margin * 2))
+            margin + SyncRandom::inst().nextInt(int(mapW - margin * 2)),
+            margin + SyncRandom::inst().nextInt(int(mapH - margin * 2))
         );
 
         unit->actions.setCurrentAction(ActionMove::moveUnitTo(unit, scoutTarget));
@@ -217,8 +219,8 @@ void BasicAI::buildHouses()
         if (unit->actions.currentAction()) continue; // Busy
 
         // Place house near TC at random offset
-        float ox = (rand() % 10 - 5) * Constants::TILE_SIZE;
-        float oy = (rand() % 10 - 5) * Constants::TILE_SIZE;
+        float ox = (SyncRandom::inst().nextInt(10) - 5) * Constants::TILE_SIZE;
+        float oy = (SyncRandom::inst().nextInt(10) - 5) * Constants::TILE_SIZE;
         MapPos housePos(tcPos.x + ox, tcPos.y + oy);
 
         // Check for existing buildings at this position
@@ -878,7 +880,7 @@ void BasicAI::buildStructureWithCost(int buildingId, int woodCost, int stoneCost
     // Find valid placement — spiral outward from TC
     for (int radius = 3; radius < 12; radius++) {
         for (int attempt = 0; attempt < 8; attempt++) {
-            float angle = attempt * M_PI / 4.0f + (rand() % 100) / 100.f;
+            float angle = attempt * M_PI / 4.0f + SyncRandom::inst().nextInt(100) / 100.f;
             float ox = cos(angle) * radius * Constants::TILE_SIZE;
             float oy = sin(angle) * radius * Constants::TILE_SIZE;
             MapPos buildPos(tcPos.x + ox, tcPos.y + oy);
@@ -998,7 +1000,7 @@ void BasicAI::buildStructure(int buildingId, int woodCost)
     // Find valid placement — spiral outward from TC
     for (int radius = 3; radius < 12; radius++) {
         for (int attempt = 0; attempt < 8; attempt++) {
-            float angle = attempt * M_PI / 4.0f + (rand() % 100) / 100.f;
+            float angle = attempt * M_PI / 4.0f + SyncRandom::inst().nextInt(100) / 100.f;
             float ox = cos(angle) * radius * Constants::TILE_SIZE;
             float oy = sin(angle) * radius * Constants::TILE_SIZE;
             MapPos buildPos(tcPos.x + ox, tcPos.y + oy);

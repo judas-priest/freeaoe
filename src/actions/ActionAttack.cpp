@@ -10,6 +10,7 @@
 #include "mechanics/Missile.h"
 #include "mechanics/Player.h"
 #include "mechanics/UnitManager.h"
+#include "net/SyncRandom.h"
 #include "resource/DataManager.h"
 
 #include <genie/Types.h>
@@ -262,11 +263,11 @@ void ActionAttack::spawnMissiles(const Unit::Ptr &source, const int unitId, cons
             // Apply accuracy — miss offset based on AccuracyPercent
             int accuracy = source->data()->Combat.AccuracyPercent;
             if (accuracy < 100 && accuracy >= 0) {
-                int roll = rand() % 100;
+                int roll = SyncRandom::inst().nextInt(100);
                 if (roll >= accuracy) {
                     // Miss: offset target by random amount (up to 2 tiles)
-                    float missX = (rand() % 200 - 100) / 50.f * Constants::TILE_SIZE;
-                    float missY = (rand() % 200 - 100) / 50.f * Constants::TILE_SIZE;
+                    float missX = (SyncRandom::inst().nextInt(200) - 100) / 50.f * Constants::TILE_SIZE;
+                    float missY = (SyncRandom::inst().nextInt(200) - 100) / 50.f * Constants::TILE_SIZE;
                     individualTarget.x += missX;
                     individualTarget.y += missY;
                 }

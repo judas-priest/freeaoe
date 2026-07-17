@@ -95,6 +95,17 @@ void LockstepManager::advanceTurn()
     size_t idx = m_currentTurn % TurnBufferSize;
     m_turnBuffer[idx].received = false;
     m_currentTurn++;
+
+    // Periodic sync checksum
+    if (m_checksumCallback && m_mode != Mode::SinglePlayer &&
+        m_currentTurn > 0 && (m_currentTurn % SyncCheckInterval) == 0)
+    {
+        m_lastLocalChecksum = m_checksumCallback();
+        DBG << "Sync checksum at turn" << m_currentTurn << ":" << m_lastLocalChecksum;
+
+        // TODO: Exchange checksums with remote peers via NetHost/NetClient
+        // and compare. For now, just log the local checksum.
+    }
 }
 
 void LockstepManager::submitLocalCommands()

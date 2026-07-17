@@ -20,6 +20,7 @@
 #include "Engine.h"
 #include "audio/AudioPlayer.h"
 #include "ui/DiplomacyScreen.h"
+#include "ui/LobbyScreen.h"
 #include "ui/SettingsScreen.h"
 #include "ui/TechTreeScreen.h"
 #include "mechanics/SaveGame.h"
@@ -379,6 +380,23 @@ void Engine::start()
                 AudioPlayer::instance().playStream(musicFile);
                 musicStarted = true;
             }
+        }
+
+        // Check if lobby requested game start
+        if (m_lobbyScreen && m_lobbyScreen->isVisible() && m_lobbyScreen->isGameStartRequested()) {
+            m_lobbyScreen->clearStartRequest();
+            if (m_lobbyScreen->isHosting()) {
+                setupMultiplayerHost(12345);
+            } else {
+                setupMultiplayerClient("127.0.0.1", 12345);
+            }
+            // Wire lockstep into UnitManager for command interception
+            if (m_lockstep && state) {
+                state->unitManager()->setMultiplayer(true);
+                state->unitManager()->setLockstep(m_lockstep);
+            }
+            m_lobbyScreen->hide();
+            addMessage("Multiplayer game started!");
         }
 
         // Multiplayer: handle disconnections and speed sync
@@ -882,6 +900,7 @@ void Engine::drawUi()
 
     // Overlay screens
     if (m_diplomacyScreen) m_diplomacyScreen->render();
+    if (m_lobbyScreen) m_lobbyScreen->render();
     if (m_settingsScreen) m_settingsScreen->render();
     if (m_techTreeScreen) m_techTreeScreen->render();
     renderSaveLoadScreen();
@@ -1241,6 +1260,9 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         return handleSaveLoadEvent(event);
     }
 
+    if (m_lobbyScreen && m_lobbyScreen->isVisible()) {
+        return m_lobbyScreen->handleEvent(event);
+    }
     if (m_diplomacyScreen && m_diplomacyScreen->isVisible()) {
         return m_diplomacyScreen->handleEvent(event);
     }
@@ -1386,6 +1408,16 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
     }
     case input::Key::F11:
         m_objectivesVisible = !m_objectivesVisible;
+        return true;
+
+    case input::Key::F12:
+        // Toggle multiplayer lobby
+        if (m_lobbyScreen && !m_lobbyScreen->isVisible()) {
+            m_lobbyScreen->show(true); // Default to host mode; Shift+F12 for join
+            addMessage("Multiplayer lobby opened (hosting). Shift+F12 to join.");
+        } else if (m_lobbyScreen) {
+            m_lobbyScreen->hide();
+        }
         return true;
 
     case input::Key::F6: {
@@ -2209,6 +2241,7 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     REQUIRE(m_unitInfoPanel->init(), return false);
 
     m_diplomacyScreen = std::make_unique<DiplomacyScreen>(renderTarget_);
+    m_lobbyScreen = std::make_unique<LobbyScreen>(renderTarget_);
     m_settingsScreen = std::make_unique<SettingsScreen>(renderTarget_);
     m_settingsScreen->setEngineGameSpeed(&m_gameSpeed);
     m_techTreeScreen = std::make_unique<TechTreeScreen>(renderTarget_);

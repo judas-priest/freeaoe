@@ -25,6 +25,7 @@
 #include "global/EventListener.h"
 #include "render/IRenderTarget.h"
 
+class LockstepManager;
 struct Player;
 struct Building;
 struct Missile;
@@ -229,6 +230,11 @@ public:
 
     int targetBlinkTimeLeft(int unitID) const noexcept;
 
+    /// Multiplayer support
+    void setMultiplayer(bool mp) { m_isMultiplayer = mp; }
+    bool isMultiplayer() const { return m_isMultiplayer; }
+    void setLockstep(const std::shared_ptr<LockstepManager> &lockstep) { m_lockstep = lockstep; }
+
 private:
     void onResearchCompleted(Player * /*player*/, int /*researchId*/) override { m_availableActionsChanged = true; }
     void onUnitMoved(Unit *unit, const MapPos &oldTile, const MapPos &newTile) override;
@@ -275,6 +281,10 @@ private:
     bool m_unitsMoved = true;
     bool m_availableActionsChanged = true; // Because we might get a bunch of events in a single update, do it only once
     Time m_lastUpdateTime = 0;
+
+    /// Multiplayer command interception
+    bool m_isMultiplayer = false;
+    std::shared_ptr<LockstepManager> m_lockstep;
 };
 
 inline LogPrinter operator <<(LogPrinter os, const UnitManager::State state)

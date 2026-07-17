@@ -25,6 +25,7 @@
 #include "mechanics/Gate.h"
 #include "actions/ActionMove.h"
 #include "actions/IAction.h"
+#include "net/SyncRandom.h"
 
 #include "resource/LanguageManager.h"
 
@@ -464,7 +465,7 @@ bool ScenarioController::update(Time time)
             } else if (condition.data.type == genie::TriggerCondition::HD_Chance) {
                 if (condition.amountRequired > 0) {
                     const int probability = int(condition.data.amount);
-                    condition.amountRequired = (std::rand() % 100) < probability ? 0 : 1;
+                    condition.amountRequired = SyncRandom::inst().nextInt(100) < probability ? 0 : 1;
                 }
             }
 

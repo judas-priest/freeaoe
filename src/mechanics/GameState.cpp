@@ -305,6 +305,53 @@ void GameState::setTradingPrice(const genie::ResourceType type, const int newPri
     EventManager::tradingPriceChanged(type, m_tradingPrices[type]);
 }
 
+void GameState::setLockstepManager(const std::shared_ptr<LockstepManager> &lockstep)
+{
+    m_lockstep = lockstep;
+    if (m_lockstep) {
+        // Wire sync checksum callback
+        m_lockstep->setSyncChecksumCallback([this]() -> uint32_t {
+            return computeSyncChecksum();
+        });
+    }
+}
+
+bool GameState::isMultiplayer() const
+{
+    return m_lockstep && m_lockstep->isMultiplayer();
+}
+
+uint32_t GameState::computeSyncChecksum() const
+{
+    uint32_t checksum = 0;
+
+    // Hash unit positions
+    for (const auto &unit : m_unitManager->units()) {
+        if (!unit || unit->isDead()) continue;
+        // Simple hash: XOR position components and unit ID
+        uint32_t ux = static_cast<uint32_t>(unit->position().x * 100);
+        uint32_t uy = static_cast<uint32_t>(unit->position().y * 100);
+        uint32_t uid = static_cast<uint32_t>(unit->id);
+        checksum ^= (ux * 73856093) ^ (uy * 19349663) ^ (uid * 83492791);
+    }
+
+    // Hash player resources
+    for (const auto &player : m_players) {
+        if (!player) continue;
+        uint32_t food = static_cast<uint32_t>(player->resourcesAvailable(genie::ResourceType::FoodStorage));
+        uint32_t wood = static_cast<uint32_t>(player->resourcesAvailable(genie::ResourceType::WoodStorage));
+        uint32_t gold = static_cast<uint32_t>(player->resourcesAvailable(genie::ResourceType::GoldStorage));
+        uint32_t stone = static_cast<uint32_t>(player->resourcesAvailable(genie::ResourceType::StoneStorage));
+        uint32_t pid = static_cast<uint32_t>(player->playerId);
+        checksum ^= (food * 2654435761u) ^ (wood * 40503u) ^ (gold * 12764787u) ^ (stone * 73856093u) ^ pid;
+    }
+
+    // Include SyncRandom state
+    checksum ^= SyncRandom::inst().state() * 2246822519u;
+
+    return checksum;
+}
+
 void GameState::executeCommands(const std::vector<GameCommand> &commands)
 {
     for (const auto &cmd : commands) {

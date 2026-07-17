@@ -41,6 +41,8 @@
 #include "core/Utility.h"
 #include "global/EventManager.h"
 #include "mechanics/Player.h"
+#include "net/GameCommand.h"
+#include "net/LockstepManager.h"
 #include "resource/Sprite.h"
 #include "Map.h"
 
@@ -695,6 +697,56 @@ void UnitManager::onRightClick(const ScreenPos &screenPos, const CameraPtr &came
         WARN << "human player gone";
         return;
     }
+
+    // --- Multiplayer interception: route commands through lockstep ---
+    if (m_isMultiplayer && m_lockstep) {
+        GameCommand cmd;
+        cmd.playerId = humanPlayer->playerId;
+
+        // Collect selected unit IDs
+        for (const Unit::Ptr &unit : m_selectedUnits) {
+            if (unit->playerId() == humanPlayer->playerId) {
+                cmd.unitIds.push_back(static_cast<int>(unit->id));
+            }
+        }
+        if (cmd.unitIds.empty()) return;
+
+        MapPos mapPos = camera->absoluteMapPos(screenPos).clamped(m_map->pixelSize());
+
+        // Determine command type from tasks under cursor
+        if (!m_tasksUnderCursor.isEmpty()) {
+            const Task &firstTask = m_tasksUnderCursor.tasks[0];
+            Unit::Ptr target = firstTask.target.lock();
+
+            if (firstTask.data && firstTask.data->ActionType == genie::ActionType::Combat) {
+                cmd.type = CommandType::Attack;
+            } else if (firstTask.data && firstTask.data->ActionType == genie::ActionType::Build) {
+                cmd.type = CommandType::Build;
+            } else if (firstTask.data && firstTask.data->ActionType == genie::ActionType::Heal) {
+                cmd.type = CommandType::Heal;
+            } else if (firstTask.data && firstTask.data->ActionType == genie::ActionType::Convert) {
+                cmd.type = CommandType::Convert;
+            } else if (firstTask.data && firstTask.data->ActionType == genie::ActionType::Repair) {
+                cmd.type = CommandType::Repair;
+            } else {
+                // Gather, generic task — use Move and let executeCommands handle it
+                cmd.type = CommandType::Move;
+            }
+
+            if (target) {
+                cmd.targetId = static_cast<int>(target->id);
+            }
+        } else {
+            cmd.type = CommandType::Move;
+        }
+
+        cmd.x = mapPos.x;
+        cmd.y = mapPos.y;
+        m_lockstep->addCommand(cmd);
+        return;
+    }
+    // --- End multiplayer interception ---
+
     bool foundTasks = false;
     const IAction::AssignType assignType = shiftHeld
         ? IAction::AssignType::Queue
@@ -1192,6 +1244,21 @@ void UnitManager::enqueueProduceUnit(const genie::Unit *unitData, const UnitVect
         return;
     }
 
+    // Multiplayer: route Train command through lockstep
+    if (m_isMultiplayer && m_lockstep) {
+        Player::Ptr owner = producers[0]->player().lock();
+        if (!owner) return;
+        GameCommand cmd;
+        cmd.type = CommandType::Train;
+        cmd.playerId = owner->playerId;
+        cmd.unitType = unitData->ID;
+        for (const auto &p : producers) {
+            cmd.unitIds.push_back(static_cast<int>(p->id));
+        }
+        m_lockstep->addCommand(cmd);
+        return;
+    }
+
     Building::Ptr producer = Building::fromUnit(producers[0]);
     if (!producer) {
         WARN << "Invalid producer";
@@ -1205,6 +1272,22 @@ void UnitManager::enqueueResearch(const genie::Tech *techData, const UnitVector 
 {
     if (producers.empty()) {
         WARN << "Handed no producers";
+        return;
+    }
+
+    // Multiplayer: route Research command through lockstep
+    if (m_isMultiplayer && m_lockstep) {
+        Player::Ptr owner = producers[0]->player().lock();
+        if (!owner) return;
+        int techIdx = owner->civilization.techIndex(techData);
+        GameCommand cmd;
+        cmd.type = CommandType::Research;
+        cmd.playerId = owner->playerId;
+        cmd.techId = techIdx;
+        for (const auto &p : producers) {
+            cmd.unitIds.push_back(static_cast<int>(p->id));
+        }
+        m_lockstep->addCommand(cmd);
         return;
     }
 

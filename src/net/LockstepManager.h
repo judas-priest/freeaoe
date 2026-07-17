@@ -5,6 +5,7 @@
 #include "NetClient.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -61,6 +62,17 @@ public:
     /// Whether this instance is the host.
     bool isHost() const { return m_mode == Mode::Host; }
 
+    /// Set a callback to compute the game state checksum.
+    /// Called every SyncCheckInterval turns. Signature: uint32_t()
+    void setSyncChecksumCallback(std::function<uint32_t()> cb) { m_checksumCallback = std::move(cb); }
+
+    /// Interval in turns between sync checks.
+    static constexpr uint32_t SyncCheckInterval = 50;
+
+    /// Get last received remote checksum (for desync detection).
+    uint32_t lastRemoteChecksum() const { return m_lastRemoteChecksum; }
+    uint32_t lastLocalChecksum() const { return m_lastLocalChecksum; }
+
 private:
     void submitLocalCommands();
     void receiveRemoteCommands();
@@ -100,4 +112,9 @@ private:
 
     // Player slot this instance controls
     int m_localPlayerId = 0;
+
+    // Sync checksum
+    std::function<uint32_t()> m_checksumCallback;
+    uint32_t m_lastLocalChecksum = 0;
+    uint32_t m_lastRemoteChecksum = 0;
 };

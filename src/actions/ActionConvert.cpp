@@ -9,6 +9,7 @@
 
 #include "core/Logger.h"
 #include "mechanics/Player.h"
+#include "net/SyncRandom.h"
 
 ActionConvert::ActionConvert(const Unit::Ptr &monk, const Unit::Ptr &target)
     : IAction(Type::Convert, monk, Task())
@@ -120,7 +121,7 @@ ActionConvert::UpdateResult ActionConvert::update(Time time)
             m_prevRollTime = time;
             const float window = float(m_maxConvertTime - m_minConvertTime);
             const float progress = float(elapsed - m_minConvertTime) / window;
-            const int roll = rand() % 1000;
+            const int roll = SyncRandom::inst().nextInt(1000);
             if (roll < int(progress * 1000.f)) {
                 doConvert(monk, target);
                 return UpdateResult::Completed;

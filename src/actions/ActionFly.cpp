@@ -5,6 +5,7 @@
 #include "mechanics/Entity.h"
 #include "mechanics/Map.h"
 #include "mechanics/Unit.h"
+#include "net/SyncRandom.h"
 #include "render/GraphicRender.h"
 
 #include <genie/dat/Unit.h>
@@ -36,10 +37,10 @@ IAction::UpdateResult ActionFly::update(Time time)
     const float elapsed = time - m_lastUpdateTime;
     m_lastUpdateTime = time;
 
-    if (time - m_lastTurnTime > 5000 && (rand() % 100) > 90) {
+    if (time - m_lastTurnTime > 5000 && (SyncRandom::inst().nextInt(100)) > 90) {
         m_lastTurnTime = time;
 
-        if (rand() % 2 == 0) {
+        if (SyncRandom::inst().nextInt(2) == 0) {
             // there are usually (basically always, and I'm lazy) 8 angles
             unit->setAngle(unit->angle() + M_PI / 4);
         } else {
@@ -48,10 +49,10 @@ IAction::UpdateResult ActionFly::update(Time time)
     }
 
     const int inStateTime = m_currentState == Moving ? 500 : 30000;
-    if (time - m_lastStateChangeTime > inStateTime && rand() % 100 > 95 && unit->renderer().currentFrame() == 0) {
+    if (time - m_lastStateChangeTime > inStateTime && SyncRandom::inst().nextInt(100) > 95 && unit->renderer().currentFrame() == 0) {
         m_lastStateChangeTime = time;
 
-        if (rand() % 2 == 0) {
+        if (SyncRandom::inst().nextInt(2) == 0) {
             m_currentState = UnitState::Proceeding;
         } else {
             m_currentState = UnitState::Moving;

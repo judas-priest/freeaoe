@@ -214,8 +214,8 @@ Task UnitActionHandler::findMatchingTask(const std::shared_ptr<Player> &ownPlaye
 
 Task UnitActionHandler::checkForAutoTargets()
 {
-    // Auto-target for Aggressive and Defensive stances (not StandGround or NoAttack)
-    if ((m_unit->stance != Unit::Stance::Aggressive && m_unit->stance != Unit::Stance::Defensive)
+    // NoAttack: never auto-target
+    if (m_unit->stance == Unit::Stance::NoAttack
         || m_autoTargetTasks.size() == 0 || m_currentAction) {
         return {};
     }
@@ -228,18 +228,21 @@ Task UnitActionHandler::checkForAutoTargets()
 
     const genie::Unit *data = m_unit->m_data;
 
-    const int los = data->LineOfSight;
+    // StandGround: scan weapon range only, not full LOS
+    const int scanRange = (m_unit->stance == Unit::Stance::StandGround)
+        ? static_cast<int>(m_unit->effectiveRange())
+        : data->LineOfSight;
 
     Task newTask;
     Unit::Ptr target;
 
     const MapPos position = m_unit->position();
-    const int left = position.x / Constants::TILE_SIZE - los;
-    const int top = position.y / Constants::TILE_SIZE - los;
-    const int right = position.x / Constants::TILE_SIZE + los;
-    const int bottom = position.y / Constants::TILE_SIZE + los;
+    const int left = position.x / Constants::TILE_SIZE - scanRange;
+    const int top = position.y / Constants::TILE_SIZE - scanRange;
+    const int right = position.x / Constants::TILE_SIZE + scanRange;
+    const int bottom = position.y / Constants::TILE_SIZE + scanRange;
 
-    float closestDistance = los * Constants::TILE_SIZE;
+    float closestDistance = scanRange * Constants::TILE_SIZE;
 
     for (int col = left; col <  right; col++) {
         for (int row = top; row <  bottom; row++) {

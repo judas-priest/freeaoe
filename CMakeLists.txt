@@ -365,6 +365,13 @@ else()
     )
 endif()
 
+set(NET_SRC
+    src/net/NetSocket.cpp
+    src/net/NetSocket.h
+    src/net/NetMessage.h
+    src/net/GameCommand.h
+    )
+
 set(SERVER_SRC
     src/server/GameServer.cpp
     )
@@ -472,6 +479,7 @@ set(ENGINE_SRC
     ${FONT_BERRYROTUNDA}
     ${FONT_CHARIS}
     ${SOUNDFONT_WT_181K_G}
+    ${NET_SRC}
     ${SETTINGS_SRC}
     ${DEBUG_SRC}
     ${EDITOR_SRC}

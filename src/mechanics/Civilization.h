@@ -41,7 +41,12 @@ public:
 
     void applyTechEffect(const genie::EffectCommand &effect);
     void enableUnit(const uint16_t id);
+    void disableTech(const uint16_t techId);
+    void disableUnit(const uint16_t unitId);
     void applyUnitAttributeModifier(const genie::EffectCommand &effect);
+
+    void modifyTechCost(int16_t techId, int16_t resourceType, float amount);
+    void modifyTechTime(int16_t techId, float amount);
 
     // This seems so wrong, but meh
     void setGaiaOverrideCiv(const int civId);

@@ -372,6 +372,40 @@ void GameState::setupScenario()
         m_humanPlayer = m_players[1];
     }
     ALOG("Human player ID: %d, total players: %zu", m_humanPlayer->playerId, m_players.size());
+
+    // Apply team bonuses to allied players
+    for (const Player::Ptr &player : m_players) {
+        if (player->playerId == 0) continue; // skip gaia
+        const genie::Civ &civData = DataManager::Inst().civilization(player->civilization.id());
+        if (civData.TeamBonusID < 0) continue;
+        for (Player::Ptr &ally : m_players) {
+            if (ally->playerId == 0) continue;
+            if (!ally->isAllied(player->playerId)) continue;
+            ally->applyTechEffect(civData.TeamBonusID);
+        }
+    }
+
+    // Apply scenario-disabled techs, units, and buildings
+    const genie::ScnDisables &disables = scenario_->playerData.disables;
+    for (size_t playerIdx = 1; playerIdx < m_players.size(); playerIdx++) {
+        size_t disableIdx = playerIdx - 1;
+        if (disableIdx >= 16) break;
+        Player::Ptr &player = m_players[playerIdx];
+
+        for (size_t i = 0; i < disables.numDisabledTechs[disableIdx] && i < disables.disabledTechs[disableIdx].size(); i++) {
+            uint32_t techId = disables.disabledTechs[disableIdx][i];
+            if (techId != 0xFFFFFFFF) player->civilization.disableTech(static_cast<uint16_t>(techId));
+        }
+        for (size_t i = 0; i < disables.numDisabledUnits[disableIdx] && i < disables.disabledUnits[disableIdx].size(); i++) {
+            uint32_t unitId = disables.disabledUnits[disableIdx][i];
+            if (unitId != 0xFFFFFFFF) player->civilization.disableUnit(static_cast<uint16_t>(unitId));
+        }
+        for (size_t i = 0; i < disables.numDisabledBuildings[disableIdx] && i < disables.disabledBuildings[disableIdx].size(); i++) {
+            uint32_t bldId = disables.disabledBuildings[disableIdx][i];
+            if (bldId != 0xFFFFFFFF) player->civilization.disableUnit(static_cast<uint16_t>(bldId));
+        }
+    }
+
     m_unitManager->setPlayers(m_players);
     m_unitManager->setHumanPlayer(m_humanPlayer);
 
@@ -537,6 +571,18 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
             } else if (p1 != p2) {
                 p1->setDiplomaticStance(p2->playerId, Player::Enemy);
             }
+        }
+    }
+
+    // Apply team bonuses to allied players
+    for (const Player::Ptr &player : m_players) {
+        if (player->playerId == 0) continue; // skip gaia
+        const genie::Civ &civData = DataManager::Inst().civilization(player->civilization.id());
+        if (civData.TeamBonusID < 0) continue;
+        for (Player::Ptr &ally : m_players) {
+            if (ally->playerId == 0) continue;
+            if (!ally->isAllied(player->playerId)) continue;
+            ally->applyTechEffect(civData.TeamBonusID);
         }
     }
 

@@ -41,6 +41,15 @@ Player::Player(const int id, const int civId, const std::shared_ptr<Map> &map, c
     EventManager::registerListener(this, EventManager::UnitDestroyed);
 
     updateAvailableTechs();
+
+    // Apply civ tech tree effect -- this disables units/techs and applies civ bonuses
+    // Skip for Gaia (player 0) which needs access to all unit types
+    if (id != 0) {
+        const genie::Civ &civData = DataManager::Inst().civilization(civId);
+        if (civData.TechTreeID >= 0) {
+            applyTechEffect(civData.TechTreeID);
+        }
+    }
 }
 
 void Player::resign()
@@ -113,6 +122,8 @@ void Player::applyTechEffect(const int effectId)
     for (const genie::EffectCommand &command : effect.EffectCommands) {
         applyTechEffectCommand(command);
     }
+
+    updateAvailableTechs();
 }
 
 void Player::applyTechEffectCommand(const genie::EffectCommand &effect)
@@ -155,13 +166,16 @@ void Player::applyTechEffectCommand(const genie::EffectCommand &effect)
         m_resourcesAvailable[genie::ResourceType(effect.TargetUnit)] *= effect.Amount;
         break;
     case genie::EffectCommand::TechCostModifier:
-        DBG << "Tech cost modifier" << effect.TargetUnit << effect.Amount;
+        civilization.modifyTechCost(effect.TargetUnit, effect.UnitClassID, effect.Amount);
         break;
     case genie::EffectCommand::DisableTech:
         DBG << "Disable tech" << effect.TargetUnit;
+        if (effect.TargetUnit >= 0) {
+            civilization.disableTech(effect.TargetUnit);
+        }
         break;
     case genie::EffectCommand::TechTimeModifier:
-        DBG << "Tech time modifier" << effect.TargetUnit << effect.Amount;
+        civilization.modifyTechTime(effect.TargetUnit, effect.Amount);
         break;
     default:
         WARN << "Unhandled tech effect type" << effect.Type;

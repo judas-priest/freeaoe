@@ -100,6 +100,40 @@ void Civilization::enableUnit(const uint16_t id)
     }
 }
 
+void Civilization::disableTech(const uint16_t techId)
+{
+    auto it = m_techs.find(techId);
+    if (it == m_techs.end()) return;
+
+    int16_t location = it->second.ResearchLocation;
+
+    if (location > 0) {
+        auto locIt = m_researchAvailable.find(location);
+        if (locIt != m_researchAvailable.end()) {
+            auto &vec = locIt->second;
+            const genie::Tech *techPtr = &it->second;
+            vec.erase(std::remove(vec.begin(), vec.end(), techPtr), vec.end());
+        }
+    }
+    m_techs.erase(it);
+}
+
+void Civilization::disableUnit(const uint16_t unitId)
+{
+    if (unitId >= m_unitsData.size()) return;
+    genie::Unit &unit = m_unitsData[unitId];
+    unit.Enabled = false;
+
+    if (unit.Creatable.TrainLocationID > 0) {
+        auto locIt = m_creatableUnits.find(unit.Creatable.TrainLocationID);
+        if (locIt != m_creatableUnits.end()) {
+            auto &vec = locIt->second;
+            vec.erase(std::remove_if(vec.begin(), vec.end(),
+                [unitId](const genie::Unit *u) { return u->ID == unitId; }), vec.end());
+        }
+    }
+}
+
 template<typename T>
 void modifyAttribute(T &value, const genie::EffectCommand &effect)
 {
@@ -196,6 +230,44 @@ void Civilization::applyData(const genie::Civ &data)
         }
 
         m_startingResources[genie::ResourceType(i)] = data.Resources[i];
+    }
+}
+
+void Civilization::modifyTechCost(int16_t techId, int16_t resourceType, float amount)
+{
+    if (techId == -1) {
+        // Apply to all techs
+        for (auto &[id, tech] : m_techs) {
+            for (auto &cost : tech.ResourceCosts) {
+                if (cost.Type == resourceType || resourceType == -1) {
+                    cost.Amount += static_cast<int16_t>(amount);
+                }
+            }
+        }
+    } else {
+        auto it = m_techs.find(static_cast<uint16_t>(techId));
+        if (it != m_techs.end()) {
+            for (auto &cost : it->second.ResourceCosts) {
+                if (cost.Type == resourceType || resourceType == -1) {
+                    cost.Amount += static_cast<int16_t>(amount);
+                }
+            }
+        }
+    }
+}
+
+void Civilization::modifyTechTime(int16_t techId, float amount)
+{
+    if (techId == -1) {
+        // Apply to all techs
+        for (auto &[id, tech] : m_techs) {
+            tech.ResearchTime += static_cast<int16_t>(amount);
+        }
+    } else {
+        auto it = m_techs.find(static_cast<uint16_t>(techId));
+        if (it != m_techs.end()) {
+            it->second.ResearchTime += static_cast<int16_t>(amount);
+        }
     }
 }
 

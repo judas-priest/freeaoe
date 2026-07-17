@@ -35,6 +35,8 @@ struct VisibilityMap;
 class Map;
 using MapPtr = std::shared_ptr<Map>;
 
+class Player;
+
 class MapRenderer : public IRenderer
 {
 
@@ -48,6 +50,8 @@ public:
 
     void setMap(const MapPtr &map);
     void setVisibilityMap(const std::shared_ptr<VisibilityMap> &visibilityMap);
+    void setHumanPlayer(const std::shared_ptr<Player> &player);
+    void setAllPlayers(const std::vector<std::shared_ptr<Player>> &players);
 
     int firstVisibleRow() { return m_rRowBegin; }
     int lastVisibleRow() { return m_rRowEnd; }
@@ -64,6 +68,8 @@ private:
     MapPos m_lastCameraPos;
     bool m_camChanged;
     std::shared_ptr<VisibilityMap> m_visibilityMap;
+    std::shared_ptr<Player> m_humanPlayer;
+    std::vector<std::shared_ptr<Player>> m_allPlayers;
 
     // Water animation
     Time m_lastWaterFrameTime = 0;

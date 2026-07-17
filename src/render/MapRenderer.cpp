@@ -175,6 +175,16 @@ void MapRenderer::setVisibilityMap(const std::shared_ptr<VisibilityMap> &visibil
     m_visibilityMap = visibilityMap;
 }
 
+void MapRenderer::setHumanPlayer(const std::shared_ptr<Player> &player)
+{
+    m_humanPlayer = player;
+}
+
+void MapRenderer::setAllPlayers(const std::vector<std::shared_ptr<Player>> &players)
+{
+    m_allPlayers = players;
+}
+
 void MapRenderer::updateTexture()
 {
     if (IS_UNLIKELY(!m_visibilityMap)) {
@@ -197,7 +207,9 @@ void MapRenderer::updateTexture()
 
     for (int col = m_rColBegin; col < m_rColEnd; col++) {
         for (int row = m_rRowEnd-1; row >= m_rRowBegin; row--) {
-            const VisibilityMap::Visibility visibility = m_visibilityMap->visibilityAt(col, row);
+            const VisibilityMap::Visibility visibility = (m_humanPlayer && !m_allPlayers.empty())
+                ? m_humanPlayer->teamVisibilityAt(col, row, m_allPlayers)
+                : m_visibilityMap->visibilityAt(col, row);
             if (visibility == VisibilityMap::Unexplored) {
                 continue;
             }
@@ -266,7 +278,7 @@ void MapRenderer::updateTexture()
                 m_textureTarget->draw(waterTint);
             }
 
-            if (m_visibilityMap->visibilityAt(col, row) == VisibilityMap::Explored) {
+            if (visibility == VisibilityMap::Explored) {
                 m_textureTarget->draw(shadowMask(mapTile.slopes.self.toGenie(), 0), spos);
             } else {
                 m_textureTarget->draw(shadowMask(mapTile.slopes.self.toGenie(), m_visibilityMap->edgeTileNum(col, row, VisibilityMap::Explored) * 2 + 1), spos);

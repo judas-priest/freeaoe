@@ -192,6 +192,8 @@ void Engine::setupRandomMap(int mapType, int mapSize, int playerCount,
     if (state->humanPlayer()) {
         m_minimap->setMap(state->map());
         m_minimap->setVisibilityMap(state->humanPlayer()->visibility);
+        m_minimap->setHumanPlayer(state->humanPlayer());
+        m_minimap->setAllPlayers(state->players());
         m_mapRenderer->setVisibilityMap(state->humanPlayer()->visibility);
         m_mapRenderer->setHumanPlayer(state->humanPlayer());
         m_mapRenderer->setAllPlayers(state->players());
@@ -277,6 +279,8 @@ void Engine::start()
             m_minimap->setUnitManager(state->unitManager());
             m_minimap->setMap(state->map());
             m_minimap->setVisibilityMap(state->humanPlayer()->visibility);
+            m_minimap->setHumanPlayer(state->humanPlayer());
+            m_minimap->setAllPlayers(state->players());
 
             m_mapRenderer->setVisibilityMap(state->humanPlayer()->visibility);
             m_mapRenderer->setHumanPlayer(state->humanPlayer());

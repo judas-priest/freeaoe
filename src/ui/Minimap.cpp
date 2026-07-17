@@ -121,6 +121,16 @@ void Minimap::setVisibilityMap(const std::shared_ptr<VisibilityMap> &visibilityM
     m_visibilityMap = visibilityMap;
 }
 
+void Minimap::setHumanPlayer(const std::shared_ptr<Player> &player)
+{
+    m_humanPlayer = player;
+}
+
+void Minimap::setAllPlayers(const std::vector<std::shared_ptr<Player>> &players)
+{
+    m_allPlayers = players;
+}
+
 void Minimap::updateUnits()
 {
     m_unitsUpdated = true;
@@ -355,7 +365,9 @@ bool Minimap::update(Time /*time*/)
         const std::vector<genie::Color> &colors = AssetManager::Inst()->getPalette(50500).getColors();
         for (int col = 0; col < m_map->columnCount(); col++) {
             for (int row = 0; row < m_map->rowCount(); row++) {
-                const VisibilityMap::Visibility visibility = m_visibilityMap->visibilityAt(col, row);
+                const VisibilityMap::Visibility visibility = (m_humanPlayer && !m_allPlayers.empty())
+                    ? m_humanPlayer->teamVisibilityAt(col, row, m_allPlayers)
+                    : m_visibilityMap->visibilityAt(col, row);
                 if (visibility == VisibilityMap::Unexplored) {
                     continue;
                 }
@@ -430,7 +442,11 @@ bool Minimap::update(Time /*time*/)
         const std::vector<genie::Color> &colors = AssetManager::Inst()->getPalette(50500).getColors();
 
         for (const Unit::Ptr &unit : m_unitManager->units()) {
-            const VisibilityMap::Visibility visibility = m_visibilityMap->visibilityAt(unit->position());
+            const int unitTileX = unit->position().x / Constants::TILE_SIZE;
+            const int unitTileY = unit->position().y / Constants::TILE_SIZE;
+            const VisibilityMap::Visibility visibility = (m_humanPlayer && !m_allPlayers.empty())
+                ? m_humanPlayer->teamVisibilityAt(unitTileX, unitTileY, m_allPlayers)
+                : m_visibilityMap->visibilityAt(unit->position());
             if (visibility == VisibilityMap::Unexplored) {
                 continue;
             }

@@ -9,6 +9,7 @@
 #include "render/IRenderTarget.h"
 
 class Map;
+class Player;
 class UnitManager;
 struct Unit;
 struct VisibilityMap;
@@ -28,6 +29,8 @@ public:
     void setMap(const std::shared_ptr<Map> &map);
     void setUnitManager(const std::shared_ptr<UnitManager> &unitManager);
     void setVisibilityMap(const std::shared_ptr<VisibilityMap> &visibilityMap);
+    void setHumanPlayer(const std::shared_ptr<Player> &player);
+    void setAllPlayers(const std::vector<std::shared_ptr<Player>> &players);
 
     bool init() override;
     bool handleEvent(input::Event event) override;
@@ -61,6 +64,8 @@ private:
     ScreenRect m_cameraRect;
     bool m_mousePressed = false;
     std::shared_ptr<VisibilityMap> m_visibilityMap;
+    std::shared_ptr<Player> m_humanPlayer;
+    std::vector<std::shared_ptr<Player>> m_allPlayers;
 
     Size m_windowSize;
 

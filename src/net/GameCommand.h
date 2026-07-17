@@ -30,7 +30,8 @@ enum class CommandType : uint8_t {
     BuyResource  = 20,
     SellResource = 21,
     Tribute      = 22,
-    Chat         = 23
+    Chat         = 23,
+    SetSpeed     = 24
 };
 
 /// A serializable player command for lockstep multiplayer.

@@ -71,6 +71,21 @@ bool NetClient::popTurn(uint32_t &outTurnNumber, std::vector<GameCommand> &outCo
     return true;
 }
 
+std::vector<int> NetClient::popDisconnectedPlayers()
+{
+    std::vector<int> result;
+    result.swap(m_disconnectedPlayers);
+    return result;
+}
+
+bool NetClient::popSpeedChange(float &outSpeed)
+{
+    if (m_pendingSpeed < 0.f) return false;
+    outSpeed = m_pendingSpeed;
+    m_pendingSpeed = -1.f;
+    return true;
+}
+
 void NetClient::handleMessage(const std::vector<uint8_t> &payload)
 {
     if (payload.empty()) return;
@@ -83,6 +98,22 @@ void NetClient::handleMessage(const std::vector<uint8_t> &payload)
         // Welcome message from host with our assigned player ID
         m_playerId = NetSer::readI32(payload, offset);
         DBG << "NetClient: assigned player ID" << m_playerId;
+        break;
+    }
+
+    case NetMsgType::LobbyStart: {
+        // Game setup from host
+        m_gameSetup.mapSeed = NetSer::readU32(payload, offset);
+        m_gameSetup.mapType = NetSer::readI32(payload, offset);
+        m_gameSetup.mapSize = NetSer::readI32(payload, offset);
+        uint8_t numPlayers = NetSer::readU8(payload, offset);
+        m_gameSetup.playerCivs.clear();
+        for (uint8_t i = 0; i < numPlayers; i++) {
+            m_gameSetup.playerCivs.push_back(NetSer::readI32(payload, offset));
+        }
+        m_gameSetup.received = true;
+        DBG << "NetClient: received game setup, seed=" << m_gameSetup.mapSeed
+            << "players=" << numPlayers;
         break;
     }
 
@@ -100,6 +131,23 @@ void NetClient::handleMessage(const std::vector<uint8_t> &payload)
             bundle.commands.push_back(std::move(cmd));
         }
         m_receivedTurns.push_back(std::move(bundle));
+        break;
+    }
+
+    case NetMsgType::PlayerDisconnect: {
+        int playerId = NetSer::readI32(payload, offset);
+        DBG << "NetClient: player" << playerId << "disconnected";
+        m_disconnectedPlayers.push_back(playerId);
+        break;
+    }
+
+    case NetMsgType::LobbySetup: {
+        uint8_t subType = NetSer::readU8(payload, offset);
+        if (subType == 1) {
+            // Speed change
+            m_pendingSpeed = NetSer::readFloat(payload, offset);
+            DBG << "NetClient: speed change to" << m_pendingSpeed;
+        }
         break;
     }
 

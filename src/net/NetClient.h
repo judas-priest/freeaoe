@@ -42,6 +42,25 @@ public:
     /// The player ID assigned by the host.
     int assignedPlayerId() const { return m_playerId; }
 
+    /// Game setup received from host via LobbyStart.
+    struct GameSetup {
+        uint32_t mapSeed = 0;
+        int mapType = 0;
+        int mapSize = 0;
+        std::vector<int> playerCivs;
+        bool received = false;
+    };
+
+    /// Returns true if game setup has been received from the host.
+    bool hasGameSetup() const { return m_gameSetup.received; }
+    const GameSetup &gameSetup() const { return m_gameSetup; }
+
+    /// Pop disconnected player IDs since last call.
+    std::vector<int> popDisconnectedPlayers();
+
+    /// Pop pending speed change. Returns true if a speed change was received.
+    bool popSpeedChange(float &outSpeed);
+
 private:
     void handleMessage(const std::vector<uint8_t> &payload);
 
@@ -54,4 +73,8 @@ private:
     };
 
     std::deque<TurnBundle> m_receivedTurns;
+
+    GameSetup m_gameSetup;
+    std::vector<int> m_disconnectedPlayers;
+    float m_pendingSpeed = -1.f;
 };

@@ -75,6 +75,10 @@ class RenderWindow;
 
 struct MouseCursor;
 
+class NetHost;
+class NetClient;
+class LockstepManager;
+
 class Engine : public EventListener
 {
 public:
@@ -98,6 +102,11 @@ public:
 
     void addMessage(const std::string &message);
     void clearMessages();
+
+    /// Configure as multiplayer host on the given port.
+    void setupMultiplayerHost(uint16_t port);
+    /// Configure as multiplayer client connecting to host:port.
+    void setupMultiplayerClient(const std::string &host, uint16_t port);
 
 private:
     void showStartScreen();
@@ -287,5 +296,10 @@ private:
     static constexpr float ZOOM_MIN = 0.5f;
     static constexpr float ZOOM_MAX = 2.0f;
     static constexpr float PINCH_SENSITIVITY = 2.0f;
+
+    // Multiplayer networking
+    std::shared_ptr<NetHost> m_netHost;
+    std::shared_ptr<NetClient> m_netClient;
+    std::shared_ptr<LockstepManager> m_lockstep;
 };
 

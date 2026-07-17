@@ -413,6 +413,9 @@ Config::Config(const std::string &applicationName)
 
             // Not actually parsed here (need it earlier to enable it), just so it knows about it
             { Config::EnableDebug, "debug", "Print all debug output", Config::NoArgument, Config::NotStored },
+
+            { Config::HostGame, "host", "Host a multiplayer game on specified port (default 12345)", Config::HasArgument, Config::NotStored },
+            { Config::JoinGame, "join", "Join a multiplayer game at host:port", Config::HasArgument, Config::NotStored },
         });
 
 #ifndef NDEBUG

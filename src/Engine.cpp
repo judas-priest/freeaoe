@@ -33,6 +33,9 @@
 #include "mechanics/ScenarioController.h"
 #include "mechanics/UnitManager.h"
 #include "global/EventManager.h"
+#include "net/NetHost.h"
+#include "net/NetClient.h"
+#include "net/LockstepManager.h"
 #include <genie/script/ScnFile.h>
 
 #include "render/Camera.h"
@@ -197,6 +200,60 @@ void Engine::setupRandomMap(int mapType, int mapSize, int playerCount)
     }
 }
 
+void Engine::setupMultiplayerHost(uint16_t port)
+{
+    NetSocket::initNetworking();
+
+    m_netHost = std::make_shared<NetHost>();
+    if (!m_netHost->start(port)) {
+        WARN << "Failed to start multiplayer host on port" << port;
+        m_netHost.reset();
+        return;
+    }
+
+    m_lockstep = std::make_shared<LockstepManager>();
+    m_lockstep->setHost(m_netHost);
+    m_lockstep->setLocalPlayerId(0); // Host is player 0
+
+    auto state = state_manager_.getActiveState();
+    if (state) {
+        state->setLockstepManager(m_lockstep);
+    }
+
+    DBG << "Multiplayer host started on port" << port;
+}
+
+void Engine::setupMultiplayerClient(const std::string &host, uint16_t port)
+{
+    NetSocket::initNetworking();
+
+    m_netClient = std::make_shared<NetClient>();
+    if (!m_netClient->connect(host, port)) {
+        WARN << "Failed to connect to" << host << ":" << port;
+        m_netClient.reset();
+        return;
+    }
+
+    // Receive the welcome message with our assigned player ID
+    // Poll briefly for the initial LobbyJoin response
+    for (int attempt = 0; attempt < 100 && m_netClient->assignedPlayerId() < 0; attempt++) {
+        m_netClient->update();
+        if (m_netClient->assignedPlayerId() >= 0) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    m_lockstep = std::make_shared<LockstepManager>();
+    m_lockstep->setClient(m_netClient);
+    m_lockstep->setLocalPlayerId(m_netClient->assignedPlayerId());
+
+    auto state = state_manager_.getActiveState();
+    if (state) {
+        state->setLockstepManager(m_lockstep);
+    }
+
+    DBG << "Multiplayer client connected, assigned player" << m_netClient->assignedPlayerId();
+}
+
 void Engine::start()
 {
     DBG << "Starting engine.";
@@ -321,6 +378,32 @@ void Engine::start()
                 std::string musicFile = "xmusic" + std::to_string(track) + ".mp3";
                 AudioPlayer::instance().playStream(musicFile);
                 musicStarted = true;
+            }
+        }
+
+        // Multiplayer: handle disconnections and speed sync
+        if (m_lockstep && m_lockstep->isMultiplayer()) {
+            if (m_netHost) {
+                auto disconnected = m_netHost->popDisconnectedPlayers();
+                for (int pid : disconnected) {
+                    addMessage("Player " + std::to_string(pid) + " disconnected");
+                    // Mark the player as defeated
+                    auto p = state->player(pid);
+                    if (p) p->alive = false;
+                }
+            }
+            if (m_netClient) {
+                auto disconnected = m_netClient->popDisconnectedPlayers();
+                for (int pid : disconnected) {
+                    addMessage("Player " + std::to_string(pid) + " disconnected");
+                    auto p = state->player(pid);
+                    if (p) p->alive = false;
+                }
+                float newSpeed;
+                if (m_netClient->popSpeedChange(newSpeed)) {
+                    m_gameSpeed = newSpeed;
+                    addMessage("Game speed: " + std::to_string(m_gameSpeed).substr(0, 3) + "x");
+                }
             }
         }
 
@@ -1323,15 +1406,25 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
     }
 
     case input::Key::F7: {
-        // Slow down game speed
+        // Slow down game speed (only host can change speed in multiplayer)
+        if (m_lockstep && m_lockstep->isMultiplayer() && !m_lockstep->isHost()) {
+            addMessage("Only the host can change game speed");
+            return true;
+        }
         m_gameSpeed = std::max(0.5f, m_gameSpeed - 0.5f);
         addMessage("Game speed: " + std::to_string(m_gameSpeed).substr(0, 3) + "x");
+        if (m_netHost) m_netHost->broadcastSpeedChange(m_gameSpeed);
         return true;
     }
     case input::Key::F8: {
-        // Speed up game speed
+        // Speed up game speed (only host can change speed in multiplayer)
+        if (m_lockstep && m_lockstep->isMultiplayer() && !m_lockstep->isHost()) {
+            addMessage("Only the host can change game speed");
+            return true;
+        }
         m_gameSpeed = std::min(3.0f, m_gameSpeed + 0.5f);
         addMessage("Game speed: " + std::to_string(m_gameSpeed).substr(0, 3) + "x");
+        if (m_netHost) m_netHost->broadcastSpeedChange(m_gameSpeed);
         return true;
     }
 
@@ -1394,7 +1487,17 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
             if (!m_chat.buffer.empty()) {
                 const Player::Ptr &human = state->humanPlayer();
                 int playerId = human ? human->playerId : 1;
-                EventManager::sendChatMessage(playerId, m_chat.target, m_chat.buffer);
+                if (m_lockstep && m_lockstep->isMultiplayer()) {
+                    // Route chat through lockstep so all players see it at the same game time
+                    GameCommand chatCmd;
+                    chatCmd.type = CommandType::Chat;
+                    chatCmd.playerId = playerId;
+                    chatCmd.targetId = m_chat.target;
+                    chatCmd.message = m_chat.buffer;
+                    m_lockstep->addCommand(chatCmd);
+                } else {
+                    EventManager::sendChatMessage(playerId, m_chat.target, m_chat.buffer);
+                }
             }
             m_chat.buffer.clear();
             m_chat.active = false;

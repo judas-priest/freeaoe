@@ -35,6 +35,7 @@
 #include "actions/ActionAttack.h"
 #include "net/LockstepManager.h"
 #include "net/GameCommand.h"
+#include "net/SyncRandom.h"
 
 #include <Engine.h>
 #ifdef USE_SDL2
@@ -423,6 +424,11 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
             break;
         }
 
+        case CommandType::Chat: {
+            EventManager::sendChatMessage(cmd.playerId, cmd.targetId, cmd.message);
+            break;
+        }
+
         default:
             DBG << "executeCommands: unhandled command type" << static_cast<int>(cmd.type);
             break;
@@ -670,7 +676,7 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
 
     // AI players
     for (int i = 2; i <= playerCount; i++) {
-        int civId = 1 + (rand() % 13); // Random civilization
+        int civId = 1 + SyncRandom::inst().nextInt(13); // Random civilization
         auto aiPlayer = std::make_shared<AiPlayer>(i, civId, map_, defaultStartingResources[m_gameType]);
         aiPlayer->name = "AI " + std::to_string(i);
         aiPlayer->playerColor = i - 1;

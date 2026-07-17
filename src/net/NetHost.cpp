@@ -43,6 +43,52 @@ void NetHost::update()
     receiveFromPeers();
 }
 
+void NetHost::startGame(uint32_t mapSeed, int mapType, int mapSize,
+                        const std::vector<int> &playerCivs)
+{
+    // Build LobbyStart payload:
+    // [msgType:1][mapSeed:4][mapType:4][mapSize:4][numPlayers:1][civ0..civN:4 each]
+    std::vector<uint8_t> payload;
+    NetSer::writeU8(payload, static_cast<uint8_t>(NetMsgType::LobbyStart));
+    NetSer::writeU32(payload, mapSeed);
+    NetSer::writeI32(payload, mapType);
+    NetSer::writeI32(payload, mapSize);
+    NetSer::writeU8(payload, static_cast<uint8_t>(playerCivs.size()));
+    for (int civ : playerCivs) {
+        NetSer::writeI32(payload, civ);
+    }
+
+    for (auto &peer : m_peers) {
+        if (peer.socket && peer.socket->isValid()) {
+            peer.socket->sendMessage(payload);
+        }
+    }
+
+    DBG << "NetHost: broadcast LobbyStart to" << m_peers.size() << "peers";
+}
+
+void NetHost::broadcastSpeedChange(float newSpeed)
+{
+    std::vector<uint8_t> payload;
+    NetSer::writeU8(payload, static_cast<uint8_t>(NetMsgType::LobbySetup));
+    // Sub-type: speed change
+    NetSer::writeU8(payload, 1); // 1 = speed change
+    NetSer::writeFloat(payload, newSpeed);
+
+    for (auto &peer : m_peers) {
+        if (peer.socket && peer.socket->isValid()) {
+            peer.socket->sendMessage(payload);
+        }
+    }
+}
+
+std::vector<int> NetHost::popDisconnectedPlayers()
+{
+    std::vector<int> result;
+    result.swap(m_disconnectedPlayers);
+    return result;
+}
+
 void NetHost::broadcastTurn(uint32_t turnNumber, const std::vector<GameCommand> &commands)
 {
     // Build the TurnBundle payload:
@@ -205,7 +251,22 @@ void NetHost::handlePeerMessage(Peer &peer, const std::vector<uint8_t> &payload)
 void NetHost::removePeer(size_t index)
 {
     if (index < m_peers.size()) {
-        DBG << "Player" << m_peers[index].playerId << "disconnected";
+        int playerId = m_peers[index].playerId;
+        DBG << "Player" << playerId << "disconnected";
+
+        // Queue for GameState to handle
+        m_disconnectedPlayers.push_back(playerId);
+
         m_peers.erase(m_peers.begin() + index);
+
+        // Broadcast PlayerDisconnect to remaining peers
+        std::vector<uint8_t> payload;
+        NetSer::writeU8(payload, static_cast<uint8_t>(NetMsgType::PlayerDisconnect));
+        NetSer::writeI32(payload, playerId);
+        for (auto &peer : m_peers) {
+            if (peer.socket && peer.socket->isValid()) {
+                peer.socket->sendMessage(payload);
+            }
+        }
     }
 }

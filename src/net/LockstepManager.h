@@ -51,6 +51,16 @@ public:
     /// Get the current turn number.
     uint32_t currentTurn() const { return m_currentTurn; }
 
+    /// The player slot this instance controls (0 for host, assigned by host for clients).
+    void setLocalPlayerId(int id) { m_localPlayerId = id; }
+    int localPlayerId() const { return m_localPlayerId; }
+
+    /// Whether this is running in multiplayer mode (host or client).
+    bool isMultiplayer() const { return m_mode != Mode::SinglePlayer; }
+
+    /// Whether this instance is the host.
+    bool isHost() const { return m_mode == Mode::Host; }
+
 private:
     void submitLocalCommands();
     void receiveRemoteCommands();
@@ -87,4 +97,7 @@ private:
     // Track which turn we last submitted commands for
     uint32_t m_lastSubmittedTurn = 0;
     bool m_started = false;
+
+    // Player slot this instance controls
+    int m_localPlayerId = 0;
 };

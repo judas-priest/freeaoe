@@ -7,6 +7,7 @@
 #include "UnitFactory.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
+#include "net/SyncRandom.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -217,8 +218,8 @@ void RandomMapGenerator::placeResources(const Settings &settings,
     // Place gold mines (ID 66)
     int goldPatchCount = size / 20;
     for (int i = 0; i < goldPatchCount; i++) {
-        int gx = 10 + rand() % (size - 20);
-        int gy = 10 + rand() % (size - 20);
+        int gx = 10 + SyncRandom::inst().nextInt(size - 20);
+        int gy = 10 + SyncRandom::inst().nextInt(size - 20);
         MapPos goldPos(gx * Constants::TILE_SIZE, gy * Constants::TILE_SIZE);
 
         for (int j = 0; j < 4; j++) {
@@ -234,8 +235,8 @@ void RandomMapGenerator::placeResources(const Settings &settings,
     // Place stone mines (ID 102)
     int stonePatchCount = size / 25;
     for (int i = 0; i < stonePatchCount; i++) {
-        int sx = 10 + rand() % (size - 20);
-        int sy = 10 + rand() % (size - 20);
+        int sx = 10 + SyncRandom::inst().nextInt(size - 20);
+        int sy = 10 + SyncRandom::inst().nextInt(size - 20);
         MapPos stonePos(sx * Constants::TILE_SIZE, sy * Constants::TILE_SIZE);
 
         for (int j = 0; j < 3; j++) {
@@ -250,8 +251,8 @@ void RandomMapGenerator::placeResources(const Settings &settings,
     // Place berry bushes (ID 59) — near starting positions
     int berryPatchCount = size / 30;
     for (int i = 0; i < berryPatchCount; i++) {
-        int bx = 10 + rand() % (size - 20);
-        int by = 10 + rand() % (size - 20);
+        int bx = 10 + SyncRandom::inst().nextInt(size - 20);
+        int by = 10 + SyncRandom::inst().nextInt(size - 20);
         MapPos berryPos(bx * Constants::TILE_SIZE, by * Constants::TILE_SIZE);
 
         for (int j = 0; j < 6; j++) {
@@ -267,8 +268,8 @@ void RandomMapGenerator::placeResources(const Settings &settings,
     // Place deer (ID 65)
     int deerCount = size / 15;
     for (int i = 0; i < deerCount; i++) {
-        int dx = 10 + rand() % (size - 20);
-        int dy = 10 + rand() % (size - 20);
+        int dx = 10 + SyncRandom::inst().nextInt(size - 20);
+        int dy = 10 + SyncRandom::inst().nextInt(size - 20);
         Unit::Ptr deer = UnitFactory::createUnit(65, gaia, unitManager);
         if (deer) {
             unitManager.add(deer, MapPos(dx * Constants::TILE_SIZE, dy * Constants::TILE_SIZE));
@@ -282,8 +283,8 @@ void RandomMapGenerator::placeResources(const Settings &settings,
         float py = size / 2.f + size * 0.35f * std::sin(angle);
 
         for (int s = 0; s < 4; s++) {
-            float sx = (px + (rand() % 10 - 5)) * Constants::TILE_SIZE;
-            float sy = (py + (rand() % 10 - 5)) * Constants::TILE_SIZE;
+            float sx = (px + (SyncRandom::inst().nextInt(10) - 5)) * Constants::TILE_SIZE;
+            float sy = (py + (SyncRandom::inst().nextInt(10) - 5)) * Constants::TILE_SIZE;
             Unit::Ptr sheep = UnitFactory::createUnit(594, gaia, unitManager);
             if (sheep) {
                 unitManager.add(sheep, MapPos(sx, sy));
@@ -294,8 +295,8 @@ void RandomMapGenerator::placeResources(const Settings &settings,
     // Place trees (ID 349 = oak tree) outside forests for extra wood
     int treeCount = size * 2;
     for (int i = 0; i < treeCount; i++) {
-        int tx = 5 + rand() % (size - 10);
-        int ty = 5 + rand() % (size - 10);
+        int tx = 5 + SyncRandom::inst().nextInt(size - 10);
+        int ty = 5 + SyncRandom::inst().nextInt(size - 10);
         MapTile &tile = map->getTileAt(tx, ty);
         if (tile.terrainId == 1 || tile.terrainId == 2) continue; // skip water
 

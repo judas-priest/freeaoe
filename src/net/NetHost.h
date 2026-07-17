@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 #include <deque>
 #include <functional>
@@ -42,12 +43,22 @@ public:
     /// Number of connected players (including the host itself).
     int playerCount() const { return static_cast<int>(m_peers.size()) + 1; }
 
+    /// Broadcast game start info to all clients (map seed, player civs, etc.).
+    void startGame(uint32_t mapSeed, int mapType, int mapSize,
+                   const std::vector<int> &playerCivs);
+
+    /// Broadcast a speed change to all clients.
+    void broadcastSpeedChange(float newSpeed);
+
     /// Submit local (host player) commands for the current turn.
     void submitLocalCommands(uint32_t turnNumber, const std::vector<GameCommand> &commands);
 
     /// Retrieve the collected turn bundle when all peers have submitted.
     /// Returns true if the turn is complete, fills outCommands.
     bool collectTurn(uint32_t turnNumber, std::vector<GameCommand> &outCommands);
+
+    /// List of player IDs that disconnected since last call (cleared after read).
+    std::vector<int> popDisconnectedPlayers();
 
 private:
     struct Peer {
@@ -71,4 +82,7 @@ private:
     bool m_localSubmitted = false;
     uint32_t m_localTurnNumber = 0;
     std::vector<GameCommand> m_localCommands;
+
+    // Players that disconnected, queued for external consumption
+    std::vector<int> m_disconnectedPlayers;
 };

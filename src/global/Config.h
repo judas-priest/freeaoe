@@ -38,6 +38,8 @@ public:
         MusicVolume,
         SoundVolume,
         Language,
+        HostGame,
+        JoinGame,
 
         OptionsCount,
         SignalCount = OptionsCount

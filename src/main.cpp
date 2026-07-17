@@ -406,6 +406,33 @@ try
         engine.setCampaignInfo(campaignPath, campaignScenarioIndex, campaignScenarioCount);
     }
 
+    // Multiplayer: --host=PORT or --join=host:port
+    //
+    // Two-instance local test:
+    //   Terminal 1: ./freeaoe --host=12345
+    //   Terminal 2: ./freeaoe --join=localhost:12345
+    //
+    if (config.isOptionSet(Config::HostGame)) {
+        uint16_t port = 12345;
+        std::string portStr = config.getValue(Config::HostGame);
+        if (!portStr.empty()) {
+            port = static_cast<uint16_t>(std::stoi(portStr));
+        }
+        engine.setupMultiplayerHost(port);
+    } else if (config.isOptionSet(Config::JoinGame)) {
+        std::string joinStr = config.getValue(Config::JoinGame);
+        std::string host = "localhost";
+        uint16_t port = 12345;
+        size_t colonPos = joinStr.rfind(':');
+        if (colonPos != std::string::npos) {
+            host = joinStr.substr(0, colonPos);
+            port = static_cast<uint16_t>(std::stoi(joinStr.substr(colonPos + 1)));
+        } else {
+            host = joinStr;
+        }
+        engine.setupMultiplayerClient(host, port);
+    }
+
     engine.start();
 #ifdef _WIN32
     restoreWindowsConsole();

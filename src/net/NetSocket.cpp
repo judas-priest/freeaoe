@@ -193,7 +193,14 @@ int NetSocket::recvRaw(void *buffer, size_t maxLength)
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return -1;
         }
+        // Real error — close the socket
+        close();
         return -1;
+    }
+    if (received == 0) {
+        // Graceful disconnect by remote peer
+        close();
+        return 0;
     }
     return static_cast<int>(received);
 }
@@ -238,6 +245,8 @@ bool NetSocket::recvMessage(std::vector<uint8_t> &out)
         if (n > 0) {
             m_recvBuffer.insert(m_recvBuffer.end(), tmp, tmp + n);
         } else {
+            // n == 0 means disconnect (socket already closed by recvRaw),
+            // n < 0 means EAGAIN or error — either way, stop reading.
             break;
         }
     }

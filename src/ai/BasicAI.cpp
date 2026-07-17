@@ -89,12 +89,14 @@ void BasicAI::update(Time time)
     trainVillagers();
     buildHouses();
     buildDropOffSites();
+    buildNaval();
     buildDefenses();
     assignIdleVillagers();
     researchLoom();
     advanceAge();
     if (m_params.researchTechs) researchTechs();
     trainMilitary();
+    useMonksOffensively();
     attackWithArmy();
 }
 
@@ -372,7 +374,8 @@ bool BasicAI::isMilitaryUnit(int unitId) const
         74, 75, 77, 473, 567, 93, 358,   // barracks
         4, 24, 7, 6, 39,                   // archery
         448, 546, 38, 283, 569, 329,       // stable
-        280, 279, 35, 550, 422             // siege
+        280, 279, 35, 550, 422,            // siege
+        125                                 // monk
     };
     for (int id : ids) {
         if (unitId == id) return true;
@@ -520,6 +523,72 @@ void BasicAI::trainMilitary()
     if (m_params.buildSiege && countBuildingsOfType(49) > 0 && wood >= 160 && gold >= 75) {
         if (countUnitsOfType(35) < 3) { // Max 3 rams
             trainFromBuilding(49, 35);
+        }
+    }
+
+    // Build monastery (104, 175W) in Castle Age
+    if (countBuildingsOfType(104) == 0 && m_player->currentAge() >= Player::CastleAge) {
+        if (wood >= 175) buildStructure(104, 175);
+    }
+
+    // Train monks (125, 100G) from monastery — max 3
+    if (countBuildingsOfType(104) > 0 && gold >= 100) {
+        if (countUnitsOfType(125) < 3) {
+            trainFromBuilding(104, 125);
+        }
+    }
+}
+
+void BasicAI::useMonksOffensively()
+{
+    const float conversionRange = 12.f * Constants::TILE_SIZE;
+
+    // High-value targets for conversion: knights, cavaliers, paladins, war elephants, siege
+    static const int highValueIds[] = {
+        38, 283, 569, 329,   // Knight, Cavalier, Paladin, Camel
+        280, 279, 550, 422,  // Mangonel, Scorpion, Onager, SiegeRam
+        35,                  // BatteringRam
+    };
+
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (!unit || unit->playerId() != m_player->playerId) continue;
+        if (unit->data()->ID != 125) continue; // Monk
+        if (unit->actions.currentAction()) continue; // Already busy
+
+        // Find best enemy target within range — prefer expensive units
+        Unit::Ptr bestTarget;
+        float bestDist = conversionRange;
+        bool bestIsHighValue = false;
+
+        for (const Unit::Ptr &enemy : m_unitManager->units()) {
+            if (!enemy || enemy->playerId() == m_player->playerId || enemy->playerId() == 0) continue;
+            if (enemy->isDead() || enemy->isDying()) continue;
+            if (enemy->isBuilding()) continue; // Can't convert buildings
+
+            float dist = unit->distanceTo(enemy);
+            if (dist > conversionRange) continue;
+
+            bool isHighValue = false;
+            for (int hvId : highValueIds) {
+                if (enemy->data()->ID == hvId) { isHighValue = true; break; }
+            }
+
+            // Prefer high-value targets, then closest
+            if (isHighValue && !bestIsHighValue) {
+                bestTarget = enemy;
+                bestDist = dist;
+                bestIsHighValue = true;
+            } else if (isHighValue == bestIsHighValue && dist < bestDist) {
+                bestTarget = enemy;
+                bestDist = dist;
+            }
+        }
+
+        if (bestTarget) {
+            Task task = unit->actions.findTaskWithTarget(bestTarget);
+            if (task.isValid()) {
+                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+            }
         }
     }
 }

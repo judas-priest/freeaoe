@@ -47,7 +47,10 @@ private:
     void advanceAge();
     void attackWithArmy();
     void trainMilitary();
+    void useMonksOffensively();
     void researchTechs();
+    void buildNaval();
+    bool isWaterMap() const;
     void buildStructure(int buildingId, int woodCost);
     void buildStructureWithCost(int buildingId, int woodCost, int stoneCost);
     void trainFromBuilding(int buildingId, int unitId);

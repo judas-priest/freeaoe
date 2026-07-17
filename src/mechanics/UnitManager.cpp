@@ -316,6 +316,16 @@ void UnitManager::onUnitDiscovered(Player *player, Unit *unit)
 
 }
 
+Unit::Ptr UnitManager::unitById(size_t entityId) const
+{
+    for (const auto &unit : m_units) {
+        if (unit && unit->id == entityId) {
+            return unit;
+        }
+    }
+    return nullptr;
+}
+
 bool UnitManager::init()
 {
     m_moveTargetMarker = std::make_unique<MoveTargetMarker>();

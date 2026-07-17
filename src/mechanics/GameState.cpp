@@ -31,6 +31,10 @@
 
 #include "UnitFactory.h"
 #include "ScenarioController.h"
+#include "actions/IAction.h"
+#include "actions/ActionAttack.h"
+#include "net/LockstepManager.h"
+#include "net/GameCommand.h"
 
 #include <Engine.h>
 #ifdef USE_SDL2
@@ -177,6 +181,24 @@ bool GameState::update(Time time)
 {
     bool updated = false;
 
+    // Lockstep synchronization: if enabled, update the lockstep manager
+    // and only process the game tick when the current turn is ready.
+    if (m_lockstep) {
+        m_lockstep->update(static_cast<uint32_t>(time));
+
+        if (m_lockstep->isReadyToAdvance()) {
+            // Execute all commands for this turn
+            auto commands = m_lockstep->commandsForCurrentTurn();
+            if (!commands.empty()) {
+                executeCommands(commands);
+            }
+            m_lockstep->advanceTurn();
+        } else {
+            // Not ready yet -- block game update, only return false
+            return false;
+        }
+    }
+
     updated = m_unitManager->update(time) || updated;
     if (m_scenarioController) {
         updated = m_scenarioController->update(time) || updated;
@@ -280,6 +302,132 @@ void GameState::setTradingPrice(const genie::ResourceType type, const int newPri
 {
     m_tradingPrices[type] = newPrice;
     EventManager::tradingPriceChanged(type, m_tradingPrices[type]);
+}
+
+void GameState::executeCommands(const std::vector<GameCommand> &commands)
+{
+    for (const auto &cmd : commands) {
+        switch (cmd.type) {
+        case CommandType::Move: {
+            MapPos targetPos(cmd.x, cmd.y, 0);
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr unit = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (unit && unit->isAlive()) {
+                    m_unitManager->moveUnitTo(unit, targetPos);
+                }
+            }
+            break;
+        }
+
+        case CommandType::Attack: {
+            Unit::Ptr target = m_unitManager->unitById(static_cast<size_t>(cmd.targetId));
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr unit = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (!unit || !unit->isAlive()) continue;
+
+                if (target) {
+                    Task task = unit->actions.findAnyTask(genie::ActionType::Attack, target->data()->ID);
+                    task.target = target;
+                    IAction::assignTask(task, unit, IAction::AssignType::Replace);
+                } else {
+                    // Attack-ground at position
+                    MapPos targetPos(cmd.x, cmd.y, 0);
+                    auto action = std::make_shared<ActionAttack>(unit, targetPos, unit->actions.findAnyTask(genie::ActionType::Attack, -1));
+                    unit->actions.setCurrentAction(action);
+                }
+            }
+            break;
+        }
+
+        case CommandType::Build: {
+            if (cmd.buildingType < 0) break;
+            Player::Ptr owner = player(cmd.playerId);
+            if (!owner) break;
+
+            MapPos pos(cmd.x, cmd.y, 0);
+            Unit::Ptr building = UnitFactory::createUnit(cmd.buildingType, owner, *m_unitManager);
+            if (!building) break;
+
+            building->isVisible = true;
+            m_unitManager->add(building, pos);
+            building->setCreationProgress(0.f);
+
+            // Assign all selected builders to construct it
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr builder = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (!builder || !builder->isAlive()) continue;
+
+                Task task;
+                for (const Task &potential : builder->actions.availableActions()) {
+                    if (potential.data->ActionType == genie::ActionType::Build) {
+                        task = potential;
+                        break;
+                    }
+                }
+                if (!task.data) continue;
+
+                task.target = building;
+                IAction::assignTask(task, builder, IAction::AssignType::Replace);
+            }
+            break;
+        }
+
+        case CommandType::Train: {
+            if (cmd.unitType < 0) break;
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr producer = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (!producer) continue;
+                Player::Ptr owner = producer->player().lock();
+                if (!owner) continue;
+                const genie::Unit *unitData = &owner->civilization.unitData(cmd.unitType);
+                UnitVector producers = { producer };
+                m_unitManager->enqueueProduceUnit(unitData, producers);
+            }
+            break;
+        }
+
+        case CommandType::Research: {
+            if (cmd.techId < 0) break;
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr producer = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (!producer) continue;
+                Player::Ptr owner = producer->player().lock();
+                if (!owner) continue;
+                const std::vector<genie::Tech> &techs = DataManager::Inst().allTechs();
+                if (cmd.techId >= 0 && cmd.techId < static_cast<int>(techs.size())) {
+                    const genie::Tech *techData = &techs[cmd.techId];
+                    UnitVector producers = { producer };
+                    m_unitManager->enqueueResearch(techData, producers);
+                }
+            }
+            break;
+        }
+
+        case CommandType::Delete: {
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr unit = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (unit && unit->isAlive()) {
+                    unit->kill();
+                }
+            }
+            break;
+        }
+
+        case CommandType::Stop: {
+            for (int unitId : cmd.unitIds) {
+                Unit::Ptr unit = m_unitManager->unitById(static_cast<size_t>(unitId));
+                if (unit && unit->isAlive()) {
+                    unit->actions.clearActionQueue();
+                }
+            }
+            break;
+        }
+
+        default:
+            DBG << "executeCommands: unhandled command type" << static_cast<int>(cmd.type);
+            break;
+        }
+    }
 }
 
 void GameState::setupScenario()

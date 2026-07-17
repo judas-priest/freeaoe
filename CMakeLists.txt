@@ -370,6 +370,12 @@ set(NET_SRC
     src/net/NetSocket.h
     src/net/NetMessage.h
     src/net/GameCommand.h
+    src/net/NetHost.cpp
+    src/net/NetHost.h
+    src/net/NetClient.cpp
+    src/net/NetClient.h
+    src/net/LockstepManager.cpp
+    src/net/LockstepManager.h
     )
 
 set(SERVER_SRC

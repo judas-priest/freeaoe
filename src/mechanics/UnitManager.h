@@ -188,6 +188,9 @@ public:
     void setSelectedUnits(const UnitVector &units);
     const UnitSet &selected() const { return m_selectedUnits; }
 
+    /// Find a unit by its entity ID. Returns nullptr if not found.
+    Unit::Ptr unitById(size_t entityId) const;
+
     const UnitVector &units() const { return m_units; }
     const std::unordered_set<std::shared_ptr<Missile>> &missiles() const { return m_missiles; }
     const std::unordered_set<StaticEntity::Ptr> &staticEntities() const { return m_staticEntities; }

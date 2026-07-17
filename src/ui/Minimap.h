@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include "core/Types.h"
@@ -41,6 +42,9 @@ public:
     void cycleMode();
     MinimapMode mode() const { return m_mode; }
 
+    void addFlare(const MapPos &position, int playerId);
+    void setFlareCallback(std::function<void(const MapPos&)> callback) { m_onFlare = callback; }
+
 private:
     void updateUnits();
     void updateTerrain();
@@ -72,5 +76,14 @@ private:
     MinimapMode m_mode = MinimapMode::Diplomatic; // easiest, so sue me
 
     Drawable::Text::Ptr m_modeLabel;
+
+    struct Flare {
+        MapPos position;
+        int playerId = 0;
+        float timeLeft = 5000.f; // ms
+    };
+    std::vector<Flare> m_flares;
+    std::function<void(const MapPos&)> m_onFlare;
+    Time m_lastFlareUpdate = 0;
 };
 

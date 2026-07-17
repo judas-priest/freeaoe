@@ -661,7 +661,9 @@ float Unit::tallness() const noexcept
 
 void Unit::forEachVisibleTile(const std::function<void (const int, const int)> &action)
 {
-    const int los = m_lineOfSight;
+    const float elevHeight = DataManager::Inst().terrainBlock().ElevHeight;
+    const int unitElevation = (elevHeight > 0) ? static_cast<int>(position().z / elevHeight) : 0;
+    const int los = m_lineOfSight + unitElevation * 2;
     const int tileXOffset = position().x / Constants::TILE_SIZE;
     const int tileYOffset = position().y / Constants::TILE_SIZE;
     for (int y=-los; y<= los; y++) {

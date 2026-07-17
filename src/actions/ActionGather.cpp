@@ -87,6 +87,14 @@ IAction::UpdateResult ActionGather::update(Time time)
     }
 
 
+    // Dead animal carcasses decay at 0.25 food/sec (AoE2 behavior)
+    if (target->healthLeft() <= 0 && m_resourceType == genie::ResourceType::FoodStorage) {
+        const float decayRate = 0.25f;
+        const float elapsed = (time - m_prevTime) * 0.001f;
+        const float decayAmount = decayRate * elapsed;
+        target->resources[m_resourceType] = std::max(target->resources[m_resourceType] - decayAmount, 0.f);
+    }
+
     float amount = unit->data()->Action.WorkRate * m_task.data->WorkValue1;
     if (m_task.data->ResourceMultiplier >= 0) {
         Player::Ptr player = unit->player().lock();

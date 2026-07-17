@@ -19,7 +19,12 @@
 #include <genie/resource/Color.h>
 #include <genie/resource/PalFile.h>
 
+#ifdef USE_SDL2
+#include <SDL2/SDL.h>
+#endif
+
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <vector>
 
@@ -274,6 +279,11 @@ bool Minimap::init()
     return m_terrainTexture != nullptr;
 }
 
+void Minimap::addFlare(const MapPos &position, int playerId)
+{
+    m_flares.push_back({position, playerId, 5000.f});
+}
+
 bool Minimap::handleEvent(input::Event event)
 {
     ScreenPos pos;
@@ -286,6 +296,26 @@ bool Minimap::handleEvent(input::Event event)
     }
 
     if (event.type == input::Event::MouseButtonPressed && m_rect.contains(pos)) {
+#ifdef USE_SDL2
+        if (SDL_GetModState() & KMOD_ALT) {
+            // Alt+click: send flare
+            ScreenPos fpos = pos;
+            fpos.x -= m_rect.x;
+            fpos.y -= m_rect.y;
+            fpos.y = m_rect.height/2 - fpos.y;
+            const MapRect mapDims(0, 0, m_map->columnCount() * Constants::TILE_SIZE, m_map->rowCount() * Constants::TILE_SIZE);
+            const ScreenRect fullRect = mapDims.boundingScreenRect();
+            fpos.x = fullRect.width * fpos.x / m_rect.width;
+            fpos.y = fullRect.height * fpos.y / m_rect.height;
+            const MapPos flarePos = mapDims.bounded(fpos.toMap());
+            int pid = m_humanPlayer ? m_humanPlayer->playerId : 0;
+            addFlare(flarePos, pid);
+            if (m_onFlare) {
+                m_onFlare(flarePos);
+            }
+            return true;
+        }
+#endif
         m_mousePressed = true;
     } else if (event.type == input::Event::MouseButtonReleased && m_mousePressed) {
         m_mousePressed = false;
@@ -313,8 +343,22 @@ bool Minimap::handleEvent(input::Event event)
     return true;
 }
 
-bool Minimap::update(Time /*time*/)
+bool Minimap::update(Time time)
 {
+    // Update flare lifetimes
+    if (m_lastFlareUpdate > 0 && !m_flares.empty()) {
+        const float elapsed = static_cast<float>(time - m_lastFlareUpdate);
+        for (auto it = m_flares.begin(); it != m_flares.end(); ) {
+            it->timeLeft -= elapsed;
+            if (it->timeLeft <= 0) {
+                it = m_flares.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    m_lastFlareUpdate = time;
+
     if (IS_UNLIKELY(!m_visibilityMap)) {
         WARN << "no visibility map set";
         return false;
@@ -530,4 +574,35 @@ void Minimap::draw()
     rect.rect.setTopLeft(cameraRect.topLeft());
     rect.borderColor = Drawable::White;
     m_renderTarget->draw(rect);
+
+    // Draw flares as pulsing circles
+    if (!m_flares.empty() && m_map) {
+        const MapRect mapDimensions(0, 0, m_map->columnCount(), m_map->rowCount());
+        const float scaleX = m_rect.boundingMapRect().width / mapDimensions.width / 2;
+        const float scaleY = m_rect.boundingMapRect().height / mapDimensions.height / 2;
+        const ScreenPos center(m_rect.width/2, m_rect.height/2);
+
+        for (const Flare &flare : m_flares) {
+            const ScreenPos fpos = MapPos(
+                flare.position.y / Constants::TILE_SIZE,
+                flare.position.x / Constants::TILE_SIZE
+            ).toScreen();
+
+            ScreenPos drawPos;
+            drawPos.x = m_rect.x + fpos.x * scaleX;
+            drawPos.y = m_rect.y + fpos.y * scaleY + center.y;
+
+            const float pulse = 4.f + 4.f * std::abs(std::sin(flare.timeLeft * 0.006f));
+            const uint8_t alpha = static_cast<uint8_t>(std::min(flare.timeLeft / 1000.f, 1.f) * 255);
+
+            Drawable::Circle flareCircle;
+            flareCircle.center = drawPos;
+            flareCircle.radius = pulse;
+            flareCircle.pointCount = 8;
+            flareCircle.filled = true;
+            flareCircle.fillColor = Drawable::Color(255, 255, 0, alpha);
+            flareCircle.borderSize = 0;
+            m_renderTarget->draw(flareCircle);
+        }
+    }
 }

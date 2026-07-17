@@ -229,9 +229,11 @@ Task UnitActionHandler::checkForAutoTargets()
     const genie::Unit *data = m_unit->m_data;
 
     // StandGround: scan weapon range only, not full LOS
+    const float elevHeight = DataManager::Inst().terrainBlock().ElevHeight;
+    const int unitElevation = (elevHeight > 0) ? static_cast<int>(m_unit->position().z / elevHeight) : 0;
     const int scanRange = (m_unit->stance == Unit::Stance::StandGround)
         ? static_cast<int>(m_unit->effectiveRange())
-        : data->LineOfSight;
+        : data->LineOfSight + unitElevation * 2;
 
     Task newTask;
     Unit::Ptr target;

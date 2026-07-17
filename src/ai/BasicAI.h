@@ -49,6 +49,7 @@ private:
     void trainMilitary();
     void useMonksOffensively();
     void researchTechs();
+    void useMarket();
     void buildNaval();
     bool isWaterMap() const;
     void buildStructure(int buildingId, int woodCost);

@@ -94,6 +94,7 @@ void BasicAI::update(Time time)
     assignIdleVillagers();
     researchLoom();
     advanceAge();
+    useMarket();
     if (m_params.researchTechs) researchTechs();
     trainMilitary();
     useMonksOffensively();
@@ -361,6 +362,74 @@ void BasicAI::advanceAge()
             }
         }
         return;
+    }
+}
+
+void BasicAI::useMarket()
+{
+    // Build market (ID 84, 175W) in Feudal Age if none exists
+    if (m_player->currentAge() >= Player::FeudalAge && countBuildingsOfType(84) == 0) {
+        float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+        if (wood >= 175) {
+            buildStructure(84, 175);
+        }
+        return; // Wait for market to be built
+    }
+
+    if (countBuildingsOfType(84) == 0) return;
+
+    float food = m_player->resourcesAvailable(genie::ResourceType::FoodStorage);
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float stone = m_player->resourcesAvailable(genie::ResourceType::StoneStorage);
+    float gold = m_player->resourcesAvailable(genie::ResourceType::GoldStorage);
+
+    // Sell excess resources for gold when gold < 100
+    if (gold < 100) {
+        if (food > 800 && m_player->resourcesAvailable(genie::ResourceType::FoodStorage) >= 100) {
+            int revenue = m_player->marketPrices.sellPrice(0); // 0=Food
+            m_player->setAvailableResource(genie::ResourceType::FoodStorage, food - 100);
+            m_player->setAvailableResource(genie::ResourceType::GoldStorage, gold + revenue);
+            m_player->marketPrices.onSell(0);
+            DBG << "AI sold 100 food for" << revenue << "gold";
+            return;
+        }
+        if (wood > 800 && m_player->resourcesAvailable(genie::ResourceType::WoodStorage) >= 100) {
+            int revenue = m_player->marketPrices.sellPrice(1); // 1=Wood
+            m_player->setAvailableResource(genie::ResourceType::WoodStorage, wood - 100);
+            m_player->setAvailableResource(genie::ResourceType::GoldStorage, gold + revenue);
+            m_player->marketPrices.onSell(1);
+            DBG << "AI sold 100 wood for" << revenue << "gold";
+            return;
+        }
+        if (stone > 400 && m_player->resourcesAvailable(genie::ResourceType::StoneStorage) >= 100) {
+            int revenue = m_player->marketPrices.sellPrice(2); // 2=Stone
+            m_player->setAvailableResource(genie::ResourceType::StoneStorage, stone - 100);
+            m_player->setAvailableResource(genie::ResourceType::GoldStorage, gold + revenue);
+            m_player->marketPrices.onSell(2);
+            DBG << "AI sold 100 stone for" << revenue << "gold";
+            return;
+        }
+    }
+
+    // Buy food with gold when food < 100 and gold > 500
+    if (food < 100 && gold > 500) {
+        int cost = m_player->marketPrices.buyPrice(0); // 0=Food
+        if (gold >= cost) {
+            m_player->setAvailableResource(genie::ResourceType::GoldStorage, gold - cost);
+            m_player->setAvailableResource(genie::ResourceType::FoodStorage, food + 100);
+            m_player->marketPrices.onBuy(0);
+            DBG << "AI bought 100 food for" << cost << "gold";
+            return;
+        }
+    }
+
+    // Train trade carts (ID 128, 100W 50G) from market in Castle Age, up to 3
+    if (m_player->currentAge() >= Player::CastleAge && countUnitsOfType(128) < 3) {
+        float w = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+        float g = m_player->resourcesAvailable(genie::ResourceType::GoldStorage);
+        if (w >= 100 && g >= 50) {
+            trainFromBuilding(84, 128);
+        }
     }
 }
 

@@ -22,6 +22,7 @@
 #include <genie/resource/EdgeFiles.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -246,9 +247,24 @@ void MapRenderer::updateTexture()
             }
 
             m_textureTarget->draw(tileTexture, spos);
-//                invalidIndicator.setPosition(spos);
-//                m_textureTarget.draw(invalidIndicator);
-//            m_textureTarget.draw(terrain->texture(mapTile), spos);
+
+            // Sinusoidal blue tint overlay for PNG water tiles (frameCount <= 1)
+            if ((mapTile.terrainId == 1 || mapTile.terrainId == 2 || mapTile.terrainId == 3 ||
+                 mapTile.terrainId == 4 || mapTile.terrainId == 22 || mapTile.terrainId == 26) &&
+                terrain->frameCount() <= 1) {
+                const float phase = (col * 0.7f + row * 1.1f);
+                const float wave = std::sin(m_waterFrame * 0.785f + phase); // 0.785 ~ pi/4, cycles over 8 frames
+                const uint8_t alpha = static_cast<uint8_t>(25 + 15 * wave); // range 10-40
+                Drawable::Circle waterTint;
+                waterTint.center = spos + ScreenPos(Constants::TILE_SIZE_HORIZONTAL / 2.f, Constants::TILE_SIZE_VERTICAL / 2.f);
+                waterTint.radius = Constants::TILE_SIZE_HORIZONTAL / 2.f;
+                waterTint.pointCount = 4;
+                waterTint.aspectRatio = 0.5f;
+                waterTint.filled = true;
+                waterTint.fillColor = Drawable::Color(30, 90, 200, alpha);
+                waterTint.borderSize = 0;
+                m_textureTarget->draw(waterTint);
+            }
 
             if (m_visibilityMap->visibilityAt(col, row) == VisibilityMap::Explored) {
                 m_textureTarget->draw(shadowMask(mapTile.slopes.self.toGenie(), 0), spos);

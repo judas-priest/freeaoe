@@ -57,6 +57,10 @@ private:
     void updateDiplomacy();
     void useMarket();
     void buildNaval();
+    void buildBlacksmith();
+    void buildUniversity();
+    void buildCastle();
+    void buildExtraTownCenter();
     bool isWaterMap() const;
     void buildStructure(int buildingId, int woodCost);
     void buildStructureWithCost(int buildingId, int woodCost, int stoneCost);

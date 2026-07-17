@@ -124,6 +124,10 @@ void BasicAI::update(Time time)
     buildMill();
     buildFarms();
     buildNaval();
+    buildBlacksmith();
+    buildUniversity();
+    buildCastle();
+    buildExtraTownCenter();
     buildDefenses();
     buildWalls();
     assignIdleVillagers();
@@ -741,6 +745,18 @@ void BasicAI::trainMilitary()
             trainFromBuilding(104, 125);
         }
     }
+
+    // Train unique units from Castle (82)
+    if (countBuildingsOfType(82) > 0 && food >= 60) {
+        const auto &castleUnits = m_player->civilization.creatableUnits(82);
+        for (const genie::Unit *cu : castleUnits) {
+            if (!cu) continue;
+            int uid = cu->ID;
+            if (uid == 440 || uid == 331) continue; // Skip Petard, Trebuchet
+            trainFromBuilding(82, uid);
+            break;
+        }
+    }
 }
 
 void BasicAI::useMonksOffensively()
@@ -1049,6 +1065,40 @@ bool BasicAI::isWaterMap() const
     return false;
 }
 
+void BasicAI::buildBlacksmith()
+{
+    if (m_player->currentAge() < Player::FeudalAge) return;
+    if (countBuildingsOfType(103) >= 1) return;
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    if (wood >= 150) buildStructure(103, 150);
+}
+
+void BasicAI::buildUniversity()
+{
+    if (m_player->currentAge() < Player::CastleAge) return;
+    if (countBuildingsOfType(209) >= 1) return;
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    if (wood >= 200) buildStructure(209, 200);
+}
+
+void BasicAI::buildCastle()
+{
+    if (m_player->currentAge() < Player::CastleAge) return;
+    if (countBuildingsOfType(82) >= 2) return;
+    float stone = m_player->resourcesAvailable(genie::ResourceType::StoneStorage);
+    if (stone >= 650) buildStructureWithCost(82, 0, 650);
+}
+
+void BasicAI::buildExtraTownCenter()
+{
+    if (m_player->currentAge() < Player::CastleAge) return;
+    int maxTCs = (m_strategy == Strategy::Boom) ? 3 : 2;
+    if (countBuildingsOfType(109) >= maxTCs) return;
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float stone = m_player->resourcesAvailable(genie::ResourceType::StoneStorage);
+    if (wood >= 275 && stone >= 100) buildStructureWithCost(109, 275, 100);
+}
+
 void BasicAI::buildNaval()
 {
     if (!isWaterMap()) return;
@@ -1291,6 +1341,8 @@ void BasicAI::researchTechs()
         140, // Guard Tower
         211, // Wheelbarrow (TC, faster villagers)
         249, // HandCart (TC, even faster)
+        93,  // Ballistics (University, projectiles track)
+        51,  // Architecture (University, +10% building HP)
     };
 
     for (int techId : priorityTechs) {

@@ -1096,15 +1096,19 @@ void UnitManager::selectUnits(const ScreenRect &selectionRect, const CameraPtr &
 
 void UnitManager::selectUnitsByType(int unitTypeId, int playerId, const ScreenRect &area, const CameraPtr &camera)
 {
+    static constexpr size_t MAX_SELECTION = 40;
+
     UnitSet newSelection;
     for (const Unit::Ptr &unit : m_units) {
         if (!unit || !unit->isVisible) continue;
+        if (unit->isDead() || unit->isDying()) continue;
         if (unit->data()->ID != unitTypeId) continue;
         if (unit->playerId() != playerId) continue;
 
         const ScreenPos screenPos = camera->absoluteScreenPos(unit->position());
         if (area.contains(screenPos)) {
             newSelection.add(unit);
+            if (newSelection.units.size() >= MAX_SELECTION) break;
         }
     }
 

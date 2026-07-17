@@ -712,6 +712,20 @@ void Engine::drawUi()
 
     m_minimap->draw();
 
+    // Minimap mode label (Task 7)
+    if (m_minimapModeText) {
+        ScreenRect mmRect = m_minimap->rect();
+        const char *modeStr = "Normal";
+        switch (m_minimap->mode()) {
+        case Minimap::MinimapMode::Diplomatic: modeStr = "Diplo"; break;
+        case Minimap::MinimapMode::Economic:   modeStr = "Econ";  break;
+        case Minimap::MinimapMode::Normal:     modeStr = "Normal"; break;
+        }
+        m_minimapModeText->string = modeStr;
+        m_minimapModeText->position = ScreenPos(mmRect.x + mmRect.width / 2 - 14, mmRect.y + mmRect.height + 2);
+        renderTarget_->draw(m_minimapModeText);
+    }
+
     m_actionPanel->draw();
     m_unitInfoPanel->draw();
 
@@ -856,13 +870,97 @@ void Engine::drawUi()
         }
     }
 
+    // Stats overlay (Task 5: post-game statistics screen)
+    if (m_statsVisible && m_statText) {
+        auto activeState2 = state_manager_.getActiveState();
+        if (activeState2) {
+            const Size ws = renderTarget_->getSize();
+            const int panelW = std::min(520, int(ws.width) - 40);
+            const int lineH = 22;
+            const auto &allPlayers = activeState2->players();
+            const int numPlayers = int(allPlayers.size());
+            // Header + 1 row per player + column headers
+            const int panelH = 60 + (numPlayers + 1) * lineH + 20;
+            const int panelX = (int(ws.width) - panelW) / 2;
+            const int panelY = (int(ws.height) - panelH) / 2;
+
+            // Background
+            renderTarget_->draw(ScreenRect(panelX, panelY, panelW, panelH),
+                                Drawable::Color(30, 25, 15, 230));
+            // Border
+            const Drawable::Color statsBorder(140, 120, 80, 255);
+            renderTarget_->draw(ScreenRect(panelX, panelY, panelW, 2), statsBorder);
+            renderTarget_->draw(ScreenRect(panelX, panelY + panelH - 2, panelW, 2), statsBorder);
+            renderTarget_->draw(ScreenRect(panelX, panelY, 2, panelH), statsBorder);
+            renderTarget_->draw(ScreenRect(panelX + panelW - 2, panelY, 2, panelH), statsBorder);
+
+            // Title
+            m_statText->color = Drawable::Color(220, 200, 160, 255);
+            m_statText->string = "Game Statistics";
+            m_statText->position = ScreenPos(panelX + panelW / 2 - 60, panelY + 12);
+            renderTarget_->draw(m_statText);
+
+            // Column headers
+            float hy = panelY + 42;
+            m_statText->color = Drawable::Color(180, 170, 130, 255);
+            const int col0 = panelX + 10;
+            const int col1 = panelX + 120;
+            const int col2 = panelX + 190;
+            const int col3 = panelX + 250;
+            const int col4 = panelX + 330;
+            const int col5 = panelX + 410;
+
+            m_statText->string = "Player"; m_statText->position = ScreenPos(col0, hy); renderTarget_->draw(m_statText);
+            m_statText->string = "Score";  m_statText->position = ScreenPos(col1, hy); renderTarget_->draw(m_statText);
+            m_statText->string = "Kills";  m_statText->position = ScreenPos(col2, hy); renderTarget_->draw(m_statText);
+            m_statText->string = "Lost";   m_statText->position = ScreenPos(col3, hy); renderTarget_->draw(m_statText);
+            m_statText->string = "Razed";  m_statText->position = ScreenPos(col4, hy); renderTarget_->draw(m_statText);
+            m_statText->string = "Techs";  m_statText->position = ScreenPos(col5, hy); renderTarget_->draw(m_statText);
+
+            // Separator
+            renderTarget_->draw(ScreenRect(panelX + 8, int(hy) + lineH - 2, panelW - 16, 1),
+                                Drawable::Color(100, 80, 50, 200));
+
+            // Player rows
+            float ry = hy + lineH;
+            for (int i = 0; i < numPlayers; i++) {
+                const Player::Ptr &p = allPlayers[i];
+                if (!p) continue;
+                bool isHuman = (p == activeState2->humanPlayer());
+                m_statText->color = isHuman
+                    ? Drawable::Color(255, 220, 100, 255)
+                    : Drawable::Color(200, 190, 150, 255);
+                m_statText->string = p->name.empty() ? ("Player " + std::to_string(i + 1)) : p->name;
+                m_statText->position = ScreenPos(col0, ry); renderTarget_->draw(m_statText);
+                m_statText->string = std::to_string(p->score());
+                m_statText->position = ScreenPos(col1, ry); renderTarget_->draw(m_statText);
+                m_statText->string = std::to_string(p->unitsKilled);
+                m_statText->position = ScreenPos(col2, ry); renderTarget_->draw(m_statText);
+                m_statText->string = std::to_string(p->unitsLost);
+                m_statText->position = ScreenPos(col3, ry); renderTarget_->draw(m_statText);
+                m_statText->string = std::to_string(p->buildingsRazed);
+                m_statText->position = ScreenPos(col4, ry); renderTarget_->draw(m_statText);
+                m_statText->string = std::to_string(p->techsResearched);
+                m_statText->position = ScreenPos(col5, ry); renderTarget_->draw(m_statText);
+                ry += lineH;
+            }
+
+            // Close hint
+            m_statText->color = Drawable::Color(140, 130, 100, 200);
+            m_statText->string = "Press Tab or Esc to close";
+            m_statText->position = ScreenPos(panelX + panelW / 2 - 80, ry + 6);
+            renderTarget_->draw(m_statText);
+        }
+    }
+
     // Chat input bar
     if (m_chat.active) {
         const Size ws = renderTarget_->getSize();
         renderTarget_->draw(ScreenRect(0, m_gameAreaHeight - 28, ws.width, 28),
                             Drawable::Color(0, 0, 0, 180));
         if (m_statText) {
-            m_statText->string = "Say: " + m_chat.buffer + "_";
+            std::string targetLabel = (m_chat.target == -2) ? "[Allies] " : "[All] ";
+            m_statText->string = targetLabel + "Say: " + m_chat.buffer + "_";
             m_statText->color = Drawable::White;
             m_statText->position = ScreenPos(8, m_gameAreaHeight - 24);
             renderTarget_->draw(m_statText);
@@ -951,22 +1049,17 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
 #else
             renderWindow_->close();
 #endif
-        } else if (choice == Dialog::Save) {
-            // Save game
-            MapPos camPos = renderTarget_->camera()->targetPosition();
-            std::string savePath;
-#ifdef ANDROID
-            const char *ext = SDL_AndroidGetExternalStoragePath();
-            savePath = ext ? std::string(ext) + "/save.faoe" : "/sdcard/save.faoe";
-#else
-            savePath = "save.faoe";
-#endif
-            if (SaveGame::save(savePath, *state, camPos.x, camPos.y)) {
-                addMessage("Game saved!");
-            } else {
-                addMessage("Save failed!");
-            }
+        } else if (choice == Dialog::Achievements) {
+            // Achievements button → Load game dialog
             m_currentDialog.reset();
+            showSaveLoadScreen(true);
+        } else if (choice == Dialog::Save) {
+            // Save button → Save game dialog
+            m_currentDialog.reset();
+            showSaveLoadScreen(false);
+        } else if (choice == Dialog::Options) {
+            m_currentDialog.reset();
+            if (m_settingsScreen) m_settingsScreen->show();
         }
 
         return true;
@@ -1135,6 +1228,19 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         return true;
     }
 
+    case input::Key::F7: {
+        // Slow down game speed
+        m_gameSpeed = std::max(0.5f, m_gameSpeed - 0.5f);
+        addMessage("Game speed: " + std::to_string(m_gameSpeed).substr(0, 3) + "x");
+        return true;
+    }
+    case input::Key::F8: {
+        // Speed up game speed
+        m_gameSpeed = std::min(3.0f, m_gameSpeed + 0.5f);
+        addMessage("Game speed: " + std::to_string(m_gameSpeed).substr(0, 3) + "x");
+        return true;
+    }
+
     // Unit commands
     case input::Key::S: // Stop
         for (const Unit::Ptr &unit : state->unitManager()->selected()) {
@@ -1181,6 +1287,10 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
 #ifdef USE_SDL2
             SDL_StopTextInput();
 #endif
+            return true;
+        }
+        if (m_statsVisible) {
+            m_statsVisible = false;
             return true;
         }
         showMenu();
@@ -1310,16 +1420,47 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         return true;
     }
 
-    // H = center on Town Center
+    // Tab = toggle stats overlay
+    case input::Key::Tab:
+        m_statsVisible = !m_statsVisible;
+        return true;
+
+    // F2 = hotkey help
+    case input::Key::F2: {
+        addMessage("--- Hotkey Reference ---");
+        addMessage("H = Cycle Town Centers  |  F1 = Cycle Idle Villagers");
+        addMessage("F2 = This Help  |  F3 = Pause  |  F4 = Minimap Mode");
+        addMessage("F5 = Quick Save  |  F9 = Quick Load  |  F6 = Follow Unit");
+        addMessage("Tab = Stats  |  F11 = Objectives  |  Esc = Menu");
+        addMessage("S = Stop  |  A = Attack Move  |  Del = Delete Unit");
+        addMessage("Ctrl+1..9 = Set Group  |  1..9 = Recall Group");
+        addMessage("Enter = Chat  |  Shift+A = Select All Military");
+        return true;
+    }
+
+    // H = cycle Town Centers
     case input::Key::H: {
         const Player::Ptr &human = state->humanPlayer();
         if (human) {
-            // Find TC (unit type 109 = TownCenter)
+            // Collect all TCs (IDs: 109=TC, 71=TC foundation, 141=TC Age3, 142=TC Age4)
+            std::vector<Unit::Ptr> tcs;
             for (const Unit::Ptr &unit : state->unitManager()->units()) {
-                if (unit->playerId() == human->playerId && unit->data()->ID == 109) {
-                    renderTarget_->camera()->setTargetPosition(unit->position());
-                    break;
+                if (!unit || unit->isDead() || unit->isDying()) continue;
+                if (unit->playerId() != human->playerId) continue;
+                int id = unit->data()->ID;
+                if (id == 109 || id == 71 || id == 141 || id == 142) {
+                    tcs.push_back(unit);
                 }
+            }
+            if (!tcs.empty()) {
+                m_tcCycleIndex = m_tcCycleIndex % int(tcs.size());
+                const Unit::Ptr &tc = tcs[m_tcCycleIndex];
+                renderTarget_->camera()->setTargetPosition(tc->position());
+                // Select the TC
+                UnitVector sel;
+                sel.push_back(tc);
+                state->unitManager()->setSelectedUnits(sel);
+                m_tcCycleIndex = (m_tcCycleIndex + 1) % int(tcs.size());
             }
         }
         return true;
@@ -1650,6 +1791,16 @@ bool Engine::handleMouseRelease(const input::Event &event, const std::shared_ptr
         return true;
     }
 
+    // Minimap mode label click
+    if (event.mouseButton.button == input::MouseButton::Left && m_minimap) {
+        ScreenRect mmRect = m_minimap->rect();
+        ScreenRect labelRect(mmRect.x, mmRect.y + mmRect.height, mmRect.width, 18);
+        if (labelRect.contains(mousePos)) {
+            m_minimap->cycleMode();
+            return true;
+        }
+    }
+
     // Game area release
     if (mousePos.y < m_gameAreaHeight && event.mouseButton.button == input::MouseButton::Left) {
         if (state->unitManager()->onMouseRelease()) {
@@ -1767,6 +1918,10 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     m_statText->pointSize = 14;
     m_statText->color = Drawable::Color(200, 190, 150, 255);
 
+    m_minimapModeText = renderTarget_->createText(Drawable::Text::Plain);
+    m_minimapModeText->pointSize = 10;
+    m_minimapModeText->color = Drawable::Color(200, 180, 130, 220);
+
     m_menuItemText = renderTarget_->createText(Drawable::Text::Plain);
     m_menuItemText->pointSize = 16;
     m_menuItemText->color = Drawable::Color(220, 200, 160, 255);
@@ -1812,6 +1967,7 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
 
     m_diplomacyScreen = std::make_unique<DiplomacyScreen>(renderTarget_);
     m_settingsScreen = std::make_unique<SettingsScreen>(renderTarget_);
+    m_settingsScreen->setEngineGameSpeed(&m_gameSpeed);
     m_techTreeScreen = std::make_unique<TechTreeScreen>(renderTarget_);
 
     m_mapRenderer = std::make_unique<MapRenderer>();
@@ -2098,6 +2254,44 @@ void Engine::onChatMessage(const int sourcePlayer, const int /*targetPlayer*/, c
                 addMessage("Map revealed!");
                 return;
             }
+        }
+    }
+
+    // Chat taunts (1-42): numeric message maps to taunt text
+    static const char *s_taunts[42] = {
+        "Yes", "No", "I need food", "I need wood", "I need gold",
+        "I need stone", "Ahh!", "All hail, king of the losers!", "Ooh!",
+        "I'll beat you back to Age of Empires", "Nice town, I'll take it",
+        "Raiding party!", "Blame your isp", "Start the game already!",
+        "Don't point that thing at me!", "Enemy sighted!",
+        "It is good to be the king", "Monk! I need a monk!",
+        "Long time, no siege", "My granny could scrap better than that",
+        "Nice town, I'll take it", "Attack an enemy now",
+        "Cease creating extra villagers", "Create extra villagers",
+        "Build a navy", "Stop buying food", "Buy food",
+        "Stop buying wood", "Buy wood", "Stop buying gold", "Buy gold",
+        "Stop buying stone", "Buy stone", "Ally", "Enemy", "Neutral",
+        "What age are you in?", "What is your strategy?",
+        "How many resources?", "We are under attack!", "Flare!", "I resign"
+    };
+
+    // Check if message is a number 1-42
+    bool isNumeric = !message.empty();
+    for (char c : message) {
+        if (c < '0' || c > '9') { isNumeric = false; break; }
+    }
+    if (isNumeric) {
+        int num = std::atoi(message.c_str());
+        if (num >= 1 && num <= 42) {
+            std::string tauntText = s_taunts[num - 1];
+            std::string display = "Player " + std::to_string(sourcePlayer) + ": " + tauntText;
+            addMessage(display);
+
+            // Try to play taunt audio (tauntNN.mp3)
+            char tauntFile[32];
+            snprintf(tauntFile, sizeof(tauntFile), "taunt%02d.mp3", num);
+            AudioPlayer::instance().playStream(std::string(tauntFile));
+            return;
         }
     }
 

@@ -227,13 +227,27 @@ public:
     void loadNextCampaignScenario();
 private:
 
+    // Scenario briefing overlay
+    std::string m_scenarioBriefing;
+    bool m_showBriefing = false;
+
     // Objectives panel
     bool m_objectivesVisible = false;
+
+    // Post-game statistics overlay (triggered by Dialog::Achievements or Tab)
+    bool m_statsVisible = false;
+
+    // TC cycling for H key
+    int m_tcCycleIndex = 0;
+
+    // Minimap mode label
+    Drawable::Text::Ptr m_minimapModeText;
 
     // Chat UI
     struct ChatState {
         bool active = false;
         std::string buffer;
+        int target = -1; // -1 = all, -2 = allies
     } m_chat;
     void onChatMessage(const int sourcePlayer, const int targetPlayer, const std::string &message) override;
 
@@ -248,6 +262,18 @@ private:
     float m_gameSpeed = 1.0f;
     bool m_paused = false;
     int64_t m_lastAmbientUpdate = 0;
+
+    // Save/Load UI
+    struct SaveLoadScreen {
+        bool visible = false;
+        bool loadMode = false; // false = save, true = load
+        std::vector<std::string> files;
+        int selectedIndex = -1;
+        std::string newSaveName;
+    } m_saveLoadScreen;
+    void showSaveLoadScreen(bool loadMode);
+    void renderSaveLoadScreen();
+    bool handleSaveLoadEvent(const input::Event &event);
     float m_gameAreaHeight = 800.f;
     float m_bottomPanelY = 0.f;      // current Y of sliding panel (0 = hidden below screen)
     float m_bottomPanelTargetY = 0.f; // target Y for animation

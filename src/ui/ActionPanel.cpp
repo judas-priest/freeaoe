@@ -564,6 +564,12 @@ void ActionPanel::addResearchButtons(const std::shared_ptr<Unit> &unit)
             continue;
         }
 
+        // Skip techs that have already been researched
+        int techIdx = player->civilization.techIndex(tech);
+        if (techIdx >= 0 && player->hasResearched(techIdx)) {
+            continue;
+        }
+
         // Skip techs whose prerequisites aren't met (e.g. Castle Age before Feudal)
         if (tech->RequiredTechCount > 0) {
             int satisfied = 0;

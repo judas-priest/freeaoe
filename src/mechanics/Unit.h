@@ -136,6 +136,10 @@ struct Unit : public Entity
         NoAttack
     } stance = Stance::Aggressive;
 
+    // Defensive stance: remember position to return to after combat
+    MapPos defensePosition;
+    bool hasDefensePosition = false;
+
     enum class Formation {
         Line,
         Box,

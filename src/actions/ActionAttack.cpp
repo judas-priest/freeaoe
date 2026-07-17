@@ -81,6 +81,12 @@ IAction::UpdateResult ActionAttack::update(Time time)
         return IAction::UpdateResult::NotUpdated;
     }
 
+    // Record defense position for Defensive stance
+    if (unit->stance == Unit::Stance::Defensive && !unit->hasDefensePosition) {
+        unit->defensePosition = unit->position();
+        unit->hasDefensePosition = true;
+    }
+
     Unit::Ptr targetUnit = m_targetUnit.lock();
     if (!targetUnit && !m_attackGround) { // we lost our target unit, and we're not attacking the ground
         DBG << "Target unit gone";
@@ -105,10 +111,27 @@ IAction::UpdateResult ActionAttack::update(Time time)
 
     // Check if we are too far away
     if (!overlaps && distance > unit->effectiveRange()) {
+        // StandGround: never chase, stop attacking
+        if (unit->stance == Unit::Stance::StandGround) {
+            return IAction::UpdateResult::Completed;
+        }
+
         if (!unit->effectiveSpeed()) {
             DBG << "this unit can't move...";
             return IAction::UpdateResult::Failed;
         }
+
+        // Defensive: limit pursuit to 5 tiles from defense position
+        if (unit->stance == Unit::Stance::Defensive && unit->hasDefensePosition) {
+            float distFromHome = unit->position().distance(unit->defensePosition) / Constants::TILE_SIZE;
+            if (distFromHome > 5.f) {
+                unit->hasDefensePosition = false;
+                auto moveBack = ActionMove::moveUnitTo(unit, unit->defensePosition, m_task);
+                unit->actions.setCurrentAction(moveBack);
+                return IAction::UpdateResult::Completed;
+            }
+        }
+
         DBG << unit->debugName << "is too far away" << distance << unit->effectiveRange();
 
         std::shared_ptr<ActionMove> moveAction = ActionMove::moveUnitTo(unit, targetUnit);
@@ -176,6 +199,12 @@ IAction::UpdateResult ActionAttack::update(Time time)
 
     // Did we kill our target?
     if (targetUnit && targetUnit->healthLeft() <= 0.f) {
+        // Defensive: return to original position
+        if (unit->stance == Unit::Stance::Defensive && unit->hasDefensePosition) {
+            unit->hasDefensePosition = false;
+            auto moveBack = ActionMove::moveUnitTo(unit, unit->defensePosition, m_task);
+            unit->actions.queueAction(moveBack);
+        }
         return IAction::UpdateResult::Completed;
     }
     unit->lastAttackTime = time;

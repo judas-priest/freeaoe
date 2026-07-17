@@ -505,6 +505,7 @@ bool ScenarioController::update(Time time)
     checkWonderVictory(time);
     checkRelicVictory(time);
     checkRegicide(time);
+    checkSuddenDeath(time);
     checkConquestVictory(time);
 
     return updated;
@@ -619,6 +620,42 @@ void ScenarioController::checkRegicide(Time /*time*/)
             player->alive = false;
             if (m_engine) {
                 m_engine->addMessage("Player " + std::to_string(player->playerId) + " has been regicided!");
+            }
+            // Check if only one player left alive
+            int aliveCount = 0;
+            int lastAlive = -1;
+            for (const auto &p : m_gameState->players()) {
+                if (p && p->playerId != 0 && p->alive) {
+                    aliveCount++;
+                    lastAlive = p->playerId;
+                }
+            }
+            if (aliveCount == 1) {
+                m_gameState->onPlayerWin(lastAlive);
+            }
+        }
+    }
+}
+
+void ScenarioController::checkSuddenDeath(Time /*time*/)
+{
+    if (!m_gameState || m_gameState->gameType() != GameType::SuddenDeath) return;
+
+    for (const auto &player : m_gameState->players()) {
+        if (!player || player->playerId == 0 || !player->alive) continue;
+
+        bool hasTownCenter = false;
+        for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+            if (unit->playerId() == player->playerId && unit->data()->ID == 109 && !unit->isDead()) {
+                hasTownCenter = true;
+                break;
+            }
+        }
+
+        if (!hasTownCenter) {
+            player->alive = false;
+            if (m_engine) {
+                m_engine->addMessage("Player " + std::to_string(player->playerId) + " has lost their last Town Center!");
             }
             // Check if only one player left alive
             int aliveCount = 0;

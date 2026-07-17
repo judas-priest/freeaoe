@@ -113,6 +113,7 @@ public:
     static constexpr Time RELIC_VICTORY_TIME = 300000; // 5 min for testing
     void checkRelicVictory(Time time);
     void checkRegicide(Time time);
+    void checkSuddenDeath(Time time);
     void checkConquestVictory(Time time);
 
 private:

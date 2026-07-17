@@ -336,6 +336,8 @@ set(ACTIONS_SRC
     src/actions/ActionHeal.cpp
     src/actions/ActionTrade.cpp
     src/actions/ActionPickupRelic.cpp
+    src/actions/ActionDepositRelic.cpp
+    src/actions/ActionDepositRelic.h
     src/actions/ActionGarrison.h
     src/actions/ActionTransform.cpp
     src/actions/ActionTransform.h

@@ -27,6 +27,7 @@
 #include "ActionBuild.h"
 #include "ActionGather.h"
 #include "ActionMove.h"
+#include "ActionDepositRelic.h"
 #include "ActionGarrison.h"
 #include "ActionTrade.h"
 #include "core/Logger.h"
@@ -132,6 +133,20 @@ void IAction::assignTask(const Task &task, const std::shared_ptr<Unit> &unit, co
 
         ActionPtr tradeAction = std::make_shared<ActionTrade>(unit, target);
         unit->actions.queueAction(tradeAction);
+        break;
+    }
+    case genie::ActionType::DepositRelic: {
+        if (!target) {
+            DBG << "Can't deposit relic without target monastery";
+            return;
+        }
+
+        if (assignType == AssignType::Replace) {
+            unit->actions.clearActionQueue();
+        }
+
+        ActionPtr action = std::make_shared<ActionDepositRelic>(unit, target, task);
+        unit->actions.setCurrentAction(action);
         break;
     }
     default:

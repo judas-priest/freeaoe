@@ -28,6 +28,7 @@
 #include "ActionGather.h"
 #include "ActionMove.h"
 #include "ActionGarrison.h"
+#include "ActionTrade.h"
 #include "core/Logger.h"
 #include "global/EventManager.h"
 #include "mechanics/Player.h"
@@ -115,6 +116,22 @@ void IAction::assignTask(const Task &task, const std::shared_ptr<Unit> &unit, co
 
         unit->actions.queueAction(action);
 
+        break;
+    }
+    case genie::ActionType::Trade: {
+        if (!target) {
+            DBG << "Can't trade with nothing";
+            return;
+        }
+
+        if (assignType == AssignType::Replace) {
+            unit->actions.clearActionQueue();
+        }
+
+        unit->actions.queueAction(ActionMove::moveUnitTo(unit, target->position(), task));
+
+        ActionPtr tradeAction = std::make_shared<ActionTrade>(unit, target);
+        unit->actions.queueAction(tradeAction);
         break;
     }
     default:

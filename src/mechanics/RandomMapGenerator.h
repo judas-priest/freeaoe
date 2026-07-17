@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/Types.h"
+
 #include <memory>
 #include <vector>
 #include <string>
@@ -44,11 +46,12 @@ private:
     static void generateTerrain(const Settings &settings, const std::shared_ptr<Map> &map);
     static void placeForests(const Settings &settings, const std::shared_ptr<Map> &map);
     static void placeResources(const Settings &settings, const std::shared_ptr<Map> &map,
-                               UnitManager &unitManager, const std::vector<std::shared_ptr<Player>> &players);
-    static void placeStartingUnits(const Settings &settings,
-                                   UnitManager &unitManager,
-                                   const std::vector<std::shared_ptr<Player>> &players,
-                                   const std::shared_ptr<Map> &map);
+                               UnitManager &unitManager, const std::vector<std::shared_ptr<Player>> &players,
+                               const std::vector<MapPos> &startPositions);
+    static std::vector<MapPos> placeStartingUnits(const Settings &settings,
+                                                   UnitManager &unitManager,
+                                                   const std::vector<std::shared_ptr<Player>> &players,
+                                                   const std::shared_ptr<Map> &map);
 
     // Perlin-like noise for terrain variation
     static float noise(float x, float y);

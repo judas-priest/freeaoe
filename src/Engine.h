@@ -42,6 +42,7 @@ class GameState;
 class Map;
 class MapRenderer;
 class ActionPanel;
+class NotificationManager;
 #ifndef USE_SDL2
 class SfmlRenderTarget;
 #endif
@@ -299,6 +300,9 @@ private:
     static constexpr float ZOOM_MIN = 0.5f;
     static constexpr float ZOOM_MAX = 2.0f;
     static constexpr float PINCH_SENSITIVITY = 2.0f;
+
+    // Voice notifications for game events
+    std::unique_ptr<NotificationManager> m_notificationManager;
 
     // Multiplayer networking
     std::shared_ptr<NetHost> m_netHost;

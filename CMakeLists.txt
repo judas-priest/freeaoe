@@ -413,6 +413,8 @@ set(COMMUNICATION_SRC
 set(UNSORTED_SRC
     src/audio/AudioPlayer.cpp
     src/audio/AudioPlayer.h
+    src/audio/NotificationManager.cpp
+    src/audio/NotificationManager.h
     src/audio/sts_mixer.cpp
     src/audio/sts_mixer.h
     src/audio/Implementations.cpp

@@ -20,6 +20,8 @@
 #include "actions/ActionAttack.h"
 #include "actions/ActionGarrison.h"
 #include "audio/AudioPlayer.h"
+#include "audio/NotificationManager.h"
+#include "global/EventManager.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
 #include "mechanics/Civilization.h"
@@ -564,6 +566,7 @@ void Building::finalizeResearch() noexcept
     }
     if (m_currentProduct->techIndex >= 0) {
         owner->applyResearch(m_currentProduct->techIndex);
+        EventManager::researchCompleted(owner.get(), m_currentProduct->techIndex);
     } else {
         // Fallback: apply effect directly
         owner->applyTechEffect(m_currentProduct->tech->EffectID);

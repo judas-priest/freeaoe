@@ -43,6 +43,7 @@
 #include "Map.h"
 #include "UnitManager.h"
 #include "audio/AudioPlayer.h"
+#include "audio/NotificationManager.h"
 #include "core/Constants.h"
 #include "core/Logger.h"
 #include "core/Utility.h"
@@ -332,6 +333,15 @@ void Unit::takeDamage(const float amount)
     }
 
     m_damageTaken = std::max(m_damageTaken + amount, 0.f);
+
+    // Notify "town under attack" when a building takes damage
+    if (amount > 0 && isBuilding()) {
+        Player::Ptr owner = m_player.lock();
+        if (owner) {
+            NotificationManager::instance().onBuildingAttacked(owner->playerId, owner->civilization.id());
+        }
+    }
+
     onDamageTaken();
 }
 

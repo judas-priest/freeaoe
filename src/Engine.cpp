@@ -19,6 +19,7 @@
 
 #include "Engine.h"
 #include "audio/AudioPlayer.h"
+#include "audio/NotificationManager.h"
 #include "ui/DiplomacyScreen.h"
 #include "ui/LobbyScreen.h"
 #include "ui/SettingsScreen.h"
@@ -203,6 +204,12 @@ void Engine::setupRandomMap(int mapType, int mapSize, int playerCount,
         m_unitInfoPanel->setUnitManager(state->unitManager());
         m_unitsRenderer->setUnitManager(state->unitManager());
         m_unitsRenderer->setVisibilityMap(state->humanPlayer()->visibility);
+
+        // Initialize voice notification manager for random maps
+        if (!m_notificationManager) {
+            m_notificationManager = std::make_unique<NotificationManager>();
+        }
+        m_notificationManager->setHumanPlayerId(state->humanPlayer()->playerId);
     }
 }
 
@@ -293,6 +300,12 @@ void Engine::start()
 
             m_unitsRenderer->setUnitManager(state->unitManager());
             m_unitsRenderer->setVisibilityMap(state->humanPlayer()->visibility);
+
+            // Initialize or update voice notification manager
+            if (!m_notificationManager) {
+                m_notificationManager = std::make_unique<NotificationManager>();
+            }
+            m_notificationManager->setHumanPlayerId(state->humanPlayer()->playerId);
         }
 
         const int renderStart = Engine::currentTimeMs();

@@ -57,6 +57,30 @@ Player::Player(const int id, const int civId, const std::shared_ptr<Map> &map, c
     }
 }
 
+VisibilityMap::Visibility Player::teamVisibilityAt(const int tileX, const int tileY, const std::vector<std::shared_ptr<Player>> &allPlayers) const
+{
+    // Start with our own visibility
+    VisibilityMap::Visibility best = visibility->visibilityAt(tileX, tileY);
+    if (best > VisibilityMap::Explored) {
+        return best; // Already fully visible to us
+    }
+
+    // Check allies
+    for (const auto &other : allPlayers) {
+        if (!other || other.get() == this) continue;
+        if (diplomaticStanceTo(other->playerId) != Allied) continue;
+
+        VisibilityMap::Visibility allyVis = other->visibility->visibilityAt(tileX, tileY);
+        if (allyVis > best) {
+            best = allyVis;
+            if (best > VisibilityMap::Explored) {
+                return best; // Visible — no need to check more allies
+            }
+        }
+    }
+    return best;
+}
+
 void Player::resign()
 {
     alive = false;

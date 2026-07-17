@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "core/Constants.h"
 #include "core/ResourceMap.h"
@@ -149,6 +150,9 @@ struct Player : public EventListener
 
     bool alive = true;
     std::shared_ptr<VisibilityMap> visibility;
+
+    /// Check if tile is visible to this player or any ally
+    VisibilityMap::Visibility teamVisibilityAt(const int tileX, const int tileY, const std::vector<std::shared_ptr<Player>> &allPlayers) const;
 
     // Dynamic market prices (AoE2: base price shifts by 3 per transaction)
     struct MarketPrices {

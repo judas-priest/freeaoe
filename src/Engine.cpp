@@ -176,7 +176,8 @@ static input::Event sfEventToInput(const sf::Event &sfEvent) {
 #endif // !USE_SDL2
 
 //------------------------------------------------------------------------------
-void Engine::setupRandomMap(int mapType, int mapSize, int playerCount)
+void Engine::setupRandomMap(int mapType, int mapSize, int playerCount,
+                            int startingAge, const int *civIds, const int *teams)
 {
     auto state = state_manager_.getActiveState();
     if (!state) return;
@@ -185,7 +186,7 @@ void Engine::setupRandomMap(int mapType, int mapSize, int playerCount)
     // Phase 1: create players and terrain (no units yet)
     // Phase 2: wire up renderers, then place units (which trigger visibility events)
 
-    state->setupRandomMap(mapType, mapSize, playerCount);
+    state->setupRandomMap(mapType, mapSize, playerCount, startingAge, civIds, teams);
 
     // Wire up renderers after map and players exist
     if (state->humanPlayer()) {

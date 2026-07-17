@@ -96,7 +96,8 @@ public:
     void setDifficulty(ai::DifficultyLevel d) { m_difficulty = d; }
     ai::DifficultyLevel difficulty() const { return m_difficulty; }
     void setSkipDemoGame(bool skip) { m_skipDemoGame = skip; }
-    void setupRandomMap(int mapType, int mapSize, int playerCount);
+    void setupRandomMap(int mapType, int mapSize, int playerCount,
+                        int startingAge = 0, const int *civIds = nullptr, const int *teams = nullptr);
 
     bool init() override;
 

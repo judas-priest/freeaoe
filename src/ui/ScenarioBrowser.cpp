@@ -37,6 +37,11 @@ ScenarioBrowser::Result ScenarioBrowser::show(const std::string &campaignsPath)
         result.randomMapType = browser.m_randomMapResult.mapType;
         result.randomMapSize = browser.m_randomMapResult.mapSize;
         result.randomPlayerCount = browser.m_randomMapResult.playerCount;
+        result.randomStartingAge = browser.m_randomMapResult.startingAge;
+        for (int i = 0; i < 8; i++) {
+            result.randomCivIds[i] = browser.m_randomMapResult.civIds[i];
+            result.randomTeams[i] = browser.m_randomMapResult.teams[i];
+        }
     }
     return result;
 }

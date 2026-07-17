@@ -98,7 +98,8 @@ public:
 
     bool setup(const std::shared_ptr<genie::ScnFile> &scenario = nullptr);
     void setSkipDemoGame(bool skip) { m_skipDemoGame = skip; }
-    void setupRandomMap(int mapType, int mapSize, int playerCount);
+    void setupRandomMap(int mapType, int mapSize, int playerCount,
+                        int startingAge = 0, const int *civIds = nullptr, const int *teams = nullptr);
     void start();
 
     void addMessage(const std::string &message);

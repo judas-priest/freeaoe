@@ -367,7 +367,8 @@ try
 
     // Show scenario browser if no scenario specified
     bool isRandomMap = false;
-    int rmType = 0, rmSize = 144, rmPlayers = 2;
+    int rmType = 0, rmSize = 144, rmPlayers = 2, rmStartingAge = 0;
+    int rmCivIds[8] = {}, rmTeams[8] = {};
     std::string campaignPath;
     int campaignScenarioIndex = -1, campaignScenarioCount = 0;
     if (!scenarioFile && !config.isOptionSet(Config::SinglePlayer) && !config.isOptionSet(Config::GameSample)) {
@@ -382,6 +383,11 @@ try
             rmType = browserResult.randomMapType;
             rmSize = browserResult.randomMapSize;
             rmPlayers = browserResult.randomPlayerCount;
+            rmStartingAge = browserResult.randomStartingAge;
+            for (int i = 0; i < 8; i++) {
+                rmCivIds[i] = browserResult.randomCivIds[i];
+                rmTeams[i] = browserResult.randomTeams[i];
+            }
         }
     }
 
@@ -399,7 +405,7 @@ try
         return 1;
     }
     if (isRandomMap) {
-        engine.setupRandomMap(rmType, rmSize, rmPlayers);
+        engine.setupRandomMap(rmType, rmSize, rmPlayers, rmStartingAge, rmCivIds, rmTeams);
     }
     // Store campaign info for progression
     if (!isRandomMap && !campaignPath.empty()) {

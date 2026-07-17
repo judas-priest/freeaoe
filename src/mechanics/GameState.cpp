@@ -861,7 +861,8 @@ void GameState::setupGame()
     renderTarget_->camera()->setTargetPosition(cameraPos);
 }
 
-void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
+void GameState::setupRandomMap(int mapType, int mapSize, int playerCount,
+                               int startingAge, const int *civIds, const int *teams)
 {
     // Note: old demo game players/units remain in UnitManager.
     // We just override m_players and m_humanPlayer.
@@ -869,21 +870,25 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
     m_players.clear();
     m_aiPlayers.clear();
 
+    int numCivs = static_cast<int>(DataManager::Inst().civilizations().size());
+
     // Create players
     auto gaiaPlayer = std::make_shared<Player>(0, 0, map_);
     gaiaPlayer->name = "Gaia";
     gaiaPlayer->playerColor = -1;
     m_players.push_back(gaiaPlayer);
 
-    // Human player (always player 1, civ 1 = Briton)
-    m_humanPlayer = std::make_shared<Player>(1, 1, map_, defaultStartingResources[m_gameType]);
+    // Resolve civ ID for human player (index 0). 0 = random.
+    int humanCiv = (civIds && civIds[0] > 0 && civIds[0] < numCivs) ? civIds[0] : (1 + SyncRandom::inst().nextInt(std::max(1, numCivs - 1)));
+    m_humanPlayer = std::make_shared<Player>(1, humanCiv, map_, defaultStartingResources[m_gameType]);
     m_humanPlayer->name = "You";
     m_humanPlayer->playerColor = 0;
     m_players.push_back(m_humanPlayer);
 
     // AI players
     for (int i = 2; i <= playerCount; i++) {
-        int civId = 1 + SyncRandom::inst().nextInt(13); // Random civilization
+        int pIdx = i - 1; // index into civIds/teams arrays
+        int civId = (civIds && civIds[pIdx] > 0 && civIds[pIdx] < numCivs) ? civIds[pIdx] : (1 + SyncRandom::inst().nextInt(std::max(1, numCivs - 1)));
         auto aiPlayer = std::make_shared<AiPlayer>(i, civId, map_, defaultStartingResources[m_gameType]);
         aiPlayer->name = "AI " + std::to_string(i);
         aiPlayer->playerColor = i - 1;
@@ -922,14 +927,19 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
     m_unitManager->setPlayers(m_players);
     m_unitManager->setHumanPlayer(m_humanPlayer);
 
-    // Set diplomacy — everyone is enemy to everyone else
+    // Set diplomacy — use team assignments if provided
     for (auto &p1 : m_players) {
         for (auto &p2 : m_players) {
             if (p1 == p2 || p1->playerId == 0 || p2->playerId == 0) continue;
-            if (p1 != m_humanPlayer && p2 != m_humanPlayer) {
-                // AI players neutral to each other
+            int t1 = (teams && p1->playerId >= 1 && p1->playerId <= playerCount) ? teams[p1->playerId - 1] : 0;
+            int t2 = (teams && p2->playerId >= 1 && p2->playerId <= playerCount) ? teams[p2->playerId - 1] : 0;
+            if (t1 > 0 && t1 == t2) {
+                // Same team — allied
+                p1->setDiplomaticStance(p2->playerId, Player::Allied);
+            } else if (p1 != m_humanPlayer && p2 != m_humanPlayer) {
+                // AI players neutral to each other (no team)
                 p1->setDiplomaticStance(p2->playerId, Player::Neutral);
-            } else if (p1 != p2) {
+            } else {
                 p1->setDiplomaticStance(p2->playerId, Player::Enemy);
             }
         }
@@ -947,11 +957,20 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount)
         }
     }
 
-    // Deathmatch: start in Imperial Age
-    if (m_gameType == GameType::Deathmatch) {
-        for (auto &p : m_players) {
-            if (p->playerId == 0) continue;
-            p->setAge(Player::ImperialAge);
+    // Apply starting age (Deathmatch always Imperial, otherwise use selection)
+    {
+        Player::Age targetAge = Player::DarkAge;
+        if (m_gameType == GameType::Deathmatch) {
+            targetAge = Player::ImperialAge;
+        } else if (startingAge > 0) {
+            static const Player::Age ages[] = { Player::DarkAge, Player::FeudalAge, Player::CastleAge, Player::ImperialAge };
+            targetAge = ages[std::min(startingAge, 3)];
+        }
+        if (targetAge != Player::DarkAge) {
+            for (auto &p : m_players) {
+                if (p->playerId == 0) continue;
+                p->setAge(targetAge);
+            }
         }
     }
 

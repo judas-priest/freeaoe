@@ -36,6 +36,9 @@ public:
         int randomMapType = 0;
         int randomMapSize = 144;
         int randomPlayerCount = 2;
+        int randomStartingAge = 0;
+        int randomCivIds[8] = {};
+        int randomTeams[8] = {};
 
         // Campaign progression
         std::string campaignPath;

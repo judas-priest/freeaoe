@@ -116,6 +116,19 @@ public:
     void checkSuddenDeath(Time time);
     void checkConquestVictory(Time time);
 
+    // King of the Hill
+    static constexpr Time KOTH_VICTORY_TIME = 540000; // ~9 minutes in ms
+    static constexpr Time KOTH_MIN_TIMER = 60000;     // min 1 min when control changes
+    static constexpr Time KOTH_TRICKLE_INTERVAL = 60000; // trickle every minute
+    static constexpr float KOTH_TRICKLE_AMOUNT = 50.f;   // 50 of each resource per minute
+    int m_kothControlPlayer = -1;
+    Time m_kothControlTime = 0;
+    Time m_kothTrickleAccum = 0;
+    MapPos m_monumentPosition;
+    bool m_hasMonument = false;
+    Time m_kothLastUpdate = 0;
+    void checkKingOfTheHill(Time time);
+
 private:
     bool checkUnitMatchingEffect(const std::shared_ptr<Unit> &unit, const genie::TriggerEffect &effect);
 

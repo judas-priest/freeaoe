@@ -1009,6 +1009,38 @@ void GameState::setupRandomMap(int mapType, int mapSize, int playerCount,
         }
     }
 
+    // King of the Hill: place monument (ID 826) at map center, owned by Gaia
+    if (m_gameType == GameType::KingOfTheHill && !m_players.empty() && m_players[0]) {
+        float centerX = (mapSize / 2.f) * Constants::TILE_SIZE;
+        float centerY = (mapSize / 2.f) * Constants::TILE_SIZE;
+
+        // Clear forest around monument center
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dy = -3; dy <= 3; dy++) {
+                int cx = mapSize / 2 + dx;
+                int cy = mapSize / 2 + dy;
+                if (cx >= 0 && cx < mapSize && cy >= 0 && cy < mapSize) {
+                    MapTile &tile = map_->getTileAt(cx, cy);
+                    if (tile.terrainId == 10) tile.terrainId = 0; // Remove forest
+                    tile.elevation = 2; // Flatten
+                }
+            }
+        }
+
+        Unit::Ptr monument = UnitFactory::createUnit(826, m_players[0], *m_unitManager);
+        if (monument) {
+            m_unitManager->add(monument, MapPos(centerX, centerY));
+            ALOG("KotH: Placed monument at center (%f, %f)", centerX, centerY);
+        } else {
+            WARN << "KotH: Failed to create monument (ID 826), trying ID 637 (monument fallback)";
+            monument = UnitFactory::createUnit(637, m_players[0], *m_unitManager);
+            if (monument) {
+                m_unitManager->add(monument, MapPos(centerX, centerY));
+                ALOG("KotH: Placed fallback monument (ID 637) at center");
+            }
+        }
+    }
+
     // Center camera on human player's TC
     for (const Unit::Ptr &unit : m_unitManager->units()) {
         if (unit->playerId() == m_humanPlayer->playerId && unit->data()->ID == 109) {

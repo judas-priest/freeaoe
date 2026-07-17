@@ -508,6 +508,10 @@ bool ScenarioController::update(Time time)
     checkSuddenDeath(time);
     checkConquestVictory(time);
 
+    if (m_gameState->gameType() == GameType::KingOfTheHill) {
+        checkKingOfTheHill(time);
+    }
+
     return updated;
 }
 
@@ -732,6 +736,121 @@ void ScenarioController::checkConquestVictory(Time /*time*/)
 
     if (allEnemiesDefeated) {
         m_gameState->onPlayerWin(humanId);
+    }
+}
+
+void ScenarioController::checkKingOfTheHill(Time time)
+{
+    if (!m_gameState) return;
+
+    // Find monument on first call
+    if (!m_hasMonument) {
+        for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+            if (unit && unit->data()->ID == 826 && !unit->isDead()) {
+                m_monumentPosition = unit->position();
+                m_hasMonument = true;
+                m_kothLastUpdate = time;
+                DBG << "KotH: Found monument at" << m_monumentPosition.x << m_monumentPosition.y;
+                break;
+            }
+        }
+        // Also try fallback monument ID 637
+        if (!m_hasMonument) {
+            for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+                if (unit && unit->data()->ID == 637 && !unit->isDead()) {
+                    m_monumentPosition = unit->position();
+                    m_hasMonument = true;
+                    m_kothLastUpdate = time;
+                    DBG << "KotH: Found fallback monument at" << m_monumentPosition.x << m_monumentPosition.y;
+                    break;
+                }
+            }
+        }
+        if (!m_hasMonument) return;
+    }
+
+    const Time elapsed = time - m_kothLastUpdate;
+    m_kothLastUpdate = time;
+    if (elapsed <= 0) return;
+
+    // Scan for units within 5 tiles of monument
+    const float controlRadius = 5.f * Constants::TILE_SIZE;
+    const float controlRadiusSq = controlRadius * controlRadius;
+
+    std::set<int> playersNearby;
+    for (const Unit::Ptr &unit : m_gameState->unitManager()->units()) {
+        if (!unit || unit->isDead() || unit->isDying()) continue;
+        if (unit->playerId() == 0) continue; // skip gaia
+
+        // Only count military and civilian units
+        const int16_t unitClass = unit->data()->Class;
+        if (unitClass != genie::Unit::Civilian &&
+            unitClass != genie::Unit::Infantry &&
+            unitClass != genie::Unit::Archer &&
+            unitClass != genie::Unit::Cavalry &&
+            unitClass != genie::Unit::SiegeWeapon &&
+            unitClass != genie::Unit::Monk &&
+            unitClass != genie::Unit::Healer &&
+            unitClass != genie::Unit::CavalryArcher &&
+            unitClass != genie::Unit::Conquistador &&
+            unitClass != genie::Unit::WarElephant &&
+            unitClass != genie::Unit::ElephantArcher &&
+            unitClass != genie::Unit::Petard &&
+            unitClass != genie::Unit::Hero) {
+            continue;
+        }
+
+        float dx = unit->position().x - m_monumentPosition.x;
+        float dy = unit->position().y - m_monumentPosition.y;
+        if (dx * dx + dy * dy <= controlRadiusSq) {
+            playersNearby.insert(unit->playerId());
+        }
+    }
+
+    if (playersNearby.size() == 1) {
+        int controller = *playersNearby.begin();
+
+        if (controller != m_kothControlPlayer) {
+            // Control changed
+            if (m_engine && m_kothControlPlayer != -1) {
+                m_engine->addMessage("Player " + std::to_string(controller) + " takes control of the monument!");
+            } else if (m_engine) {
+                m_engine->addMessage("Player " + std::to_string(controller) + " controls the monument!");
+            }
+            m_kothControlPlayer = controller;
+            // Reset timer to minimum if below threshold
+            if (m_kothControlTime < KOTH_MIN_TIMER) {
+                m_kothControlTime = KOTH_MIN_TIMER;
+            }
+            m_kothTrickleAccum = 0;
+        }
+
+        // Accumulate control time
+        m_kothControlTime += elapsed;
+
+        // Resource trickle
+        m_kothTrickleAccum += elapsed;
+        if (m_kothTrickleAccum >= KOTH_TRICKLE_INTERVAL) {
+            m_kothTrickleAccum -= KOTH_TRICKLE_INTERVAL;
+            Player::Ptr player = m_gameState->player(controller);
+            if (player) {
+                player->addResource(genie::ResourceType::FoodStorage, KOTH_TRICKLE_AMOUNT);
+                player->addResource(genie::ResourceType::WoodStorage, KOTH_TRICKLE_AMOUNT);
+                player->addResource(genie::ResourceType::GoldStorage, KOTH_TRICKLE_AMOUNT);
+                player->addResource(genie::ResourceType::StoneStorage, KOTH_TRICKLE_AMOUNT);
+            }
+        }
+
+        // Check victory
+        if (m_kothControlTime >= KOTH_VICTORY_TIME) {
+            if (m_engine) {
+                m_engine->addMessage("Player " + std::to_string(controller) + " wins by King of the Hill!");
+            }
+            m_gameState->onPlayerWin(controller);
+        }
+    } else {
+        // Contested or nobody nearby — timer pauses
+        // (timer does NOT reset, just pauses)
     }
 }
 

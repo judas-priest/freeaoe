@@ -25,6 +25,7 @@ public:
 private:
     std::weak_ptr<VisibilityMap> m_visibilityMap;
     std::shared_ptr<IRenderTarget> m_outlineOverlay;
+    std::shared_ptr<IRenderTarget> m_unitsBatch;
     std::weak_ptr<Player> m_player;
     std::weak_ptr<UnitManager> m_unitManager;
     MapPos m_previousCameraPos;

@@ -23,6 +23,12 @@ void UnitsRenderer::begin(const std::shared_ptr<IRenderTarget> &renderTarget)
 
     m_outlineOverlay->clear(Drawable::Transparent);
 
+    if (!m_unitsBatch || m_unitsBatch->getSize() != renderTarget->getSize()) {
+        m_unitsBatch = renderTarget->createTextureTarget(renderTarget->getSize());
+    }
+
+    m_unitsBatch->clear(Drawable::Transparent);
+
     CameraPtr camera = renderTarget->camera();
 
     std::shared_ptr<UnitManager> unitManager = m_unitManager.lock();
@@ -78,7 +84,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
             if (visibility == VisibilityMap::Visible) {
                 entity->isVisible = true;
                 visibleUnits.push_back(unit);
-                entity->renderer().render(*renderTarget, camera->absoluteScreenPos(entity->position()), RenderType::Shadow);
+                entity->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(entity->position()), RenderType::Shadow);
 
                 continue;
             }
@@ -89,7 +95,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
 
             entity->isVisible = true;
 
-            entity->renderer().render(*renderTarget, camera->absoluteScreenPos(entity->position()), RenderType::InTheShadows);
+            entity->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(entity->position()), RenderType::InTheShadows);
 
             continue;
         }
@@ -104,7 +110,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
 
             MapPos shadowPosition = entity->position();
             shadowPosition.z = entity->map()->elevationAt(shadowPosition);
-            entity->renderer().render(*renderTarget, camera->absoluteScreenPos(shadowPosition), RenderType::Shadow);
+            entity->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(shadowPosition), RenderType::Shadow);
 
             visibleMissiles.push_back(missile);
 
@@ -122,7 +128,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
                 continue;
             }
 
-            entity->renderer().render(*renderTarget, camera->absoluteScreenPos(entity->position()), RenderType::InTheShadows);
+            entity->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(entity->position()), RenderType::InTheShadows);
         }
 
         if (entity->isDecayingEntity()) {
@@ -130,9 +136,9 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
                 DBG << entity->debugName;
             }
             if (visibility == VisibilityMap::Visible) {
-                entity->renderer().render(*renderTarget, camera->absoluteScreenPos(entity->position()), RenderType::Base);
+                entity->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(entity->position()), RenderType::Base);
             } else {
-                entity->renderer().render(*renderTarget, camera->absoluteScreenPos(entity->position()), RenderType::InTheShadows);
+                entity->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(entity->position()), RenderType::InTheShadows);
             }
 
             entity->isVisible = true;
@@ -258,7 +264,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
         }
 
         const ScreenPos pos = camera->absoluteScreenPos(unit->position());
-        unit->renderer().render(*renderTarget, pos, RenderType::Base);
+        unit->renderer().render(*m_unitsBatch, pos, RenderType::Base);
 
 
 #ifdef DEBUG_PATHFINDING
@@ -294,7 +300,7 @@ void UnitsRenderer::render(const std::shared_ptr<IRenderTarget> &renderTarget, c
 #endif
 
     for (const Missile::Ptr &missile : visibleMissiles) {
-        missile->renderer().render(*renderTarget, camera->absoluteScreenPos(missile->position()), RenderType::Base);
+        missile->renderer().render(*m_unitsBatch, camera->absoluteScreenPos(missile->position()), RenderType::Base);
     }
 }
 
@@ -359,6 +365,9 @@ void UnitsRenderer::display(const std::shared_ptr<IRenderTarget> &renderTarget)
         renderTarget->draw(circle);
     }
 #endif
+
+    m_unitsBatch->display();
+    renderTarget->draw(m_unitsBatch, Drawable::BlendMode::Alpha);
 
     m_outlineOverlay->display();
 

@@ -28,6 +28,7 @@ private:
     UnitManager *m_unitManager;
     Time m_lastUpdate = 0;
     Time m_lastDiplomacyUpdate = 0;
+    int m_updateCount = 0;
     ai::DifficultyParams m_params;
 
     Strategy m_strategy = Strategy::Balanced;
@@ -44,6 +45,7 @@ private:
     void assignIdleVillagers();
     void buildDropOffSites();
     void buildDefenses();
+    void buildWalls();
     void researchLoom();
     void advanceAge();
     void attackWithArmy();

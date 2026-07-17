@@ -82,6 +82,35 @@ void BasicAI::update(Time time)
         m_strategyChosen = true;
     }
 
+    m_updateCount++;
+
+    // Periodic debug logging every ~50 updates
+    if (m_updateCount % 50 == 0) {
+        int villagerCount = countUnitsOfType(83) + countUnitsOfType(293);
+        int militaryCount = 0;
+        for (const Unit::Ptr &unit : m_unitManager->units()) {
+            if (unit && unit->playerId() == m_player->playerId && isMilitaryUnit(unit->data()->ID)) {
+                militaryCount++;
+            }
+        }
+        int threats = static_cast<int>(m_player->m_activeThreats.size());
+
+        const char *stratName = "Balanced";
+        switch (m_strategy) {
+            case Strategy::Rush:     stratName = "Rush"; break;
+            case Strategy::Boom:     stratName = "Boom"; break;
+            case Strategy::Turtle:   stratName = "Turtle"; break;
+            case Strategy::Balanced: stratName = "Balanced"; break;
+        }
+
+        DBG << "AI status [P" << m_player->playerId << "] strategy=" << stratName
+            << " age=" << m_player->currentAge()
+            << " villagers=" << villagerCount
+            << " military=" << militaryCount
+            << " threats=" << threats
+            << " update#" << m_updateCount;
+    }
+
     scoutMap();
     defendAgainstThreats();
     retreatInjuredUnits();
@@ -92,6 +121,7 @@ void BasicAI::update(Time time)
     buildDropOffSites();
     buildNaval();
     buildDefenses();
+    buildWalls();
     assignIdleVillagers();
     researchLoom();
     advanceAge();
@@ -688,14 +718,142 @@ void BasicAI::buildDefenses()
     int maxTowers = (m_strategy == Strategy::Turtle) ? 3 : 2;
     if (towerCount < maxTowers && stone >= 125 && wood >= 25) {
         buildStructureWithCost(79, 25, 125);
-        return; // One defense structure per update
+    }
+}
+
+void BasicAI::buildWalls()
+{
+    // Turtle: build walls from Feudal Age; others: Castle Age+
+    if (m_strategy == Strategy::Turtle) {
+        if (m_player->currentAge() < Player::FeudalAge) return;
+    } else {
+        if (m_player->currentAge() < Player::CastleAge) return;
     }
 
-    // Build Palisade Walls (ID 72, costs 2 wood) — up to 20 segments
-    int wallCount = countBuildingsOfType(72);
-    int maxWalls = (m_strategy == Strategy::Turtle) ? 20 : 8;
-    if (wallCount < maxWalls && wood >= 2) {
-        buildStructureWithCost(72, 2, 0);
+    // Find TC position
+    MapPos tcPos;
+    bool foundTC = false;
+    for (const Unit::Ptr &unit : m_unitManager->units()) {
+        if (unit && unit->playerId() == m_player->playerId && unit->data()->ID == 109) {
+            tcPos = unit->position();
+            foundTC = true;
+            break;
+        }
+    }
+    if (!foundTC) return;
+
+    float wood = m_player->resourcesAvailable(genie::ResourceType::WoodStorage);
+    float stone = m_player->resourcesAvailable(genie::ResourceType::StoneStorage);
+
+    // Stone walls (ID 117, 5 stone) — Turtle only, Castle Age+, up to 12 at radius ~10
+    if (m_strategy == Strategy::Turtle && m_player->currentAge() >= Player::CastleAge) {
+        int stoneWallCount = countBuildingsOfType(117);
+        if (stoneWallCount < 12 && stone >= 5) {
+            const int stoneRadius = 10;
+            // Place at evenly spaced angles around TC
+            float angle = stoneWallCount * (2.0f * M_PI / 12.0f) + 0.1f;
+            float ox = cos(angle) * stoneRadius * Constants::TILE_SIZE;
+            float oy = sin(angle) * stoneRadius * Constants::TILE_SIZE;
+            MapPos wallPos(tcPos.x + ox, tcPos.y + oy);
+
+            // Bounds check
+            if (wallPos.x >= Constants::TILE_SIZE * 3 && wallPos.y >= Constants::TILE_SIZE * 3 &&
+                wallPos.x < m_unitManager->map()->pixelWidth() - Constants::TILE_SIZE * 3 &&
+                wallPos.y < m_unitManager->map()->pixelHeight() - Constants::TILE_SIZE * 3) {
+
+                int tileX = wallPos.x / Constants::TILE_SIZE;
+                int tileY = wallPos.y / Constants::TILE_SIZE;
+                bool blocked = false;
+                for (int dy = -1; dy <= 1 && !blocked; dy++) {
+                    for (int dx = -1; dx <= 1 && !blocked; dx++) {
+                        const auto &entities = m_unitManager->map()->entitiesAt(tileX + dx, tileY + dy);
+                        for (const auto &e : entities) {
+                            if (e.lock()) { blocked = true; break; }
+                        }
+                    }
+                }
+
+                if (!blocked) {
+                    auto owner = std::const_pointer_cast<Player>(
+                        std::static_pointer_cast<const Player>(
+                            std::shared_ptr<Player>(m_player, [](Player*){})));
+
+                    Unit::Ptr wall = UnitFactory::createUnit(117, owner, *m_unitManager);
+                    if (wall) {
+                        wall->setCreationProgress(0);
+                        m_unitManager->add(wall, wallPos);
+                        m_player->setAvailableResource(genie::ResourceType::StoneStorage, stone - 5);
+                        DBG << "AI built stone wall at" << wallPos.x << wallPos.y;
+
+                        for (const Unit::Ptr &vill : m_unitManager->units()) {
+                            if (!vill || vill->playerId() != m_player->playerId) continue;
+                            if (vill->data()->ID != 83 && vill->data()->ID != 293) continue;
+                            if (vill->actions.currentAction()) continue;
+                            Task buildTask = vill->actions.findTaskWithTarget(wall);
+                            if (buildTask.isValid()) {
+                                IAction::assignTask(buildTask, vill, IAction::AssignType::Replace);
+                            }
+                            break;
+                        }
+                        return; // One wall per update
+                    }
+                }
+            }
+        }
+    }
+
+    // Palisade walls (ID 72, 2 wood each) — up to 30 segments at radius ~8
+    int palisadeCount = countBuildingsOfType(72);
+    int maxPalisade = 30;
+    if (palisadeCount >= maxPalisade) return;
+    if (wood < 2) return;
+
+    const int palisadeRadius = 8;
+    // Place at evenly spaced angles around TC
+    float angle = palisadeCount * (2.0f * M_PI / maxPalisade) + 0.05f;
+    float ox = cos(angle) * palisadeRadius * Constants::TILE_SIZE;
+    float oy = sin(angle) * palisadeRadius * Constants::TILE_SIZE;
+    MapPos wallPos(tcPos.x + ox, tcPos.y + oy);
+
+    // Bounds check
+    if (wallPos.x < Constants::TILE_SIZE * 3 || wallPos.y < Constants::TILE_SIZE * 3) return;
+    if (wallPos.x >= m_unitManager->map()->pixelWidth() - Constants::TILE_SIZE * 3) return;
+    if (wallPos.y >= m_unitManager->map()->pixelHeight() - Constants::TILE_SIZE * 3) return;
+
+    int tileX = wallPos.x / Constants::TILE_SIZE;
+    int tileY = wallPos.y / Constants::TILE_SIZE;
+    bool blocked = false;
+    for (int dy = -1; dy <= 1 && !blocked; dy++) {
+        for (int dx = -1; dx <= 1 && !blocked; dx++) {
+            const auto &entities = m_unitManager->map()->entitiesAt(tileX + dx, tileY + dy);
+            for (const auto &e : entities) {
+                if (e.lock()) { blocked = true; break; }
+            }
+        }
+    }
+    if (blocked) return;
+
+    auto owner = std::const_pointer_cast<Player>(
+        std::static_pointer_cast<const Player>(
+            std::shared_ptr<Player>(m_player, [](Player*){})));
+
+    Unit::Ptr wall = UnitFactory::createUnit(72, owner, *m_unitManager);
+    if (wall) {
+        wall->setCreationProgress(0);
+        m_unitManager->add(wall, wallPos);
+        m_player->setAvailableResource(genie::ResourceType::WoodStorage, wood - 2);
+        DBG << "AI built palisade wall at" << wallPos.x << wallPos.y;
+
+        for (const Unit::Ptr &vill : m_unitManager->units()) {
+            if (!vill || vill->playerId() != m_player->playerId) continue;
+            if (vill->data()->ID != 83 && vill->data()->ID != 293) continue;
+            if (vill->actions.currentAction()) continue;
+            Task buildTask = vill->actions.findTaskWithTarget(wall);
+            if (buildTask.isValid()) {
+                IAction::assignTask(buildTask, vill, IAction::AssignType::Replace);
+            }
+            break;
+        }
     }
 }
 

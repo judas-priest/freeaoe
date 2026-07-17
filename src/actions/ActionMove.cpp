@@ -18,6 +18,7 @@
 
 #include "ActionMove.h"
 
+#include "ActionTransform.h"
 #include "core/Logger.h"
 #include "core/Utility.h"
 #include "mechanics/Unit.h"
@@ -318,6 +319,19 @@ IAction::UpdateResult ActionMove::update(Time time) noexcept
     if (!unit) {
         WARN << "My unit got deleted";
         return UpdateResult::Failed;
+    }
+
+    // Unpacked trebuchet (42) must pack (to 331) before moving
+    constexpr int UnpackedTrebuchetId = 42;
+    constexpr int PackedTrebuchetId = 331;
+    constexpr Time TrebuchetTransformMs = 11100;
+    if (unit->data()->ID == UnpackedTrebuchetId) {
+        static genie::Task transformTask;
+        transformTask.ActionType = genie::ActionType::Pack;
+        Task task(&transformTask, -1);
+        auto pack = std::make_shared<ActionTransform>(unit, task, PackedTrebuchetId, TrebuchetTransformMs);
+        unit->actions.prependAction(pack);
+        return UpdateResult::NotUpdated;
     }
 
     // TODO differentiate between max manhattan distance (square obstruction type) and euclidian distance (round obstruction type)

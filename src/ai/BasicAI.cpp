@@ -290,6 +290,46 @@ void BasicAI::assignIdleVillagers()
             if (task.isValid()) {
                 IAction::assignTask(task, unit, IAction::AssignType::Replace);
             }
+            continue;
+        }
+
+        // Fallback: no natural food found — try player-owned farms (ID 50)
+        Unit::Ptr bestFarm;
+        float bestFarmDist = 999999;
+
+        for (const Unit::Ptr &target : m_unitManager->units()) {
+            if (!target || target->isDead()) continue;
+            if (target->playerId() != m_player->playerId) continue;
+            if (target->data()->ID != 50) continue; // Farm
+
+            // Skip farms that already have a gatherer assigned
+            bool occupied = false;
+            for (const Unit::Ptr &other : m_unitManager->units()) {
+                if (!other || other->playerId() != m_player->playerId) continue;
+                if (other->data()->ID != 83 && other->data()->ID != 293) continue;
+                const auto &action = other->actions.currentAction();
+                if (action && action->type == IAction::Type::Gather) {
+                    // Check if this villager is near the farm (within 2 tiles)
+                    if (other->distanceTo(target) < Constants::TILE_SIZE * 2) {
+                        occupied = true;
+                        break;
+                    }
+                }
+            }
+            if (occupied) continue;
+
+            float dist = unit->distanceTo(target);
+            if (dist < bestFarmDist) {
+                bestFarmDist = dist;
+                bestFarm = target;
+            }
+        }
+
+        if (bestFarm) {
+            Task task = unit->actions.findTaskWithTarget(bestFarm);
+            if (task.isValid()) {
+                IAction::assignTask(task, unit, IAction::AssignType::Replace);
+            }
         }
     }
 }

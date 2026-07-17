@@ -87,6 +87,40 @@ bool SaveGame::save(const std::string &path, GameState &state, float cameraX, fl
         writeFloat(file, unit->position().z);
         writeFloat(file, unit->hitpointsLeft());
         writeFloat(file, unit->angle());
+        writeFloat(file, unit->creationProgress());
+    }
+
+    // === V3 sections ===
+
+    // Save player count for new sections
+    const auto &allPlayers = state.players();
+    writeU32(file, allPlayers.size());
+
+    // Researched techs per player
+    for (size_t p = 0; p < allPlayers.size(); p++) {
+        const auto &player = allPlayers[p];
+        if (!player) { writeU32(file, 0); continue; }
+        const auto &techs = player->researchedTechs();
+        writeU32(file, techs.size());
+        for (int techId : techs) { writeI32(file, techId); }
+    }
+
+    // Diplomacy
+    for (size_t p = 0; p < allPlayers.size(); p++) {
+        const auto &player = allPlayers[p];
+        for (size_t other = 0; other < allPlayers.size(); other++) {
+            if (!player || other == p) { writeI32(file, 0); continue; }
+            writeI32(file, static_cast<int>(player->diplomaticStanceTo(other)));
+        }
+    }
+
+    // Market prices
+    for (size_t p = 0; p < allPlayers.size(); p++) {
+        const auto &player = allPlayers[p];
+        if (!player) { writeI32(file, 100); writeI32(file, 100); writeI32(file, 100); continue; }
+        writeI32(file, player->marketPrices.basePrice[0]);
+        writeI32(file, player->marketPrices.basePrice[1]);
+        writeI32(file, player->marketPrices.basePrice[2]);
     }
 
     DBG << "Saved game to" << path << "with" << unitCount << "units";
@@ -190,12 +224,14 @@ bool SaveGame::load(const std::string &path, GameState &state, float &cameraX, f
             }
             if (!owner) {
                 WARN << "No player found for id" << playerId << ", skipping unit" << unitId;
+                if (version >= 3) readFloat(file); // skip construction progress
                 continue;
             }
 
             Unit::Ptr unit = UnitFactory::createUnit(unitId, owner, *unitManager);
             if (!unit) {
                 WARN << "Failed to create unit" << unitId << "for player" << playerId;
+                if (version >= 3) readFloat(file); // skip construction progress
                 continue;
             }
 
@@ -209,8 +245,13 @@ bool SaveGame::load(const std::string &path, GameState &state, float &cameraX, f
                 unit->takeDamage(maxHp - hp);
             }
 
-            // Mark building construction as complete
-            unit->setCreationProgress(1.f);
+            // Construction progress
+            if (version >= 3) {
+                float progress = readFloat(file);
+                unit->setCreationProgress(progress);
+            } else {
+                unit->setCreationProgress(1.f);
+            }
             restored++;
         }
 
@@ -222,6 +263,43 @@ bool SaveGame::load(const std::string &path, GameState &state, float &cameraX, f
             readI32(file); readI32(file);
             readFloat(file); readFloat(file); readFloat(file);
             readFloat(file); readFloat(file);
+        }
+    }
+
+    // === V3 sections ===
+    if (version >= 3) {
+        uint32_t totalPlayers = readU32(file);
+
+        // Researched techs
+        for (uint32_t p = 0; p < totalPlayers; p++) {
+            uint32_t techCount = readU32(file);
+            auto player = state.player(p);
+            for (uint32_t t = 0; t < techCount; t++) {
+                int32_t techId = readI32(file);
+                if (player) player->applyResearch(techId);
+            }
+        }
+
+        // Diplomacy
+        for (uint32_t p = 0; p < totalPlayers; p++) {
+            auto player = state.player(p);
+            for (uint32_t other = 0; other < totalPlayers; other++) {
+                int32_t stance = readI32(file);
+                if (player && other != p) {
+                    player->setDiplomaticStance(other, static_cast<Player::DiplomaticStance>(stance));
+                }
+            }
+        }
+
+        // Market prices
+        for (uint32_t p = 0; p < totalPlayers; p++) {
+            auto player = state.player(p);
+            int32_t f = readI32(file), w = readI32(file), s = readI32(file);
+            if (player) {
+                player->marketPrices.basePrice[0] = f;
+                player->marketPrices.basePrice[1] = w;
+                player->marketPrices.basePrice[2] = s;
+            }
         }
     }
 

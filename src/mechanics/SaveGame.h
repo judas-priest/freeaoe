@@ -12,7 +12,7 @@ class GameState;
 struct SaveGame
 {
     static constexpr uint32_t MAGIC = 0x454F4146; // "FAOE"
-    static constexpr uint32_t VERSION = 2;
+    static constexpr uint32_t VERSION = 3;
 
     static bool save(const std::string &path, GameState &state, float cameraX, float cameraY);
     static bool load(const std::string &path, GameState &state, float &cameraX, float &cameraY);

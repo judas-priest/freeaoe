@@ -180,6 +180,7 @@ struct Player : public EventListener
     /// Tech
     bool researchAvailable(const int researchId) { return m_currentlyAvailableTechs.count(researchId); }
     bool hasResearched(const int researchId) const { return m_researchedTechs.count(researchId); }
+    const std::unordered_set<int> &researchedTechs() const { return m_researchedTechs; }
     void applyResearch(const int researchId);
     void applyTechEffect(const int effectId);
     void applyTechEffectCommand(const genie::EffectCommand &effect);

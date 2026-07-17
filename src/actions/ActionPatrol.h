@@ -13,8 +13,11 @@ public:
     genie::ActionType taskType() const override { return genie::ActionType::MoveTo; }
 
 private:
+    Unit::Ptr findEnemyInRange(const Unit::Ptr &unit) const;
+
     MapPos m_startPos;
     MapPos m_destPos;
     bool m_returning = false;
     bool m_moveQueued = false;
+    bool m_isAttacking = false;
 };

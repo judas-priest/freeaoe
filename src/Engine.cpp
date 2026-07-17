@@ -1494,6 +1494,16 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
             }
         }
         return true;
+    case input::Key::P: // Patrol
+        if (!state->unitManager()->selected().isEmpty()) {
+            state->unitManager()->selectPatrolTarget();
+        }
+        return true;
+    case input::Key::G: // Guard
+        if (!state->unitManager()->selected().isEmpty()) {
+            state->unitManager()->selectGuardTarget();
+        }
+        return true;
     case input::Key::Delete: // Delete selected units
         for (const Unit::Ptr &unit : state->unitManager()->selected()) {
             unit->kill();

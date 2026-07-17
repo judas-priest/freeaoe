@@ -13,7 +13,10 @@ public:
     genie::ActionType taskType() const override { return genie::ActionType::Guard; }
 
 private:
+    Unit::Ptr findEnemyNearTarget(const Unit::Ptr &unit, const Unit::Ptr &guardTarget) const;
+
     std::weak_ptr<Unit> m_guardTarget;
     bool m_isFollowing = false;
+    bool m_isAttacking = false;
     static constexpr float FOLLOW_DISTANCE = 48.f;
 };

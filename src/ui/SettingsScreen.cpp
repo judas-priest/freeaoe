@@ -21,11 +21,17 @@ void SettingsScreen::show()
 {
     m_visible = true;
     loadSettings();
+    if (m_engineGameSpeed) {
+        m_gameSpeed = *m_engineGameSpeed;
+    }
 }
 
 void SettingsScreen::hide()
 {
     saveSettings();
+    if (m_engineGameSpeed) {
+        *m_engineGameSpeed = m_gameSpeed;
+    }
     m_visible = false;
 }
 
@@ -154,6 +160,12 @@ void SettingsScreen::render()
 bool SettingsScreen::handleEvent(const input::Event &event)
 {
     if (!m_visible) return false;
+
+    // Escape closes the screen
+    if (event.type == input::Event::KeyPressed && event.key.code == input::Key::Escape) {
+        hide();
+        return true;
+    }
 
     ScreenPos pos;
     bool isTap = false;

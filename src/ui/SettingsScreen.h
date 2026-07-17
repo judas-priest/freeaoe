@@ -11,6 +11,8 @@ class SettingsScreen
 public:
     SettingsScreen(const std::shared_ptr<IRenderTarget> &renderTarget);
 
+    void setEngineGameSpeed(float *speed) { m_engineGameSpeed = speed; }
+
     void show();
     void hide();
     bool isVisible() const { return m_visible; }
@@ -29,6 +31,7 @@ private:
     float m_soundVolume = 1.0f;
     float m_musicVolume = 1.0f;
     float m_gameSpeed = 1.0f;
+    float *m_engineGameSpeed = nullptr; // Pointer to Engine::m_gameSpeed for sync
 
     void loadSettings();
     void saveSettings();

@@ -77,6 +77,8 @@
 #include <utility>
 
 #include <cstddef>
+#include <ctime>
+#include <cstdlib>
 
 #define CAMERA_SPEED 1.
 
@@ -799,6 +801,7 @@ void Engine::drawUi()
     if (m_diplomacyScreen) m_diplomacyScreen->render();
     if (m_settingsScreen) m_settingsScreen->render();
     if (m_techTreeScreen) m_techTreeScreen->render();
+    renderSaveLoadScreen();
 
     // Game speed / pause indicator
     if (m_paused) {
@@ -967,6 +970,78 @@ void Engine::drawUi()
         }
     }
 
+    // Scenario briefing overlay
+    if (m_showBriefing && !m_scenarioBriefing.empty() && m_statText) {
+        const Size ws = renderTarget_->getSize();
+
+        // Full screen dim
+        renderTarget_->draw(ScreenRect(0, 0, ws.width, ws.height),
+                            Drawable::Color(0, 0, 0, 200));
+
+        // Panel
+        const float panelW = std::min(700.f, ws.width - 40.f);
+        const float panelH = std::min(500.f, ws.height - 60.f);
+        const float panelX = (ws.width - panelW) / 2;
+        const float panelY = (ws.height - panelH) / 2;
+
+        renderTarget_->draw(ScreenRect(panelX, panelY, panelW, panelH),
+                            Drawable::Color(30, 22, 10, 245));
+        renderTarget_->draw(ScreenRect(panelX, panelY, panelW, panelH),
+                            Drawable::Transparent, Drawable::Color(100, 80, 40, 255));
+
+        // Title
+        if (m_helpText) {
+            m_helpText->string = "Mission Briefing";
+            m_helpText->color = Drawable::Color(255, 220, 150, 255);
+            m_helpText->pointSize = 20;
+            m_helpText->position = ScreenPos(panelX + 15, panelY + 10);
+            renderTarget_->draw(m_helpText);
+        }
+
+        // Briefing text (wrap lines manually at panel width)
+        m_statText->color = Drawable::Color(220, 210, 180, 255);
+        m_statText->pointSize = 13;
+        float textY = panelY + 45;
+        const float maxTextY = panelY + panelH - 50;
+
+        // Split text by newlines and display
+        std::string remaining = m_scenarioBriefing;
+        size_t pos = 0;
+        while (pos < remaining.size() && textY < maxTextY) {
+            size_t nl = remaining.find('\n', pos);
+            std::string line = (nl != std::string::npos)
+                ? remaining.substr(pos, nl - pos)
+                : remaining.substr(pos);
+            pos = (nl != std::string::npos) ? nl + 1 : remaining.size();
+
+            // Truncate long lines to fit panel
+            if (line.size() > static_cast<size_t>(panelW / 7)) {
+                line = line.substr(0, static_cast<size_t>(panelW / 7)) + "...";
+            }
+
+            m_statText->string = line;
+            m_statText->position = ScreenPos(panelX + 15, textY);
+            renderTarget_->draw(m_statText);
+            textY += 18;
+        }
+
+        // "Start Mission" button
+        const float btnW = 160;
+        const float btnH = 36;
+        const float btnX = panelX + (panelW - btnW) / 2;
+        const float btnY = panelY + panelH - 45;
+        renderTarget_->draw(ScreenRect(btnX, btnY, btnW, btnH),
+                            Drawable::Color(60, 45, 20, 230));
+        renderTarget_->draw(ScreenRect(btnX, btnY, btnW, btnH),
+                            Drawable::Transparent, Drawable::Color(120, 100, 60, 255));
+        if (m_menuItemText) {
+            m_menuItemText->string = "Start Mission";
+            m_menuItemText->color = Drawable::Color(220, 200, 160, 255);
+            m_menuItemText->position = ScreenPos(btnX + 20, btnY + 8);
+            renderTarget_->draw(m_menuItemText);
+        }
+    }
+
 #ifndef ANDROID
     if (m_mouseCursor) m_mouseCursor->render();
 #endif
@@ -997,6 +1072,20 @@ void Engine::drawEntities(const std::shared_ptr<Map> &map)
 
 bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameState> &state)
 {
+    // Scenario briefing overlay — dismiss on Escape, click, or touch
+    if (m_showBriefing) {
+        if (event.type == input::Event::KeyPressed && event.key.code == input::Key::Escape) {
+            m_showBriefing = false;
+            return true;
+        }
+        if (event.type == input::Event::MouseButtonReleased ||
+            event.type == input::Event::TouchEnded) {
+            m_showBriefing = false;
+            return true;
+        }
+        return true; // consume all input while briefing visible
+    }
+
     // Post-game overlay — consume all input, handle button taps
     if (state && state->result != GameState::Result::Running) {
         ScreenPos pos;
@@ -1065,6 +1154,10 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         return true;
     }
 
+    if (m_saveLoadScreen.visible) {
+        return handleSaveLoadEvent(event);
+    }
+
     if (m_diplomacyScreen && m_diplomacyScreen->isVisible()) {
         return m_diplomacyScreen->handleEvent(event);
     }
@@ -1094,11 +1187,12 @@ bool Engine::handleEvent(const input::Event &event, const std::shared_ptr<GameSt
         return true;
     }
 
-    // When chat is active, only pass Enter/Escape/Backspace to key handler
+    // When chat is active, only pass Enter/Escape/Backspace/Tab to key handler
     if (m_chat.active && event.type == input::Event::KeyPressed) {
         if (event.key.code == input::Key::Return ||
             event.key.code == input::Key::Escape ||
-            event.key.code == input::Key::BackSpace) {
+            event.key.code == input::Key::BackSpace ||
+            event.key.code == input::Key::Tab) {
             return handleKeyEvent(event, state);
         }
         return true; // consume all other keys while chatting
@@ -1300,7 +1394,7 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
             if (!m_chat.buffer.empty()) {
                 const Player::Ptr &human = state->humanPlayer();
                 int playerId = human ? human->playerId : 1;
-                EventManager::sendChatMessage(playerId, -1, m_chat.buffer);
+                EventManager::sendChatMessage(playerId, m_chat.target, m_chat.buffer);
             }
             m_chat.buffer.clear();
             m_chat.active = false;
@@ -1310,10 +1404,20 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         } else {
             m_chat.active = true;
             m_chat.buffer.clear();
+            m_chat.target = -1; // default to All
 #ifdef USE_SDL2
             SDL_StartTextInput();
 #endif
         }
+        return true;
+    case input::Key::Tab:
+        if (m_chat.active) {
+            // Cycle: All (-1) -> Allies (-2) -> All (-1)
+            m_chat.target = (m_chat.target == -1) ? -2 : -1;
+            return true;
+        }
+        // Toggle stats overlay
+        m_statsVisible = !m_statsVisible;
         return true;
     case input::Key::BackSpace:
         if (m_chat.active && !m_chat.buffer.empty()) {
@@ -1420,10 +1524,7 @@ bool Engine::handleKeyEvent(const input::Event &event, const std::shared_ptr<Gam
         return true;
     }
 
-    // Tab = toggle stats overlay
-    case input::Key::Tab:
-        m_statsVisible = !m_statsVisible;
-        return true;
+
 
     // F2 = hotkey help
     case input::Key::F2: {
@@ -1946,6 +2047,18 @@ bool Engine::setup(const std::shared_ptr<genie::ScnFile> &scenario)
     std::shared_ptr<GameState> gameState = std::make_shared<GameState>(renderTarget_);
     if (scenario) {
         gameState->setScenario(scenario);
+
+        // Extract briefing text from scenario for pre-game overlay
+        std::string briefing = scenario->scenarioInstructions;
+        if (briefing.empty()) {
+            briefing = scenario->playerData.instructions;
+        }
+        // Strip null characters
+        briefing.erase(std::remove(briefing.begin(), briefing.end(), '\0'), briefing.end());
+        if (!briefing.empty()) {
+            m_scenarioBriefing = briefing;
+            m_showBriefing = true;
+        }
     }
     if (m_skipDemoGame) {
         gameState->setSkipDemoGame(true);
@@ -2356,4 +2469,235 @@ void Engine::updateAmbientSounds(const std::shared_ptr<GameState> &state)
     } else {
         AudioPlayer::instance().stopAmbientLoop(1);
     }
+}
+
+//------------------------------------------------------------------------------
+// Save/Load UI
+//------------------------------------------------------------------------------
+
+static std::string savesDirectory()
+{
+#ifdef __ANDROID__
+    const char *ext = SDL_AndroidGetExternalStoragePath();
+    return ext ? std::string(ext) : "/sdcard";
+#elif defined(USE_SDL2)
+    char *prefPath = SDL_GetPrefPath("freeaoe", "freeaoe");
+    std::string dir;
+    if (prefPath) {
+        dir = std::string(prefPath);
+        SDL_free(prefPath);
+    } else {
+        dir = ".";
+    }
+    return dir;
+#else
+    return ".";
+#endif
+}
+
+void Engine::showSaveLoadScreen(bool loadMode)
+{
+    m_saveLoadScreen.visible = true;
+    m_saveLoadScreen.loadMode = loadMode;
+    m_saveLoadScreen.selectedIndex = -1;
+    m_saveLoadScreen.newSaveName.clear();
+    m_saveLoadScreen.files = SaveGame::listSaves(savesDirectory());
+}
+
+void Engine::renderSaveLoadScreen()
+{
+    if (!m_saveLoadScreen.visible) return;
+
+    Size screenSize = renderTarget_->getSize();
+
+    // Fullscreen dim
+    renderTarget_->draw(ScreenRect(0, 0, screenSize.width, screenSize.height),
+        Drawable::Color(0, 0, 0, 180));
+
+    // Panel
+    float panelW = std::min(520.f, screenSize.width - 40.f);
+    float panelH = std::min(450.f, screenSize.height - 60.f);
+    float panelX = (screenSize.width - panelW) / 2;
+    float panelY = (screenSize.height - panelH) / 2;
+
+    renderTarget_->draw(ScreenRect(panelX, panelY, panelW, panelH),
+        Drawable::Color(35, 25, 12, 245));
+    renderTarget_->draw(ScreenRect(panelX, panelY, panelW, panelH),
+        Drawable::Transparent, Drawable::Color(100, 80, 40, 255));
+
+    // Title
+    auto titleText = renderTarget_->createText(Drawable::Text::UI);
+    titleText->pointSize = 22;
+    titleText->color = Drawable::Color(255, 220, 150, 255);
+    titleText->string = m_saveLoadScreen.loadMode ? "Load Game" : "Save Game";
+    titleText->position = ScreenPos(panelX + 20, panelY + 12);
+    renderTarget_->draw(titleText);
+
+    // Reuse m_statText for labels (same pattern as other overlays)
+    auto &labelText = m_statText;
+
+    // File list area
+    float listX = panelX + 15;
+    float listY = panelY + 50;
+    float listW = panelW - 30;
+    float itemH = 32;
+    int maxVisible = static_cast<int>((panelH - 140) / itemH);
+
+    for (int i = 0; i < static_cast<int>(m_saveLoadScreen.files.size()) && i < maxVisible; i++) {
+        float iy = listY + i * itemH;
+        bool selected = (i == m_saveLoadScreen.selectedIndex);
+
+        // Background
+        Drawable::Color bg = selected
+            ? Drawable::Color(80, 60, 30, 220)
+            : Drawable::Color(20, 15, 8, 180);
+        renderTarget_->draw(ScreenRect(listX, iy, listW, itemH - 2), bg);
+
+        // Extract filename from full path
+        std::string displayName = m_saveLoadScreen.files[i];
+        size_t lastSlash = displayName.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            displayName = displayName.substr(lastSlash + 1);
+        }
+
+        labelText->string = displayName;
+        labelText->color = selected
+            ? Drawable::Color(255, 230, 160, 255)
+            : Drawable::Color(200, 180, 140, 255);
+        labelText->position = ScreenPos(listX + 8, iy + 6);
+        renderTarget_->draw(labelText);
+    }
+
+    if (m_saveLoadScreen.files.empty()) {
+        labelText->string = "(no save files found)";
+        labelText->color = Drawable::Color(150, 130, 100, 200);
+        labelText->position = ScreenPos(listX + 8, listY + 6);
+        renderTarget_->draw(labelText);
+    }
+
+    // Buttons at the bottom
+    float btnY = panelY + panelH - 50;
+    float btnW = 100;
+    float btnH = 36;
+
+    // OK button
+    float okX = panelX + panelW / 2 - btnW - 10;
+    renderTarget_->draw(ScreenRect(okX, btnY, btnW, btnH),
+        Drawable::Color(60, 45, 20, 230));
+    renderTarget_->draw(ScreenRect(okX, btnY, btnW, btnH),
+        Drawable::Transparent, Drawable::Color(100, 80, 40, 255));
+    labelText->string = m_saveLoadScreen.loadMode ? "Load" : "Save";
+    labelText->color = Drawable::Color(220, 200, 160, 255);
+    labelText->position = ScreenPos(okX + 30, btnY + 8);
+    renderTarget_->draw(labelText);
+
+    // Cancel button
+    float cancelX = panelX + panelW / 2 + 10;
+    renderTarget_->draw(ScreenRect(cancelX, btnY, btnW, btnH),
+        Drawable::Color(60, 45, 20, 230));
+    renderTarget_->draw(ScreenRect(cancelX, btnY, btnW, btnH),
+        Drawable::Transparent, Drawable::Color(100, 80, 40, 255));
+    labelText->string = "Cancel";
+    labelText->color = Drawable::Color(220, 200, 160, 255);
+    labelText->position = ScreenPos(cancelX + 20, btnY + 8);
+    renderTarget_->draw(labelText);
+}
+
+bool Engine::handleSaveLoadEvent(const input::Event &event)
+{
+    if (!m_saveLoadScreen.visible) return false;
+
+    ScreenPos pos;
+    bool isTap = false;
+
+    if (event.type == input::Event::TouchEnded || event.type == input::Event::MouseButtonReleased) {
+        pos = (event.type == input::Event::TouchEnded)
+            ? ScreenPos(event.touch.x, event.touch.y)
+            : ScreenPos(event.mouseButton.x, event.mouseButton.y);
+        isTap = true;
+    } else if (event.type == input::Event::KeyPressed && event.key.code == input::Key::Escape) {
+        m_saveLoadScreen.visible = false;
+        return true;
+    }
+
+    if (!isTap) return true; // consume all events while visible
+
+    Size screenSize = renderTarget_->getSize();
+    float panelW = std::min(520.f, screenSize.width - 40.f);
+    float panelH = std::min(450.f, screenSize.height - 60.f);
+    float panelX = (screenSize.width - panelW) / 2;
+    float panelY = (screenSize.height - panelH) / 2;
+
+    // File list hit test
+    float listX = panelX + 15;
+    float listY = panelY + 50;
+    float listW = panelW - 30;
+    float itemH = 32;
+    int maxVisible = static_cast<int>((panelH - 140) / itemH);
+
+    for (int i = 0; i < static_cast<int>(m_saveLoadScreen.files.size()) && i < maxVisible; i++) {
+        float iy = listY + i * itemH;
+        if (ScreenRect(listX, iy, listW, itemH).contains(pos)) {
+            m_saveLoadScreen.selectedIndex = i;
+            return true;
+        }
+    }
+
+    // Button hit test
+    float btnY = panelY + panelH - 50;
+    float btnW = 100;
+    float btnH = 36;
+    float okX = panelX + panelW / 2 - btnW - 10;
+    float cancelX = panelX + panelW / 2 + 10;
+
+    // OK button
+    if (ScreenRect(okX, btnY, btnW, btnH).contains(pos)) {
+        auto state = state_manager_.getActiveState();
+        if (m_saveLoadScreen.loadMode) {
+            // Load selected file
+            if (m_saveLoadScreen.selectedIndex >= 0 &&
+                m_saveLoadScreen.selectedIndex < static_cast<int>(m_saveLoadScreen.files.size())) {
+                const std::string &path = m_saveLoadScreen.files[m_saveLoadScreen.selectedIndex];
+                float camX = 0, camY = 0;
+                if (SaveGame::load(path, *state, camX, camY)) {
+                    renderTarget_->camera()->setTargetPosition(MapPos(camX, camY));
+                    addMessage("Game loaded!");
+                } else {
+                    addMessage("Failed to load game!");
+                }
+            }
+        } else {
+            // Save to new file with timestamp
+            std::string dir = savesDirectory();
+            time_t now = time(nullptr);
+            struct tm *t = localtime(&now);
+            char nameBuf[64];
+            snprintf(nameBuf, sizeof(nameBuf), "save_%04d%02d%02d_%02d%02d%02d.faoe",
+                t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                t->tm_hour, t->tm_min, t->tm_sec);
+            std::string savePath = dir + "/" + nameBuf;
+            MapPos camPos = renderTarget_->camera()->targetPosition();
+            if (SaveGame::save(savePath, *state, camPos.x, camPos.y)) {
+                addMessage("Game saved: " + std::string(nameBuf));
+            } else {
+                addMessage("Save failed!");
+            }
+        }
+        m_saveLoadScreen.visible = false;
+        return true;
+    }
+
+    // Cancel button
+    if (ScreenRect(cancelX, btnY, btnW, btnH).contains(pos)) {
+        m_saveLoadScreen.visible = false;
+        return true;
+    }
+
+    // Click outside panel = close
+    if (!ScreenRect(panelX, panelY, panelW, panelH).contains(pos)) {
+        m_saveLoadScreen.visible = false;
+        return true;
+    }
+
+    return true;
 }

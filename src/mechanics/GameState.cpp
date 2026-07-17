@@ -527,7 +527,34 @@ void GameState::executeCommands(const std::vector<GameCommand> &commands)
                 if (building) {
                     building->ungarrisonAll();
                 } else {
-                    container->ungarrisonAllUnits();
+                    // Transport ship / ram: place units on land if on water
+                    int cx = static_cast<int>(container->position().x) / Constants::TILE_SIZE;
+                    int cy = static_cast<int>(container->position().y) / Constants::TILE_SIZE;
+                    bool onWater = map_->isValidTile(cx, cy) && map_->isWaterTile(cx, cy);
+
+                    if (onWater) {
+                        MapPos landPos = map_->nearestLandTile(container->position());
+                        int count = 0;
+                        for (auto &w : container->garrisonedUnits) {
+                            if (w.lock()) count++;
+                        }
+                        int i = 0;
+                        for (auto it = container->garrisonedUnits.begin(); it != container->garrisonedUnits.end(); ) {
+                            auto u = it->lock();
+                            if (u) {
+                                u->garrisonedInUnit.reset();
+                                float angle = (2.f * M_PI * i) / std::max(1, count);
+                                MapPos exitPos = landPos;
+                                exitPos.x += std::cos(angle) * Constants::TILE_SIZE;
+                                exitPos.y += std::sin(angle) * Constants::TILE_SIZE;
+                                u->setPosition(exitPos);
+                                i++;
+                            }
+                            it = container->garrisonedUnits.erase(it);
+                        }
+                    } else {
+                        container->ungarrisonAllUnits();
+                    }
                 }
             }
             break;

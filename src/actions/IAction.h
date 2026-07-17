@@ -106,6 +106,7 @@ public:
 
     virtual UnitState unitState() const { return UnitState::Idle; }
     virtual genie::ActionType taskType() const = 0;
+    const Task &task() const { return m_task; }
 
     static void assignTask(const Task &task, const std::shared_ptr<Unit> &unit, const AssignType assignType);
 

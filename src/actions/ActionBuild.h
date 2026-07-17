@@ -24,5 +24,7 @@ public:
 
 private:
     std::weak_ptr<Building> m_targetBuilding;
+    Task m_previousTask;               // Task to restore after building
+    std::weak_ptr<Unit> m_previousTarget; // Target of previous task
 };
 

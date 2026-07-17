@@ -1,6 +1,7 @@
 #include "ActionBuild.h"
 
 #include "ActionGather.h"
+#include "ActionMove.h"
 #include "core/Logger.h"
 #include "mechanics/Building.h"
 #include "mechanics/Player.h"
@@ -17,6 +18,13 @@ ActionBuild::ActionBuild(const Unit::Ptr &builder, const Task &task) :
     }
     m_targetBuilding = building;
     DBG << builder->debugName << "building" << building->debugName;
+
+    // Save previous gathering task so we can restore it after building
+    if (builder->actions.currentAction() &&
+        builder->actions.currentAction()->taskType() == genie::ActionType::GatherRebuild) {
+        m_previousTask = builder->actions.currentAction()->task();
+        m_previousTarget = m_previousTask.target;
+    }
 }
 
 ActionBuild::~ActionBuild()
@@ -112,6 +120,16 @@ IAction::UpdateResult ActionBuild::update(Time time)
                 if (gatherTask.isValid()) {
                     unit->actions.queueAction(std::make_shared<ActionGather>(unit, gatherTask));
                 }
+            }
+        } else if (m_previousTask.isValid()) {
+            // Non-drop-off building: restore previous gathering task
+            Unit::Ptr prevTarget = m_previousTarget.lock();
+            if (prevTarget && !prevTarget->isDead() && !prevTarget->isDying()) {
+                unit->actions.queueAction(ActionMove::moveUnitTo(unit, prevTarget->position(), m_previousTask));
+                ActionPtr gatherAction = std::make_shared<ActionGather>(unit, m_previousTask);
+                gatherAction->requiredUnitID = m_previousTask.unitId;
+                unit->actions.queueAction(gatherAction);
+                DBG << "Restoring previous gather task after building";
             }
         }
 
